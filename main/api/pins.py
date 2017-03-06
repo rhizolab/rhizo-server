@@ -94,6 +94,7 @@ class PinList(ApiResource):
         pin_record.pin = random.randint(1000, 9999)
         pin_record.code = generate_access_code(60)
         pin_record.creation_timestamp = datetime.datetime.utcnow()
+        pin_record.attributes = '{}'
         db.session.add(pin_record)
         db.session.commit()
         return {'status': 'ok', 'pin': pin_record.pin, 'pin_code': pin_record.code}
