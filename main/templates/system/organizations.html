@@ -1,0 +1,61 @@
+{% extends "base.html"%}
+{% block title %}Organizations{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<style>
+#organizations {
+	margin-top: 10px;
+}
+button#newOrg {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+$(function() {
+	var handler = function(orgs) {
+		var tableData = createTableData();
+		$.each(orgs, function(id, org) {
+			tableData.add("ID", org.id);
+			tableData.add("Full Name", $('<a>', {href: '/settings/' + org.name, html: org.settings.full_name}));
+			tableData.add("Folder Name", $('<a>', {href: '/' + org.name, html: org.name}));
+		});
+		createTable(tableData).appendTo($("#organizations"));
+	}
+	$.get('/api/v1/organizations', {}, handler);
+});
+
+
+function newOrganization() {
+	var formData = createFormData();
+	formData.add({label: 'Full Name', id: 'full_name'});
+	formData.add({label: 'Folder Name', id: 'folder_name'});
+	var doneHandler = function() {
+		window.location.reload(); // fix(later): make more graceful
+	}
+	createModalForm({
+		title: 'New Organization', 
+		data: formData, 
+		method: 'POST', 
+		url: '/api/v1/organizations', 
+		onDone: doneHandler 
+	});
+}
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<h2>Organizations</h2>
+<div id="organizations"></div>
+<button class="btn btn-primary" id="newOrg" onclick="newOrganization();">New Organization</button>
+{% endblock %}

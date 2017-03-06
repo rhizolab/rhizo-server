@@ -1,0 +1,271 @@
+{% extends "base.html"%}
+{% block title %}Sequence{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/messages.js') }}"></script>
+<script type="text/javascript" src="{{ static_file('js/manyplot.js') }}"></script>
+<style>
+div#plot {
+	display: none;
+	margin-bottom: 20px;
+}
+</style>
+{% endblock head %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_resource = {{ resource|safe }};
+var g_resourcePath = '{{ resource_path|safe }}';  // assume includes leading slash
+var g_thumbnailResourcePath = '{{ thumbnail_resource_path|safe }}';  // assume includes leading slash
+var g_timestamps = {{ timestamps|safe }};
+var g_values = {{ values|safe }};
+var g_thumbnailRevs = {{ thumbnail_revs|safe }};
+var g_fullImageRevs = {{ full_image_revs|safe }};
+var g_plotHandler = null;
+var g_xData = null;
+var g_yData = null;
+var g_tableData = null;
+
+
+$(function() {
+
+	// add a menus
+	var menuData = createMenuData();
+	menuData.add('Download', downloadHistory);
+	menuData.add('Summary', dataSummary);
+	menuData.add('Delete Data', deleteAllData);
+	createDropDownMenu({id: 'dataMenu', label: 'Data', compact: true, menuData: menuData}).appendTo($('#menuArea'));
+
+	// add summary area
+	var dataTypeName = '';
+	switch (g_resource.system_attributes.data_type) {
+	case 1: dataTypeName = 'numeric'; break;
+	case 2: dataTypeName = 'text'; break;
+	case 3: dataTypeName = 'image'; break;
+	}
+	var nvd = createNameValueData();
+	nvd.add('ID', g_resource.id);
+	nvd.add('Name', g_resource.name);
+	nvd.add('Data Type', dataTypeName);
+	nvd.add('Decimal Places', g_resource.system_attributes.decimal_places);
+	nvd.add('Units', g_resource.system_attributes.units);
+	nvd.add('Max History', g_resource.system_attributes.max_history);
+	nvd.add('Min Storage Interval', g_resource.system_attributes.min_storage_interval ? g_resource.system_attributes.min_storage_interval + ' seconds' : '');
+	createNameValueView(nvd).appendTo($('#sequenceInfo'));
+	var decimalPlaces = g_resource.decimal_places;
+	var format = '.' + decimalPlaces + 'f';
+
+	// create plot (for numeric sequences)
+	if (g_resource.system_attributes.data_type == 1) {
+		var valuesRev = g_values.slice(0).reverse();  // fix(faster): do we need to make a copy if we're reversing?
+		var timestampsRev = g_timestamps.slice(0).reverse();
+		var canvas = document.getElementById('canvas');
+		
+		// make sure all values are numeric (or null)
+		// fix(faster): combine with reverse (or do on server)
+		var len = valuesRev.length;
+		for (var i = 0; i < len; i++) {
+			var val = valuesRev[i];
+			if (val !== null) {
+				valuesRev[i] = +val;  // convert to number
+			}
+		}
+		
+		// create plot using manyplot library
+		g_plotHandler = createPlotHandler(canvas);
+		g_xData = createDataColumn('timestamp', timestampsRev);
+		g_xData.type = 'timestamp';
+		g_yData = createDataColumn('value', valuesRev);
+		g_yData.name = g_resource.name;
+		var dataPairs = [
+			{
+				'xData': g_xData,
+				'yData': g_yData,
+			}
+		];
+		g_plotHandler.plotter.setData(dataPairs);
+		g_plotHandler.drawPlot(null, null);
+		$('#plot').show();
+	}
+
+	// create table of historical values
+	if (g_values.length) {
+
+		// prep data
+		var tableLength = 200;
+		var timestamps = g_timestamps.slice(0, tableLength);
+		for (var i = 0; i < timestamps.length; i++) {
+			timestamps[i] *= 1000;  // fix(later): do this automatically in table? standardize on unix or unix * 1000?
+		}
+		var values = [];
+		if (g_resource.system_attributes.data_type == 3) {
+			values = [];
+			for (var i = 0; i < tableLength; i++) {
+				var fullImageUrl = '/api/v1/resources' + g_resourcePath + '?rev=' + g_fullImageRevs[i];
+				if (g_thumbnailRevs[i]) {
+					var thumbnailUrl = '/api/v1/resources' + g_thumbnailResourcePath + '?rev=' + g_thumbnailRevs[i];
+					var link = $('<a>', {href: fullImageUrl});
+					$('<img>', {src: thumbnailUrl}).appendTo(link);
+				} else {
+					var link = createLink({'text': 'image', 'href': fullImageUrl});
+				}
+				values.push(link);
+			}
+		} else {
+			values = g_values.slice(0, tableLength);
+		}
+
+		// create table
+		var div = $('#history');
+		$('<h2>', {html: 'Recent History'}).appendTo(div);
+		g_tableData = createTableData();
+		g_tableData.addColumn('Timestamp', timestamps);
+		g_tableData.addColumn('Value', values);
+		g_tableData.setFormat('Timestamp', 'timestamp');
+		createTable(g_tableData).appendTo(div);
+	}
+	
+	// subscribe to updates
+	subscribeToFolder(g_resource.parent_id);
+	connectWebSocket();
+	
+	// handle plant info message (based on bar code) 
+	addMessageHandler('sequence_update', function(timestamp, params) {
+		//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
+		if (params['name'] == g_resourcePath) {
+			var unixTimestamp = timestamp.unix();
+			var value = params['value'];
+			
+			// update plot
+			if (g_resource.system_attributes.data_type == 1) {
+				g_xData.data.push(unixTimestamp);
+				g_yData.data.push(value);
+				g_plotHandler.plotter.autoBounds();
+				g_plotHandler.drawPlot(null, null);
+			}
+
+			// update image
+			// note: not every sequence update will be stored in DB, so not every image update message will include revision_ids
+			if (g_resource.system_attributes.data_type == 3 && params.revision_id && params.thumbnail_revision_id) {
+				var fullImageUrl = '/api/v1/resources' + g_resourcePath + '?rev=' + params.revision_id;
+				var thumbnailUrl = '/api/v1/resources' + g_thumbnailResourcePath + '?rev=' + params.thumbnail_revision_id;
+				var link = $('<a>', {href: fullImageUrl});
+				$('<img>', {src: thumbnailUrl}).appendTo(link);
+				value = link;
+			}
+
+			// update table
+			// fix(faster): just add row?
+			if (value) {
+				g_tableData.column('Timestamp').values.unshift(unixTimestamp * 1000);
+				g_tableData.column('Value').values.unshift(value);
+				var div = $('#history');
+				div.html('');
+				$('<h2>', {html: 'Recent History'}).appendTo(div);
+				createTable(g_tableData).appendTo(div);
+			}
+		}
+	});
+});
+
+
+function dataSummary() {
+	var handler = function(data) {
+		var len = data.length;
+		var messages = [];
+		var counts = [];
+		for (var i = 0; i < len; i++) {
+			var item = data[i];
+			messages.push(item[0]);
+			counts.push(item[1]);
+		}
+		var div = $('#history');
+		div.html(''); // clear out old html
+		$('<h2>', {html: 'History Summary'}).appendTo(div);
+		var tableData = createTableData();
+		tableData.addColumn('Message', messages);
+		tableData.addColumn('Count', counts);
+		createTable(tableData).appendTo(div);
+	}
+	var params = {
+		'summary': 1,
+		'prefix_length': 10,
+		'count': 10000,
+		'csrf_token': g_csrfToken,
+	};
+	$.get('/api/v1/resources' + g_resourcePath, params, handler);
+}
+
+
+function downloadHistory() {
+
+	// create a modal
+	var modalDiv = createBasicModal('downloadHistory', 'Download History');
+	modalDiv.appendTo($('body'));
+
+	// add date range selectors
+	var todayStr = moment().format('YYYY-MM-DD');
+	var fg = createFormGroup({id: 'startDate', label: 'Start Date'}).appendTo($('#downloadHistory-body'));
+	createTextInput({id: 'startDate', value: todayStr}).appendTo(fg);
+	var fg = createFormGroup({id: 'endDate', label: 'End Date'}).appendTo($('#downloadHistory-body'));
+	createTextInput({id: 'endDate', value: todayStr}).appendTo(fg);
+
+	// handle user choosing to proceed
+	$('#downloadHistory-ok').click(function() {
+		var startDate = $('#startDate').val();
+		var endDate = $('#endDate').val();
+		var startMoment = moment(startDate);
+		var endMoment = moment(endDate);
+		if (!startMoment.isValid()) {
+			alert('Please enter a valid start date.');
+			$('#startDate').focus();
+		} else if (!endMoment.isValid()) {
+			alert('Please enter a valid end date.');
+			$('#endDate').focus();
+		} else {
+			var startTimestamp = startMoment.startOf('day').toISOString();
+			var endTimestamp = endMoment.endOf('day').toISOString();
+			$('#downloadHistory').modal('hide');
+			window.location.href = '/api/v1/resources' + g_resourcePath + '?download=1&start_timestamp=' + startTimestamp + '&end_timestamp=' + endTimestamp;
+		}
+	});
+	
+	// display the modal
+	$('#downloadHistory').modal('show');
+}
+
+function deleteAllData() {
+	modalConfirm({
+		title: 'Delete Sequence Data', 
+		'prompt': 'Are you sure you want to <b>delete all data</b> for sequence <b>' + g_resource.name + '</b>?', 
+		yesFunc: function() {
+			$.ajax({
+				url: '/api/v1/resources' + g_resourcePath, 
+				data: {'csrf_token': g_csrfToken, 'data_only': 1}, 
+				type: 'DELETE',
+				success: function() {window.location.reload();},  // fix(later): make more graceful
+			});
+		} 
+	});
+}
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<h2>Sequence</h2>
+<div id="sequenceInfo"></div>
+<div id="plot">
+	<canvas id="canvas" width="900" height="400"></canvas>
+	<button class="btn" onclick="g_plotHandler.zoomIn()">Zoom In</button>
+	<button class="btn" onclick="g_plotHandler.zoomOut()">Zoom Out</button>
+</div>
+<div id="history"></div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html"%}
+{% block title %}Folder Viewer{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+var g_folderTree = {{ folder_tree|safe }};
+
+$(function() {
+	var tableData = createTableData();
+	for (var i = 0; i < g_folderTree.length; i++) {
+		var folderInfo = g_folderTree[i];
+		if (folderInfo.fileCount) {
+			tableData.add('Name', folderInfo.name);
+			tableData.add('File Count', folderInfo.fileCount);
+		}
+	}
+	createTable(tableData).appendTo($('#resources'));
+});
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<div id="resources">
+</div>
+{% endblock %}

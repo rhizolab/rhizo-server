@@ -1,0 +1,70 @@
+{% extends "base.html"%}
+{% block title %}Settings{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+<style>
+table#orgs {
+	margin-top: 15px;
+}
+#orgHeading {
+	margin-top: 40px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+var g_user = {{ user_json|safe }};
+
+$(function() {
+
+	var nvd = createNameValueData();
+	nvd.add('ID', g_user.id);
+	nvd.add('Email Address', g_user.email_address);
+	nvd.add('User Name', g_user.user_name || '(none)');
+	nvd.add('Full Name', g_user.full_name || '(none)');
+	nvd.add('Creation Timestamp', formatTimestamp(g_user.creation_timestamp));
+	createNameValueView(nvd).appendTo($('#userInfo'));
+
+});
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+
+<h2>User Info</h2>
+
+<div id="userInfo">
+</div>
+
+<a class="btn btn-primary" href="/settings/change-password">Change Password</a>
+
+<h2 id="orgHeading">Organization Membership</h2>
+
+<table class="table" id="orgs">
+<tr>
+	<th>Name</th>
+	<th>Top-Level Folder Name</th>
+</tr>
+{% for org_user in org_users %}
+	<tr>
+		<td>
+			{% if org_user.is_admin %}
+				<a href="/settings/{{ org_user.organization_name }}">{{ org_user.organization_full_name }} <span class="glyphicon glyphicon-cog" aria-hidden="true"></span></a>
+			{% else %}
+				{{ org_user.organization_full_name }}
+			{% endif %}
+		</td>
+		<td>{{ org_user.organization_name }}</td>
+	</tr>
+{% endfor %}
+</table>
+
+{% endblock %}

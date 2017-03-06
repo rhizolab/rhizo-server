@@ -1,0 +1,104 @@
+{% extends "base.html"%}
+{% block title %}Keys{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<style>
+#users {
+	margin-top: 10px;
+}
+button#newKey {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_keys = {};
+
+
+$(function() {
+	var handler = function(keys) {
+		g_keys = keys;
+		var tableData = createTableData();
+		$.each(keys, function(id, key) {
+			tableData.add('ID', key.id);
+			tableData.add('Key Part', key.key_part);
+			tableData.add('Access As User', key.access_as_user_id);
+			tableData.add('Access As Controller', key.access_as_controller_id);
+			if (!key.revocationTimestamp) {
+				tableData.add('Revoke', createLink({text: 'revoke', clickFunc: revokeKey, clickData: key.id}));
+			} else {
+				tableData.add('Revoke', '');
+			}
+			tableData.add('Delete', createLink({text: 'delete', clickFunc: deleteKey, clickData: key.id}));
+		});
+		createTable(tableData).appendTo($('#keys'));
+	}
+	$.get('/api/v1/keys', {}, handler);
+});
+
+
+function newKey() {
+	var formData = createFormData();
+	formData.add({label: 'Organization', id: 'organization_id'});
+	formData.add({label: 'Access as User', id: 'access_as_user_id'});
+	var doneHandler = function(result) {
+		if (result.secret_key) {
+			modalAlert({title: 'New Key', message: 'Key: ' + result.secret_key, nextFunc: function() {
+				window.location.reload(); // fix(later): make more graceful
+			 }});
+		}
+	}
+	createModalForm({title: 'New Key', data: formData, method: 'POST', url: '/api/v1/keys', onDone: doneHandler});
+}
+
+
+function revokeKey(event) {
+	var keyId = event.data;
+	var key = g_keys[keyId];
+	if (confirm('Are you sure you want to revoke key ' + key.keyPart + '?')) {
+		var handler = function() {
+			window.location.reload();
+		}
+		$.ajax({
+			type: 'DELETE', 
+			url: '/api/v1/keys/' + key.id, 
+			data: {'delete': 0, 'csrf_token': g_csrfToken}, 
+			success: handler
+		});
+	}
+}
+
+
+function deleteKey(event) {
+	var keyId = event.data;
+	var key = g_keys[keyId];
+	if (confirm('Are you sure you want to delete key ' + key.keyPart + '?')) {
+		var handler = function() {
+			window.location.reload();
+		}
+		$.ajax({
+			type: 'DELETE', 
+			url: '/api/v1/keys/' + key.id, 
+			data: {'delete': 1, 'csrf_token': g_csrfToken}, 
+			success: handler
+		});
+	}
+}
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<h2>Keys</h2>
+<div id="keys"></div>
+<button class="btn btn-primary" id="newKey" onclick="newKey();">New Key</button>
+{% endblock %}

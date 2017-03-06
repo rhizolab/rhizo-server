@@ -1,0 +1,94 @@
+{% extends "base.html"%}
+{% block title %}Table Viewer{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+// for now we assume data is a row-oriented list of lists
+var g_data = {{ data_json|safe }};
+
+$(function() {
+	
+	// create a set of columns
+	var columnNames = [];
+	var columnValues = [];
+	var columnCount = 0;
+	var statsValues = [];
+	var statArea = true;
+	for (var i = 0; i < g_data.length; i++) {
+		var dataRow = g_data[i];
+		if (i == 0) {
+			for (var j = 0; j < dataRow.length; j++) {
+				columnNames.push(dataRow[j])
+				columnValues.push([]);
+			}
+			columnCount = columnNames.length;
+		} else {
+			var rowLen = dataRow.length;
+			if (rowLen === 0) {
+				statArea = false;
+			}
+			for (var j = 0; j < columnCount; j++) {
+				if (j < rowLen) {
+					var value = dataRow[j];
+					columnValues[j].push(value);
+					if (statArea && value !== '' && !isNaN(value)) {
+						statsValues.push(parseFloat(value));
+					}
+				} else {
+					columnValues[j].push('')
+				}
+			}
+		}
+	}
+	
+	// compute stats
+	statsValues.sort(function(a, b){return a-b});
+	var len = statsValues.length;
+	if (len) {
+		var minVal = statsValues[0];
+		var maxVal = statsValues[len - 1];
+		if (len % 2) {// odd: take center value
+			var medianVal = statsValues[Math.floor(len / 2)];
+		} else {// even: take average of two center values
+			var medianVal = 0.5 * (statsValues[len / 2 - 1] + statsValues[len / 2]);
+		}
+		var sum = 0;
+		for (var i = 0; i < len; i++) {
+			sum += statsValues[i];
+		}
+		var meanVal = sum / len;
+	}
+	
+	// create a table data object
+	var tableData = createTableData();
+	for (var j = 0; j < columnNames.length; j++) {
+		var columnName = columnNames[j];
+		var columnValue = columnValues[j];
+		tableData.addColumn(columnName, columnValue);
+	}
+	var tableHolder = $('#tableHolder');
+	createTable(tableData).appendTo(tableHolder, g_data.tableSpec);
+	
+	// add an edit link
+	$('<a>', {href: window.location.href + '?edit=1', html: 'edit'}).appendTo($('#menuArea'));
+	
+	// display stats
+	$('<h3>', {html: 'Stats'}).appendTo(tableHolder);
+	var nvd = createNameValueData();
+	nvd.add('min', minVal.toFixed(4));
+	nvd.add('max', maxVal.toFixed(4));
+	nvd.add('mean', meanVal.toFixed(4));
+	nvd.add('median', medianVal.toFixed(4));
+	createNameValueView(nvd).appendTo(tableHolder);
+});
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<div id="tableHolder">
+</div>
+{% endblock %}

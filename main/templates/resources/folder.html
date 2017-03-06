@@ -1,0 +1,913 @@
+{% extends "base.html"%}
+{% block title %}{{ full_path }}{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/messages.js') }}"></script>
+<style>
+#menuArea button {
+	margin-left: 4px;
+}
+.resource-tile {
+	margin-right: 4px;
+	margin-bottom: 4px;
+}
+span#emptyFolder {
+	font-style: italic;
+}
+div.attribCategory {
+	font-size: 20px;
+	border-bottom: 1px solid black;
+	margin-bottom: 5px;
+}
+#messageType {
+	margin-bottom: 5px;
+}
+#paramName1,#paramValue1,#paramName2,#paramValue2,#paramName3,#paramValue3 {
+	width: 65px;
+	margin-right: 5px;
+}
+button#sendMessage {
+	margin-top: 5px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_folderType = {{ folder_type }};
+var g_folderResource = {{ folder_resource_json|safe }};
+var g_fullPath = '{{ full_path }}';  // should start with leading slash
+var g_resources = {{ resources_json|safe }};
+var g_view = {{ view_json|safe }};
+var g_liveBlocks = [];  // fix(clean): remove this after move sequence_update handler from messages.js to blocks.js?
+
+
+function resourceUrl(resource) {
+	var urlPart = resource.type == 22 ? resource.name.replace(/ /g, '_') : resource.name; // fix(soon): want nice app URLS and nice app names, but don't want to mix up _ and space in remote files
+	return g_fullPath + '/' + urlPart;
+}
+
+
+function createResourceTile(resource) {
+	var fileExt = resource.name.substr(resource.name.lastIndexOf('.') + 1);
+
+	// prep menu options
+	var menuData = createMenuData();
+	if (resource.type == 20) {
+		menuData.add("Download", downloadResource, {id: resource.id});
+		if (fileExt == 'csv') {
+			menuData.add("Download as XLS", downloadResource, {id: resource.id, convertTo: 'xls'});
+		}
+	}
+	menuData.add("Rename", renameResource, {id: resource.id});
+	if (resource.type == 12 || resource.type == 13 || resource.type == 21 || resource.type == 30) {
+		menuData.add('Edit Settings', editResourceSettings, {id: resource.id});
+	}
+	menuData.add('Edit Attributes', viewResourceAttributes, {id: resource.id});
+	if (resource.type == 12) {// controller
+		menuData.add('Enter PIN', enterPin, {id: resource.id});
+	}
+	menuData.add("Delete", deleteResource, {id: resource.id});
+	
+	// create a split drop-down including a resource link and an action drop-down button
+	var btnGroup = $('<div>', {class: 'btn-group resource-tile'});
+	var url = resourceUrl(resource);
+	var a = $('<a>', {href: url, class: 'btn btn-default', html: resource.name}).appendTo(btnGroup);
+	if (fileExt == 'jpg' || fileExt == 'png') {
+		var thumbnailUrl = url + '?width=120';
+		$('<br>').prependTo(a);
+		$('<img>', {src: thumbnailUrl}).prependTo(a);
+	}
+{% if user_access_level >= 20 %}
+	var menuButton = $('<button>', {type: 'button', class: 'btn btn-default dropdown-toggle', 'data-toggle': 'dropdown', 'aria-expanded': 'false'}).appendTo(btnGroup);
+	$('<span>', {class: 'caret'}).appendTo(menuButton);
+	createDropDownList({id: resource.id, menuData: menuData}).appendTo(btnGroup);
+{% endif %}
+	return btnGroup;
+}
+
+
+function addResourceList(heading, minType, maxType) {
+	var resourceDiv = $("#resources");
+	var div = null;
+	for (var i = 0; i < g_resources.length; i++) {
+		var resource = g_resources[i];
+		if (resource.type >= minType && resource.type <= maxType) {
+			if (div === null) {
+				$('<h3>', {html: heading}).appendTo(resourceDiv);
+				div = $('<div>').appendTo(resourceDiv);
+			}
+			createResourceTile(resource).appendTo(div);
+		}
+	}
+}
+
+
+$(function() {
+	var navMenuArea = $('#menuArea');
+
+{% if user_access_level >= 20 %}
+	var uploadButton = $('<button>', {class: 'btn btn-xs', html: 'Upload File'}).appendTo(navMenuArea);
+	uploadButton.click(uploadFile);
+
+	// add a menu for creating new resources
+	var menuData = createMenuData();
+	menuData.add('Folder', newFolder);
+{% if is_admin %}
+	if (g_folderType == 12) {// if controller folder, allow create remote folder inside of it
+		menuData.add("Remote Folder", newRemoteFolder);
+	}
+	menuData.add('Documentation', newDocumentation);
+	menuData.add('App', newApp);
+{% endif %}
+	menuData.add('Controller', newController);
+	menuData.add('Sequence', newSequence);
+	createDropDownMenu({id: "newResource", label: "New", compact: true, menuData: menuData}).appendTo(navMenuArea);
+
+	// add selection menu
+	var selectMenuData = createMenuData();
+	selectMenuData.add('Download Selected', downloadSelected);
+//	selectMenuData.addDivider();  // fix(soon): add menu dividers
+	selectMenuData.add('Select All', selectAll);
+	selectMenuData.add('Select None', selectNone);
+	createDropDownMenu({id: 'selectMenu', label: 'Select', compact: true, alignRight: true, menuData: selectMenuData}).appendTo(navMenuArea);
+	
+	// add sort menu
+	var sortMenuData = createMenuData();
+	sortMenuData.add('Name', updateViewSort, 'name');
+	sortMenuData.add('Type', updateViewSort, 'type');
+	//sortMenuData.add('Size', updateViewSort, 'size'); fix(later): sort by size doesn't work properly
+	sortMenuData.add('Modification Date', updateViewSort, 'time');
+	createDropDownMenu({id: 'sortMenu', label: 'Sort', compact: true, alignRight: true, menuData: sortMenuData}).appendTo(navMenuArea);
+
+	// add view menu
+	var folderMenuData = createMenuData();
+	folderMenuData.add('View as List', updateViewMode, 'list');
+	folderMenuData.add('View as Tiles', updateViewMode, 'tiles');
+//	folderMenuData.addDivider();
+	folderMenuData.add('Messages', viewSendMessages);
+{% if is_admin %}
+	folderMenuData.add('Permissions', viewEditPermissions);
+{% endif %}
+	createDropDownMenu({id: 'folderMenu', label: 'View', compact: true, alignRight: true, menuData: folderMenuData}).appendTo(navMenuArea);
+{% endif %}
+
+	updateView();
+});
+
+
+function displayResourceTiles() {
+	$('#resources').html('');
+	if (g_resources.length) {
+		addResourceList('Apps', 22, 22);
+		addResourceList('Folders', 10, 19);
+		addResourceList('Files', 20, 20);
+		addResourceList('Sequences', 21, 21);
+	} else {
+		$('<span>', {id: 'emptyFolder', html: 'This folder is empty.'}).appendTo('#resources');
+	}
+}
+
+
+// fix(clean): move elsewhere
+function resourceTypeText(type) {
+	switch (type) {
+	case 10: return 'basic folder';
+	case 11: return 'organization folder';
+	case 12: return 'controller folder';
+	case 13: return 'remote folder';
+	case 20: return 'file';
+	case 21: return 'sequence';
+	case 22: return 'app';
+	}
+	return '(none)';
+}
+
+
+function displayResourceList() {
+	var caseInsensitive = false;
+	switch (g_view.sort) {
+	case 'name': sortByColIndex = 1; caseInsensitive = true; break;
+	case 'type': sortByColIndex = 2; break;
+	case 'size': sortByColIndex = 3; break;
+	case 'time': sortByColIndex = 4; break;
+	default: sortByColIndex = 1; break;
+	}
+	var resourceDiv = $('#resources');
+	resourceDiv.html('');
+	if (g_resources.length) {
+		var tableData = createTableData();
+		for (var i = 0; i < g_resources.length; i++) {
+			var r = g_resources[i];
+			tableData.add('', createCheckBox({'id': 'chk_' + r.id}));
+			tableData.add('name', createLink({'text': r.name, 'href': resourceUrl(r)}));
+			tableData.add('type', resourceTypeText(r.type));
+			tableData.add('size', r.size);
+			tableData.add('last modified', r.modification_timestamp);
+		}
+		tableData.setFormat('last modified', 'timestamp');
+		tableData.sort(sortByColIndex, caseInsensitive);
+		createTable(tableData).appendTo(resourceDiv);
+	} else {
+		$('<span>', {id: 'emptyFolder', html: 'This folder is empty.'}).appendTo(resourceDiv);
+	}
+}
+
+
+function viewSendMessages() {
+
+	// open websocket connection
+	var firstTime = false;
+	if (!g_wsh.connectStarted) {
+		subscribeToFolder(g_fullPath);
+		connectWebSocket();
+		firstTime = true;
+	}
+	
+	var modalDiv = createBasicModal('viewSendMessages', 'View/Send Messages', {infoOnly: true});
+	modalDiv.appendTo($('body')); // fix(later): would be nice to avoid this step
+	var modalBody = $('#viewSendMessages-body');
+	
+	// area for displaying received messages
+	$('<h3>', {html: 'Live Messages'}).appendTo(modalBody);
+	var liveMessages = $('<div>', {id: 'liveMessages', class: 'log'}).appendTo(modalBody);
+	
+	// add handler for messages
+	if (firstTime) {
+		g_wsh.addGenericHandler(function(timestamp, type, params) {
+			var paramStr = '';
+			for (var name in params) {
+				if (params.hasOwnProperty(name)) {
+					if (paramStr.length)
+						paramStr += ', ';
+					paramStr += name + ': ' + params[name];
+				}
+			}
+			var timeStr = moment(timestamp).format("YYYY-M-DD H:mm:ss");
+			var message = type + ' ' + paramStr;
+			var logEntryDiv = $('<div>');
+			$("<span/>", {html: timeStr, class: "logTimestamp"}).appendTo(logEntryDiv);
+			$("<span/>", {html: message, class: "logText"}).appendTo(logEntryDiv);
+			logEntryDiv.prependTo(liveMessages);
+		});
+	}
+
+	// prompt for message type and parameters
+	$('<h3>', {html: 'Send Message'}).appendTo(modalBody);
+	var form = $('<form>', {class: 'form-inline'}).appendTo(modalBody);
+	var fg = createFormGroup({id: 'messageType', label: 'Message Type'}).appendTo(form);
+	$('<span>', {html: ' '}).appendTo(fg);
+	createTextInput({id: 'messageType', placeholder: 'type'}).appendTo(fg);
+	var form = $('<form>', {class: 'form-inline'}).appendTo(modalBody);
+	var fg = createFormGroup({id: 'messageParams', label: 'Parameters'}).appendTo(form);
+	$('<span>', {html: ' '}).appendTo(fg);
+	createTextInput({id: 'paramName1', placeholder: 'name'}).appendTo(fg);
+	createTextInput({id: 'paramValue1', placeholder: 'value'}).appendTo(fg);
+	createTextInput({id: 'paramName2', placeholder: 'name'}).appendTo(fg);
+	createTextInput({id: 'paramValue2', placeholder: 'value'}).appendTo(fg);
+	createTextInput({id: 'paramName3', placeholder: 'name'}).appendTo(fg);
+	createTextInput({id: 'paramValue3', placeholder: 'value'}).appendTo(fg);
+	
+	// add button for sending message
+	var button = $('<button>', {html: 'Send Message', class: 'btn btn-primary', id: 'sendMessage'}).appendTo(modalBody);
+	button.click(function() {
+		var messageType = $('#messageType').val();
+		var paramName1 = $('#paramName1').val();
+		var paramValue1 = $('#paramValue1').val();
+		var paramName2 = $('#paramName2').val();
+		var paramValue2 = $('#paramValue2').val();
+		var paramName3 = $('#paramName3').val();
+		var paramValue3 = $('#paramValue3').val();
+		var params = {};
+		if (paramName1 && paramValue1) {
+			params[paramName1] = paramValue1;
+		}
+		if (paramName2 && paramValue2) {
+			params[paramName2] = paramValue2;
+		}
+		if (paramName3 && paramValue3) {
+			params[paramName3] = paramValue3;
+		}
+		g_wsh.sendMessage(messageType, params);
+	});
+
+	$('#viewSendMessages').modal('show');
+}
+
+
+function viewEditPermissions() {
+	var modalDiv = createBasicModal('viewEditPermissions', 'View/Edit Permissions');
+	modalDiv.appendTo($('body')); // fix(later): would be nice to avoid this step
+	var modalBody = $('#viewEditPermissions-body');
+
+	for (var i = 0; i < g_folderResource.permissions.length; i++) {
+		var permissionItem = g_folderResource.permissions[i];
+		var type = permissionItem[0];
+		var id = permissionItem[1];
+		var level = permissionItem[2];
+		var desc = '';
+		switch (type) {
+		case 100: // ACCESS_TYPE_PUBLIC
+			desc = 'public';
+			break;
+		case 110: // ACCESS_TYPE_ORG_USERS
+			desc = 'org ' + id + ' users ';
+			break;
+		case 120: // ACCESS_TYPE_ORG_CONTROLLERS
+			desc = 'org ' + id + ' controllers ';
+			break;
+		case 130: // ACCESS_TYPE_USER
+			desc = 'user ' + id;
+			break;
+		case 140: // ACCESS_TYPE_CONTROLLER
+			desc = 'controller ' + id;
+			break;
+		}
+		var div = $('<div>', {html: desc + ': ' + level});
+		
+		div.appendTo(modalBody);
+	}
+	$('<button>', {html: 'Add Permissions'});
+	$('#viewEditPermissions').modal('show');
+}
+
+
+function uploadFile() {
+
+	// create a modal
+	var modalDiv = createBasicModal('uploadFile', 'Upload File');
+	modalDiv.appendTo($('body'));
+	var fg = createFormGroup({id: 'file', label: 'File'}).appendTo($('#uploadFile-body'));
+	createFileSelector({id: 'file'}).appendTo(fg);
+
+	// handle user choosing to proceed
+	$('#uploadFile-ok').click(function() {
+		var handler = function(data) {
+			if (data.status == 'ok') {
+				window.location.reload(); // fix(later): update page without reload?
+			} else {
+				if (data.message) {
+					alert(data.message);
+				} else {
+					alert('Error uploading file.');
+				}
+			}
+		};
+		var formData = new FormData();
+		var fileInput = document.getElementById('file');
+		formData.append('file', fileInput.files[0]);
+		formData.append('parent', g_fullPath);
+		formData.append('type', 20);
+		formData.append('csrf_token', g_csrfToken);
+		$.ajax({
+			url: '/api/v1/resources', 
+			type: 'POST',
+			data: formData,
+			success: handler,
+			processData: false,
+			contentType: false,
+			//contentType: 'multipart/form-data',
+		});
+		$('#uploadFile').modal('hide');
+	});
+	
+	// display the modal
+	$('#uploadFile').modal('show');
+}
+
+
+// ======== VIEW/SORT MENUS ========
+
+
+function updateViewMode(event) {
+	g_view.mode = event.data;
+	updateView();
+	storeView();
+}
+
+
+function updateViewSort(event) {
+	g_view.sort = event.data;
+	updateView();
+	storeView();
+}
+
+
+function updateView() {
+	if (g_view.mode === 'list') {
+		$('#selectMenu').show();
+		displayResourceList();
+	} else {
+		$('#selectMenu').hide();
+		displayResourceTiles();
+	}
+}
+
+
+function storeView() {
+	console.log(JSON.stringify(g_view));
+	$.ajax({
+		url: '/api/v1/resources' + g_fullPath, 
+		type: 'PUT',
+		data: {
+			'view': JSON.stringify(g_view),
+			'csrf_token': g_csrfToken,
+		},
+	});
+}
+
+
+// ======== SELECT MENU ========
+
+
+function downloadSelected() {
+	var ids = '';
+	for (var i = 0; i < g_resources.length; i++) {
+		var r = g_resources[i];
+		if ($('#chk_' + r.id).is(':checked')) {
+			if (ids)
+				ids += ',';
+			ids += r.id;
+		}
+	}
+	window.location.href = '/api/v1/resources' + g_fullPath + '?download=1&ids=' + ids;
+}
+
+
+function selectAll() {
+	for (var i = 0; i < g_resources.length; i++) {
+		$('#chk_' + g_resources[i].id).prop('checked', true);
+	}
+}
+
+
+function selectNone() {
+	for (var i = 0; i < g_resources.length; i++) {
+		$('#chk_' + g_resources[i].id).prop('checked', false);
+	}
+}
+
+
+// ======== RESOURCE UTILITIES ========
+
+
+function findResource(id) {
+	var resource = null;
+	for (var i = 0; i < g_resources.length; i++) {
+		if (g_resources[i].id === id) {
+			resource = g_resources[i];
+		}
+	}
+	return resource;
+}
+
+
+function resourceExists(name) {
+	for (var i = 0; i < g_resources.length; i++) {
+		if (g_resources[i].name === name) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+function resourceTypeName(type) {
+	switch (type) {
+	case 10: return 'Folder';
+	case 11: return 'Organization Folder';
+	case 12: return 'Controllers';
+	case 13: return 'Remote Folder';
+	case 20: return 'File';
+	case 21: return 'Sequence';
+	case 22: return 'System';
+	}
+}
+
+
+function validResourceName(fileName) {
+	return fileName.length > 0 && fileName.indexOf('/') < 0;
+}
+
+
+function nameCheck(name) {
+	if (resourceExists(name)) {
+		alert('A resource already exists with that name in this folder.');
+		return false;
+	} else if (validResourceName(name) === false) {
+		alert('Invalid resource name (contains a slash).');
+		return false;
+	}
+	return true;
+}
+
+
+// ======== action menu options ========
+
+
+function editResourceSettings(event) {
+	var resource = findResource(event.data.id);
+	switch (resource.type) {
+	case 12: editControllerSettings(resource); break;
+	case 13: editRemoteFolderSettings(resource); break;
+	case 21: editSequenceSettings(resource); break; // fix(clean): remove "settings" from name
+	}
+}
+
+
+function renameResource(event) {
+	var resource = findResource(event.data.id);
+	var typeName = resourceTypeName(resource.type);
+	modalPrompt({
+		title: 'Rename ' + typeName, 
+		'prompt': 'New name', 
+		'default': resource.name, 
+		resultFunc: function(newName) {
+			if (nameCheck(newName)) {
+				$.ajax({
+					url: '/api/v1/resources' + g_fullPath + '/' + resource.name, 
+					type: 'PUT',
+					data: {
+						'name': newName,
+						'csrf_token': g_csrfToken,
+					},
+					success: function() {window.location.reload();}, // fix(later): make more graceful
+				});
+			}
+		} 
+	});
+}
+
+
+function deleteResource(event) {
+	var resource = findResource(event.data.id);
+	var typeName = resourceTypeName(resource.type);
+	modalConfirm({
+		title: 'Delete ' + typeName, 
+		'prompt': 'Are you sure you want to delete ' + resource.name + '?', 
+		yesFunc: function() {
+			$.ajax({
+				url: '/api/v1/resources' + g_fullPath + '/' + resource.name, 
+				data: {'csrf_token': g_csrfToken}, 
+				type: 'DELETE',
+				success: function() {window.location.reload();}, // fix(later): make more graceful
+			});
+		} 
+	});
+}
+
+
+function downloadResource(event) {
+	var resource = findResource(event.data.id);
+	var convertTo = event.data.convertTo;
+	window.location.href = '/api/v1/resources' + g_fullPath + '/' + resource.name + '?download=1' + (convertTo ? '&convertTo=' + convertTo : '');
+}
+
+
+function viewResourceAttributes(event) {
+	var resource = findResource(event.data.id);
+	var modal = createBasicModal('attribModal', 'Resource Attributes', {infoOnly: true});
+	modal.appendTo($('body'));
+	var modalBody = $('#attribModal-body');
+	var nvd = createNameValueData();
+	nvd.add('id', resource.id);
+	nvd.add('name', resource.name);
+	nvd.add('type', resource.type);
+	nvd.add('size', resource.size);
+	nvd.add('creation time', formatTimestamp(resource.creation_timestamp));
+	nvd.add('modification time', formatTimestamp(resource.modification_timestamp));
+	createNameValueView(nvd).appendTo(modalBody);
+	var userAttributes = resource.user_attributes;
+	for (var category in userAttributes) {
+		if (userAttributes.hasOwnProperty(category)) {
+			var categoryTitle = titleCase(splitCamelCase(category));
+			$('<div>', {class: "attribCategory", html: categoryTitle}).appendTo(modalBody);
+			var attribs = userAttributes[category];
+			var nvd = createNameValueData();
+			for (name in attribs) {
+				if (attribs.hasOwnProperty(name)) {
+					nvd.add(name, attribs[name]);
+				}
+			}
+			createNameValueView(nvd).appendTo(modalBody);
+		}
+	}
+	$('#attribModal').modal('show');
+}
+
+
+function enterPin(event) {
+	var resource = findResource(event.data.id);
+	modalPrompt({
+		title: 'Enter PIN for controller: ' + resource.name, 
+		'prompt': 'PIN', 
+		'default': '', 
+		resultFunc: function(pin) {
+			$.ajax({
+				url: '/api/v1/pins/' + pin, 
+				type: 'PUT',
+				data: {
+					'controller': g_fullPath + '/' + resource.name,
+					'csrf_token': g_csrfToken,
+				},
+			});
+		} 
+	});
+}
+
+// ======== edit resource settings ========
+
+
+function editControllerSettings(resource) {
+	var url = '/api/v1/resources' + g_fullPath + '/' + resource.name;
+	$.get(url, {meta: 1}, function(resourceInfo) {// get detailed resource info
+		$.get('/api/v1/keys', {'access_as_controller_id': resource.id}, function(keys) {// get keys for this controller
+		
+			// create a modal
+			var modalDiv = createBasicModal('controllerSettings', 'Controller Settings');
+			modalDiv.appendTo($('body'));
+			var modalBody = $('#controllerSettings-body');
+
+			// create form for controller attributes
+			// fix(later): could we assign unique ID prefixes and then generate labels from splitCamelCase of ID suffix?
+			var formData = createFormData();
+			formData.add({label: 'name', id: 'ctrlEdit_name', value: resource.name});
+			formData.add({label: 'watchdog recipients', id: 'ctrlEdit_watchdogRecipients', value: resourceInfo.system_attributes.watchdog_recipients});
+			formData.add({label: 'watchdog minutess', id: 'ctrlEdit_watchdogMinutes', value: resourceInfo.system_attributes.watchdog_minutes});
+			createForm({data: formData}).appendTo(modalBody);
+			
+			// show list of keys
+			// fix(later): better to separate keys into a different menu option / different dialog?
+			var tableData = createTableData();
+			$.each(keys, function(id, key) {
+				tableData.add('Key Part', key.key_part);
+				tableData.add('Created', formatTimestamp(key.creation_timestamp));
+				tableData.add('Revoked', key.revocationTimestamp ? formatTimestamp(key.revocation_timestamp) : 'no');
+			});
+			createTable(tableData).appendTo(modalBody);
+			
+			// add button for creating a new key
+			$('<button>', {class: 'btn btn-default', html: 'Generate New Key'}).appendTo(modalBody).click(function() {
+				var params = {
+					'access_as_controller_id': resource.id,
+					'csrf_token': g_csrfToken,
+				};
+				$.post('/api/v1/keys', params, function(results) {
+					if (results && results.status == 'ok') {
+						displaySecretKey(results.secret_key, function() {
+							$('#controllerSettings').modal('hide'); // would be better to update the dialog
+						});
+					} else {
+						alert('Error creating key.');
+					}
+				});
+			});
+			
+			// handle user choosing to proceed
+			$('#controllerSettings-ok').click(function() {
+				var name = $('#ctrlEdit_name').val();
+				if (name == resourceInfo.name || nameCheck(name)) {// fix(clean): have nameCheck take old name?
+					var systemAttributes = resourceInfo.system_attributes;
+					systemAttributes['watchdog_recipients'] = $('#ctrlEdit_watchdogRecipients').val();
+					systemAttributes['watchdog_minutes'] = parseInt($('#ctrlEdit_watchdogMinutes').val());
+					$.ajax({
+						url: url,
+						type: 'PUT',
+						data: {
+							'name': name,
+							'system_attributes': JSON.stringify(systemAttributes),
+							'csrf_token': g_csrfToken,
+						},
+						success: function() {
+							$('#controllerSettings').modal('hide'); 
+							if (name != resourceInfo.name) {
+								window.location.reload(); // fix(later): more graceful
+							}
+						},
+					});
+				}
+			});
+
+			
+			// display the modal
+			$('#controllerSettings').modal('show');
+		});
+	});
+}
+
+
+function editRemoteFolderSettings(resource) {
+	var url = '/api/v1/resources' + g_fullPath + '/' + resource.name;
+	$.get(url, {meta: 1}, function(resourceInfo) {
+		var formData = createFormData();
+		formData.add({id: 'name', value: resource.name});
+		formData.add({id: 'remote_path', value: resourceInfo.system_attributes.remote_path});
+		var doneHandler = function() {
+			window.location.reload(); // in case name has changed
+		}
+		createModalForm({title: 'Remote Folder Settings', data: formData, url: url, method: 'PUT', onDone: doneHandler});
+	});
+}
+
+
+function editSequenceSettings(resource) {
+	var url = '/api/v1/resources' + g_fullPath + '/' + resource.name;
+	$.get(url, {meta: 1}, function(resourceInfo) {
+		var formData = createFormData();
+		formData.add({id: 'name', value: resource.name});
+		var dataTypes = [{id: 1, name: 'numeric'}, {id: 2, name: 'text'}, {id: 3, name: 'image'}];
+		var dataTypeSelector = createSelector({id: 'dataType', 'options': dataTypes, value: resourceInfo.system_attributes.data_type});
+		formData.add({id: 'data_type', value: dataTypeSelector});
+		formData.add({id: 'decimal_places', value: resourceInfo.system_attributes.decimal_places});
+		formData.add({id: 'max_history', value: resourceInfo.system_attributes.max_history});
+		var doneHandler = function() {
+			window.location.reload(); // in case name has changed
+		}
+		createModalForm({title: 'Sequence Settings', data: formData, url: url, method: 'PUT', onDone: doneHandler});
+	});
+}
+
+
+// ======== new resource menu options ========
+
+
+function newFolder(event) {
+	modalPrompt({title: 'Create Folder', prompt: 'Folder name', resultFunc: function(newName) {
+		if (nameCheck(newName)) {
+			var handler = function(data) {
+				if (data && data.status == 'ok') {
+					window.location.reload(); // fix(later): update page without reload?
+				} else {
+					alert('Error creating new folder.');
+				}
+			};
+			var params = {
+				'parent': g_fullPath,
+				'name': newName,
+				'type': 10,
+				'csrf_token': g_csrfToken,
+			};
+			$.post('/api/v1/resources', params, handler);
+		}
+	 }});
+}
+
+
+function newRemoteFolder() {
+	modalPrompt({title: 'Create Remote Folder', prompt: 'Folder name', resultFunc: function(newName) {
+		if (nameCheck(newName)) {
+			var handler = function(data) {
+				if (data && data.status == 'ok') {
+					window.location.reload(); // fix(later): update page without reload?
+				} else {
+					alert('Error creating new remote folder.');
+				}
+			};
+			var params = {
+				'parent': g_fullPath,
+				'name': newName,
+				'type': 13,
+				'remote_path': '[workDir]', // for now we only support remote access to the workDir; later we'll allow arbitrary paths
+				'csrf_token': g_csrfToken,
+			};
+			$.post('/api/v1/resources', params, handler);
+		}
+	 }});
+}
+
+
+function newDocumentation() {
+	newFile(20, 'md', 'documentation');
+}
+
+
+function newApp() {
+	newFile(22, 'app', 'app');
+}
+
+
+function newFile(resourceType, fileType, fileTypeDesc) {
+	var capFileTypeDesc = fileTypeDesc.charAt(0).toUpperCase() + fileTypeDesc.slice(1);  // capitalize first letter
+	modalPrompt({title: 'Create ' + capFileTypeDesc + ' File', prompt: 'File name', resultFunc: function(newName) {
+		if (nameCheck(newName)) {
+			var handler = function(result) {
+				if (result.status == 'ok') {
+					window.location = g_fullPath + '/' + newName + '?edit';  // fix(soon): handle spaces, etc. in file name
+				} else {
+					alert('Error creating ' + fileTypeDesc + ' file.');
+				}
+			};
+			var params = {
+				'parent': g_fullPath,
+				'name': newName,
+				'type': resourceType,
+				'csrf_token': g_csrfToken,
+			};
+			if (fileType == 'md') {  // fix(soon): can we remove this?
+				params.file_type = fileType;
+			}
+			$.post('/api/v1/resources', params, handler);
+		}
+	 }});
+}
+
+
+function newController() {
+
+	// create a modal
+	var modalDiv = createBasicModal('newController', 'New Controller');
+	modalDiv.appendTo($('body'));
+
+	// add controller attributes
+	// fix(faster): load controller types dynamically 
+	var fg = createFormGroup({id: 'controller_name', label: 'Name'}).appendTo($('#newController-body'));
+	createTextInput({id: 'controller_name', value: ''}).appendTo(fg);
+	
+	// handle user choosing to proceed
+	$('#newController-ok').click(function() {
+		var name = $('#controller_name').val();
+		if (nameCheck(name)) {
+			var handler = function(result) {
+				window.location.reload(); // fix(later): update page without reload?
+			};
+			var params = {
+				'parent': g_fullPath,
+				'name': name,
+				'type': 12,
+				'csrf_token': g_csrfToken,
+			};
+			$.post('/api/v1/resources', params, handler);
+			$('#newController').modal('hide');
+		}
+	});
+	
+	// display the modal
+	$('#newController').modal('show');
+}
+
+
+// display a newly generated secret key for a controller
+function displaySecretKey(secretKey, nextFunc) {
+	var message = "The new controllers's secret key is: <b>" + secretKey + "</b><br>Please put this in the controllers's key.txt; you will not be able retrieve it later.";
+	modalAlert({title: 'New Controller Secret Key', message: message, nextFunc: function() {
+		if (nextFunc) {
+			nextFunc();
+		}
+	 }});
+}
+
+
+function newSequence() {
+
+	// create a modal
+	var modalDiv = createBasicModal('newSeq', 'New Sequence');
+	modalDiv.appendTo($('body'));
+
+	// sequence attributes
+	var fg = createFormGroup({id: 'seq_name', label: 'Name'}).appendTo($('#newSeq-body'));
+	createTextInput({id: 'seq_name', value: ''}).appendTo(fg);
+	var fg = createFormGroup({id: 'seq_dataType', label: 'Data Type'}).appendTo($('#newSeq-body'));
+	var dataTypes = [{id: 1, name: 'numeric'}, {id: 2, name: 'text'}, {id: 3, name: 'image'}];
+	createSelector({id: 'seq_dataType', 'options': dataTypes}).appendTo(fg);
+	var fg = createFormGroup({id: 'seq_decimalPlaces', label: 'Decimal Places'}).appendTo($('#newSeq-body'));
+	createTextInput({id: 'seq_decimalPlaces', value: ''}).appendTo(fg);
+
+	// handle user choosing to proceed
+	$('#newSeq-ok').click(function() {
+		var name = $('#seq_name').val();
+		if (nameCheck(name)) {
+			var handler = function(data) {
+				window.location.reload(); // fix(later): update page without reload?
+			};
+			var params = {
+				'parent': g_fullPath,
+				'name': name,
+				'type': 21, // sequence
+				'data_type': $('#seq_dataType').val(),
+				'decimal_places': $('#seq_decimalPlaces').val(),
+				'csrf_token': g_csrfToken,
+			};
+			//console.log(params);
+			$.post('/api/v1/resources', params, handler);
+			$('#newSeq').modal('hide');
+		}
+	});
+	
+	// display the modal
+	$('#newSeq').modal('show');
+}
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<div id="resources"></div>
+{% endblock %}

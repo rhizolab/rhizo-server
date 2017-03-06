@@ -1,0 +1,190 @@
+/*********** GENERAL LAYOUT ***********/
+
+body {
+	font-family: 'Open Sans', sans-serif;
+	background-color: #778899;
+}
+
+.footer {
+	padding-bottom: 15px;
+	text-align: center;
+	color: #ffffff;
+}
+
+h1,h2,h3,h4 {
+	font-family: 'Open Sans', sans-serif;
+}
+
+.nav {
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+div#content {
+	padding: 20px;
+	background-color: #ffffff;
+	margin-top: 0px;
+	margin-bottom: 40px;
+}
+
+div#locNavBar {
+	padding: 10px 20px;
+	margin-top: 15px;
+	background-color: #eeeeee;
+	border-bottom: 1px solid #dddddd;
+}
+
+span#locNavNote {
+	
+}
+
+div#noLocNavBar {
+	margin-top: 15px;
+}
+
+/*********** GENERIC CLASSES ***********/
+
+.indented {
+	margin-left: 40px;
+}
+
+/*
+.alignRight {
+	text-align: right;
+}
+
+.alignLeft {
+	text-align: left;
+}
+
+.clickable {
+	cursor: pointer;
+}
+*/
+
+/*********** LINKS ***********/
+
+a {
+	color: #0088cc;
+}
+
+
+a.box {
+	color: #000000;
+	text-decoration: none;
+}
+
+a.box:hover {
+	color: #0088cc;
+	text-decoration: none;
+}
+
+/*********** POPOVERS ***********/
+
+.popover {
+	width: auto;
+}
+
+/*********** PAGE HEADER ***********/
+
+div.navbar {
+	background-color: #ffffff;
+	margin-bottom: 5px;
+}
+
+span#navName {
+	font-size: 28px;
+	line-height: 30px;
+	font-weight: 300;
+	color: #000;
+}
+
+span#navBeta {
+	color: #999;
+	margin-top: 8px;
+	text-align: bottom;
+	font-weight: 300;
+}
+
+/*********** GENERAL HEADERS ***********/
+
+h2 {
+	margin-bottom: 4px;
+}
+
+h2:first-child {
+	margin-top: 0px;
+}
+
+/*********** HOME PAGE BOXES ***********/
+
+div.boxHead {
+	font-size: 36px;
+	font-weight: 100;
+	text-align: center;
+}
+
+div.boxHeadSmall {
+	font-size: 28px;
+	font-weight: 100;
+	text-align: center;
+}
+
+div.redBox {
+	font-size: 16px;
+	padding: 20px;
+	border: 1px solid #ff8800;
+}
+
+div.blueBox {
+	font-size: 16px;
+	padding: 20px;
+	border: 2px dotted #0088cc;
+}
+
+/*********** TILES/ICONS FOR APPS/FOLDERS ***********/
+
+div.tileIcon {
+	padding: 5px;
+	font-size: 22px;
+	display: inline-block;
+	width: 42px;
+	height: 42px;
+	text-align: center;
+}
+
+div.tileInnerBox {
+	background-color: #ffffff;
+	width: 150px;
+	padding: 5px;
+	color: #000000;
+	border-bottom: 1px solid #dddddd;
+	border-right: 1px solid #dddddd;
+}
+
+div.tileTitle {
+	font-weight: bold;
+	font-size: 16px;
+}
+
+/*********** OTHER PAGE ELEMENTS ***********/
+
+div.appHeading {
+	margin-top: 10px;
+	font-size: 22px;
+}
+
+/* fix(clean): remove this */
+div.appIcon {
+	padding: 5px;
+	font-size: 22px;
+	display: inline-block;
+	width: 42px;
+	height: 42px;
+	text-align: center;
+}
+
+a.adminLink {
+	color: #dddddd;
+}
+

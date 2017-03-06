@@ -1,0 +1,59 @@
+{% extends "base.html"%}
+{% block title %}Users{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<style>
+#users {
+	margin-top: 10px;
+}
+button#newUser {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+$(function() {
+	var handler = function(users) {
+		var tableData = createTableData();
+		$.each(users, function(id, user) {
+			tableData.add('ID', user.id);
+			tableData.add('Email Address', user.email_address);
+			tableData.add('User Name', user.user_name);
+			tableData.add('Full Name', user.full_name);
+			tableData.add('Role', user.role == 2 ? 'System Admin' : '');
+		});
+		createTable(tableData).appendTo($('#users'));
+	}
+	$.get('/api/v1/users', {}, handler);
+});
+
+
+function newUser() {
+	var formData = createFormData();
+	formData.add({label: 'Email Address', id: 'name'});
+	formData.add({label: 'User Name', id: 'user_name'});
+	formData.add({label: 'Full Name', id: 'full_name'});
+	formData.add({label: 'Password', id: 'password'});
+	var doneHandler = function() {
+		window.location.reload(); // fix(later): make more graceful
+	}
+	createModalForm({title: 'New User', data: formData, method: 'POST', url: '/api/v1/users', onDone: doneHandler});
+}
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<h2>Users</h2>
+<div id="users"></div>
+<!--button class="btn btn-primary" id="newUser" onclick="newUser();">New User</button-->
+{% endblock %}

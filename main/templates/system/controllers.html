@@ -1,0 +1,63 @@
+{% extends "base.html"%}
+{% block title %}Controllers{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="/static/js/moment.min.js"></script>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+function timeSinceLastMessage(now, lastMessageTimestamp) {
+	var lastMessageInfo = '';
+	if (lastMessageTimestamp) {
+		var diffSeconds = now.diff(moment(lastMessageTimestamp), 'seconds');
+		var timeDiff = moment.duration(diffSeconds, 'seconds');
+		if (timeDiff < moment.duration(2, 'minutes')) {
+			lastMessageInfo = Math.round(timeDiff.asSeconds()) + " seconds ago";
+		} else if (timeDiff < moment.duration(2, 'hours')) {
+			lastMessageInfo = Math.round(timeDiff.asMinutes()) + " minutes ago";
+		} else if (timeDiff < moment.duration(2, 'days')) {
+			lastMessageInfo = Math.round(timeDiff.asHours()) + " hours ago";
+		} else {
+			lastMessageInfo = Math.round(timeDiff.asDays()) + " days ago";
+		}
+	}
+	return lastMessageInfo;
+}
+
+
+$(function() {
+	var handler = function(controllers) {
+		var now = moment();
+		var tableData = createTableData();
+		$.each(controllers, function(id, controller) {
+			tableData.add('ID', controller.id);
+			tableData.add('Folder', createLink({href: controller.path, text: controller.name}));
+			tableData.add('Websocket', controller.web_socket_connected ? 'Yes' : '');
+			tableData.add('Client Version', controller.client_version);
+			tableData.add('Last Connect', timeSinceLastMessage(now, controller.last_connect_timestamp));
+			tableData.add('Last Watchdog Message', timeSinceLastMessage(now, controller.last_watchdog_timestamp));
+			if (controller.system_attributes && controller.system_attributes.watchdog_minutes) {
+				tableData.add('Watchdog Minutes', controller.system_attributes.watchdog_minutes);
+			} else {
+				tableData.add('Watchdog Minutes', '');
+			}
+		});
+		createTable(tableData).appendTo($('#controllers'));
+	}
+	$.get('/api/v1/resources', {type: 12, folderInfo: 1, extended: 1}, handler);
+});
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<h2>Controllers</h2>
+<div id="controllers"></div>
+{% endblock %}

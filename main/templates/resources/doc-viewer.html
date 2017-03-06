@@ -1,0 +1,22 @@
+{% extends "base.html"%}
+{% block title %}{{ title }}{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+{% if allow_edit %} 
+	$(function() {
+		var navMenuArea = $('#menuArea');
+		var editButton = $('<button>', {class: 'btn btn-xs', html: 'Edit'}).appendTo(navMenuArea);
+		editButton.click(function() {
+			window.location.href += '?edit';
+		});
+	});
+{% endif %}
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+{{ file_html|safe }}
+{% endblock %}

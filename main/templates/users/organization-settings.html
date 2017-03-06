@@ -1,0 +1,181 @@
+{% extends "base.html"%}
+{% block title %}Organization Settings{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<style>
+div.buttonGroup {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_orgUsers = {{ org_users|safe }};
+var g_orgFolderName = '{{ org_resource.name }}';
+{% if is_system_admin %}
+var g_users = {{ users|safe }};
+{% endif %}
+
+
+$(function() {
+	var tableData = createTableData();
+	for (var i = 0; i < g_orgUsers.length; i++) {
+		var orgUser = g_orgUsers[i];
+		tableData.add('User ID', orgUser.user_id);
+		tableData.add('Email', orgUser.email_address);
+		tableData.add('Name', orgUser.full_name);
+		tableData.add('Admin', orgUser.is_admin ? 'Yes' : '');
+	}
+	createTable(tableData).appendTo($('#orgUsers'));
+});
+
+
+function inviteUser() {
+
+	// create a modal prompt for new user's email address
+	var modalDiv = createBasicModal('inviteUser', 'Invite User to Join {{ org_full_name }}');
+	modalDiv.appendTo($('body'));
+	var fg = createFormGroup({id: 'inviteUser_email', label: 'Email Address'}).appendTo($('#inviteUser-body'));
+	createTextInput({id: 'inviteUser_email'}).appendTo(fg);
+	$('<div>', {html: 'The system will send an invitation email to this address.'}).appendTo($('#inviteUser-body'));
+
+	// handle user choosing to proceed
+	$('#inviteUser-ok').click(function() {
+		var emailAddress = $('#inviteUser_email').val();
+		var handler = function(result) {
+			if (result && result.status == 'ok') {
+				alert('An invitation email has been sent to ' + emailAddress + '.');
+			} else {
+				alert('Error assigning user to organization.');
+			}
+		};
+		var params = {
+			'email_address': emailAddress,
+			'csrf_token': g_csrfToken,
+		};
+		$.post('/api/v1/organizations/{{ org_resource.id }}/users', params, handler);
+		$('#inviteUser').modal('hide');
+	});
+
+	// display the modal
+	modalDiv.modal('show');
+}
+
+
+{% if is_system_admin %}
+function assignUser() {
+
+	// create a modal
+	var modalDiv = createBasicModal('assignUser', 'Assign User to {{ org_full_name }}');
+	modalDiv.appendTo($('body'));
+
+	// add user assignment form fields
+	var fg = createFormGroup({id: 'assignUser_user', label: 'User'}).appendTo($('#assignUser-body'));
+	createSelector({id: 'assignUser_user', 'options': g_users}).appendTo(fg);
+	var fg = createFormGroup({id: 'assignUser_isAdmin', label: 'Organization Admin'}).appendTo($('#assignUser-body'));
+	createYesNoSelector({id: 'assignUser_isAdmin', value: 0}).appendTo(fg);
+
+	// handle user choosing to proceed
+	$('#assignUser-ok').click(function() {
+		var handler = function(result) {
+			if (result && result.status == 'ok') {
+				window.location.reload(); // fix(later): update page without reload?
+			} else {
+				alert('Error assigning user to organization.');
+			}
+		};
+		var params = {
+			'user_id': $('#assignUser_user').val(),
+			'is_admin': parseInt($('#assignUser_isAdmin').val()),
+			'csrf_token': g_csrfToken,
+		};
+		$.post('/api/v1/organizations/{{ org_resource.id }}/users', params, handler);
+		$('#assignUser').modal('hide');
+	});
+
+	// display the modal
+	modalDiv.modal('show');
+}
+
+
+function renameOrg() {
+	modalPrompt({title: 'Rename Organization', prompt: 'New name', 'default': '{{ org_full_name }}', resultFunc: function(newName) {
+		if (newName.length) {
+			var handler = function(data) {
+				if (data && data.status == 'ok') {
+					window.location.reload();  // fix(later): update page without reload?
+				} else {
+					alert('Error renaming organization.');
+				}
+			};
+			$.ajax({
+				url: '/api/v1/resources/' + g_orgFolderName, 
+				data: {'full_name': newName, 'csrf_token': g_csrfToken}, 
+				type: 'PUT',
+				success: handler,
+			});
+		}
+	 }});
+}
+
+
+// fix(clean): merge with other instances
+function validResourceName(fileName) {
+	return fileName.length > 0 && fileName.indexOf('/') < 0;
+}
+
+
+function renameOrgFolder() {
+	modalPrompt({title: 'Rename Organization Folder', prompt: 'New folder name', 'default': g_orgFolderName, resultFunc: function(newName) {
+		if (validResourceName(newName) && newName != g_orgFolderName) {
+			var handler = function(data) {
+				if (data && data.status == 'ok') {
+					window.location.href = '/settings/' + newName;
+				} else {
+					alert('Error renaming organization.');
+				}
+			};
+			$.ajax({
+				url: '/api/v1/resources/' + g_orgFolderName, 
+				data: {'name': newName, 'csrf_token': g_csrfToken}, 
+				type: 'PUT',
+				success: handler,
+			});
+		}
+	 }});
+}
+
+
+{% endif %}
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+
+<h2>{{ org_full_name }}</h2>
+
+<div id="orgUsers"></div>
+
+<div class="buttonGroup">
+<button class="btn btn-primary" onclick="inviteUser();">Invite User</button>
+{% if is_system_admin %}
+<button class="btn btn-primary" onclick="assignUser();">Assign User</button>
+{% endif %}
+</div>
+
+{% if is_system_admin %}
+<div class="buttonGroup">
+<button class="btn" onclick="renameOrg();">Rename Organization</button>
+<button class="btn" onclick="renameOrgFolder();">Rename Organization Folder</button>
+</div>
+{% endif %}
+
+{% endblock %}

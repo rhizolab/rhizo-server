@@ -1,0 +1,70 @@
+{% extends "base.html"%}
+{% block title %}New Account Sign-Up{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<script type="text/javascript" src="{{ static_file('js/rhizo/accounts.js') }}"></script>
+<style>
+form#form {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+function validate() {
+
+	// get field values
+	var emailAddress = $('#emailAddress').val();
+	var orgName = $('#orgName').val();
+
+	// validate email address
+	if (validEmailAddress(emailAddress) === false) {
+		alert('Please enter an email address.');
+		$('#emailAddress').focus();
+		return false;
+	}
+	
+	// validate organization name
+	if (validOrganizationName(orgName) === false) {
+		alert('Organization name required.');
+		$('#orgName').focus();
+		return false;
+	}
+	
+	// check for existing user name
+	// fix(soon): add this
+	return true;
+}
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+
+<h2>New Account Sign-Up</h2>
+
+When you sign up for an account, you will create an organization on this system. 
+You can then add devices and other users to the organization.
+
+<form id="form" method="POST" action="/sign-up" onsubmit="return validate();">
+
+	<div class="form-group">
+		<label for="orgName">Organization Name</label>
+		<input type="text" id="orgName" name="orgName" class="form-control"></input>
+	</div>
+
+	<div class="form-group">
+		<label for="emailAddress">Email Address</label>
+		<input type="email" id="emailAddress" name="emailAddress" class="form-control required email" value="{{ emailAddress }}"></input>
+	</div>
+
+	<input type="submit" class="btn btn-primary" value="Submit"></input>
+
+</form>
+
+{% endblock %}

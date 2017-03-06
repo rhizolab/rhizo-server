@@ -1,0 +1,110 @@
+{% extends "base.html"%}
+{% block title %}System Stats{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="{{ static_file('js/moment.min.js') }}"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/messages.js') }}"></script>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_processes = [];
+var g_clients = [];
+
+
+$(function() {
+
+	var handler = function(stats) {
+		console.log(stats);
+		var nvd = createNameValueData();
+		nvd.add('Organizations', stats.organization_count);
+		nvd.add('Users', stats.user_count);
+		nvd.add('Controllers', stats.controller_count);
+		nvd.add('Resources', stats.resource_count);
+		nvd.add('Resource Revisions', stats.resource_revision_count);
+		nvd.add('Thumbnails', stats.thumbnail_count);
+		nvd.add('Sequences', stats.sequence_count);
+		nvd.add('Messages', stats.message_count);
+		createNameValueView(nvd).appendTo($('#systemStats'));
+	}
+	$.get('/api/v1/system/stats', {}, handler);
+
+	function afterOpen() {
+		console.log('connected');
+		g_wsh.sendMessage('requestProcessStatus', {}, '/system');
+	};
+	
+	subscribeToFolder('/system');
+	
+	connectWebSocket(afterOpen);
+	
+	g_wsh.addHandler('processStatus', function(timestamp, params) {
+		var processInfo = params;
+		g_processes.push(processInfo);
+		var clients = processInfo.clients;
+		for (var i = 0; i < clients.length; i++) {
+			var client = clients[i];
+			client.processId = processInfo.processId;
+			g_clients.push(client);
+		}
+		updateTables();
+	});
+});
+
+
+function updateTables() {
+
+	// update process table
+	var tableData = createTableData();
+	for (var i = 0; i < g_processes.length; i++) {
+		var process = g_processes[i];
+		tableData.add('ID', process.processId);
+		tableData.add('Clients', process.clients.length);
+	}
+	var div = $('#processStats');
+	div.html(''); // fix(clean): is there a better way to do this?
+	createTable(tableData).appendTo(div);
+
+	// update client table
+	var tableData = createTableData();
+	for (var i = 0; i < g_clients.length; i++) {
+		var client = g_clients[i];
+		var subscriptionStr = '';
+		for (var j = 0; j < client.subscriptions.length; j++) {
+			var s = client.subscriptions[j];
+			subscriptionStr += (s.folderId || '*') + ';' + (s.messageType || '*') + ' ';
+		}
+		tableData.add('Connected', client.connected);
+		tableData.add('Process ID', client.process_id);
+		tableData.add('Controller ID', client.controller_id);
+		tableData.add('User ID', client.user_id);
+		tableData.add('Auth Method', client.auth_method);
+		tableData.add('Subscriptions', subscriptionStr);
+	}
+	var div = $('#clientStats');
+	div.html(''); // fix(clean): is there a better way to do this?
+	createTable(tableData).appendTo(div);
+}
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+
+<h2>System Stats</h2>
+<div id="systemStats"></div>
+
+<h3>Processes</h3>
+<div id="processStats"></div>
+
+<h3>Clients</h3>
+<div id="clientStats"></div>
+
+{% endblock %}

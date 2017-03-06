@@ -1,0 +1,83 @@
+{% extends "base.html"%}
+{% block title %}Text Editor{% endblock %}
+
+<!---- css/js dependencies ---->
+{% block head %}
+<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/app.css') }}">
+<script type="text/javascript" src="{{ static_file('js/ace/ace.js') }}"></script>
+<script type="text/javascript" src="{{ static_file('js/rhizo/editor.js') }}"></script>
+<style>
+div#editor {
+	margin-top: 10px;
+}
+</style>
+{% endblock %}
+
+<!---- js code ---->
+{% block script %}
+<script>
+
+
+var g_editor = null;
+var g_fileType = '{{ resource.system_attributes.file_type }}';
+
+
+function checkModified() {
+	if (g_editor.modified) {
+		$('#save').prop('disabled', false);
+	} else {
+		$('#save').prop('disabled', true);
+	}
+}
+
+
+function save(afterSave) {
+	var handler = function(result) {
+		if (result.status == 'ok') {
+			g_editor.clearModified();
+			checkModified();
+			if (afterSave) {
+				afterSave();
+			}
+		} else {
+			alert('Error saving file.');
+		}
+	};
+	var params = {
+		'data': g_editor.value(),
+		'csrf_token': g_csrfToken,
+	}
+	$.ajax({
+		url: '/api/v1/resources{{ resource.path() }}',  // path should have leading slash
+		type: 'PUT',
+		data: params, 
+		success: handler,
+	});
+}
+
+
+$(function() {
+	var mode = g_fileType === 'md' ? 'markdown' : 'text';
+	g_editor = createEditor('editor', mode, checkModified);
+	g_editor.start();
+	g_editor.editorObj.focus();
+	{% if show_view_button %}
+		var navMenuArea = $('#menuArea');
+		var editButton = $('<button>', {class: 'btn btn-xs', html: 'View'}).appendTo(navMenuArea);
+		editButton.click(function() {
+			save(function() {
+				window.location.href = window.location.href.split('?')[0];  // remove edit query string
+			});
+		});
+	{% endif %}
+});
+
+
+</script>
+{% endblock %}
+
+<!---- page content ---->
+{% block content %}
+<button id="save" class="btn btn-primary" disabled="disabled" onclick="save()">Save</button>
+<div id="editor">{{ contents }}</div>
+{% endblock %}

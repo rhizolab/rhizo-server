@@ -1,0 +1,163 @@
+div#maxContent {
+	background-color: #ffffff;
+}
+
+div.appHeader {
+	color: #000000;
+	margin-bottom: 20px;
+}
+
+div.appTitle {
+	font-weight: bold;
+	font-size: 16px;
+	display: inline-block;
+}
+
+/*********** BLOCKS ***********/
+
+div.hgroup {
+	margin-top: 10px;
+	margin-bottom: 20px;
+}
+
+button.block {
+	margin-right: 5px;
+}
+
+
+div.imageSequence {
+	margin-top: 20px;
+	margin-bottom: 20px;
+}
+
+div.sequenceBlock {
+	display: inline-block;
+	margin-right: 50px;
+	margin-bottom: 8px;
+	color: #000000;
+}
+
+div.sequenceBlock:hover {
+	background-color: #f8f8f8;
+	color: #0000dd;
+}
+
+div.sequenceLabel {
+}
+
+div.sequenceValue {
+	font-size: 32px;
+}
+
+div.sequenceUnits {
+	font-size: 12px;
+}
+
+div.log {
+	padding: 2px;
+	height: 200px;
+	overflow-y: scroll;
+	color: #000000;
+	border: 1px solid #eeeeee;
+	margin-bottom: 8px;
+}
+
+span.logTimestamp {
+	color: #aaaaaa;
+	padding-right: 8px;
+	display: inline-block;
+}
+
+span.logText {
+	display: inline-block;
+}
+
+div.groupLabel {
+	margin-top: 10px;
+	font-size: 16px;
+	font-weight: bold;
+	padding: 4px;
+	color: #000000;
+	background-color: #f8f8f8;
+}
+
+div.plot {
+	margin-top: 20px;
+	width: 100%;
+	height: 400px;
+}
+
+div.graphic {
+	width: 100%;
+	height: 650px;
+}
+
+textarea.markdown {
+	font-family: monospace;
+}
+
+/* for ACE code editor */
+div#editor { 
+	width: 100%;
+	height: 400px;
+	
+	/*position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;*/
+}
+
+div.long-modal-body {
+	height: 500px;
+	overflow-y: scroll;
+}
+
+/*
+div.modal-body a {
+	display: block;
+}
+*/
+
+/*********** BLOCKS: PROC EDITOR ***********/
+
+div.actionTypesCol {
+	padding: 0px;
+}
+
+div.procedureCol {
+	padding: 0px;
+}
+
+ul.actionTypes {
+	background-color: #667788;
+	padding: 0px;
+	overflow-y: scroll;
+}
+
+li.action {
+	margin: 4px;
+	padding: 4px;
+	background-color: #ffffff;
+	color: #000000;
+	border: 1px solid #cccccc;
+	list-style-type: none;
+	cursor: pointer;
+}
+
+ul.procedure {
+	padding: 0px;
+	width: 100%;
+	height: 400px;
+	background-color: #eeeeff;
+	overflow-y: scroll;
+}
+
+div.actionButtons {
+	float: right;
+	color: #dddddd;
+}
+
+li.indented {
+	margin-left: 20px;
+}

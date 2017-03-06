@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang=en>
+<head>
+	<meta charset=utf-8>
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="expires" content="0">
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+	<title>{% block title %}{{ g.system_name }}{% endblock %}</title>
+	<link rel="shortcut icon" href="/static/favicon.ico">
+	<link rel="stylesheet" type="text/css" href="/static/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/common.css') }}">
+{% if g.use_system_css %}
+	<link rel="stylesheet" type="text/css" href="{{ static_file('css/system.css') }}">
+{% endif %}
+	<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600' rel='stylesheet' type='text/css'>
+	<script type="text/javascript" src="/static/js/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="{{ static_file('js/rhizo/core.js') }}"></script>
+	{% block head %}{% endblock %}
+</head>
+<body>
+
+<!---- top navigation bar ---->
+<div class="navbar navbar-static-top">
+	<div class="container">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="/"><span id="navName">{{ g.system_name }}</span> <span id="navBeta">beta</span></a> 
+		</div>
+		<ul class="nav navbar-nav navbar-right">
+			{% if g.user.is_authenticated %}
+				<li><a href="/">Home</a></li>
+				<li><a href="/doc">Docs</a></li>
+				{% for org_name in g.organization_names %}
+					{% if org_name.full_name != 'Docs' %}
+						<li><a href="/{{ org_name.folder_name }}">{{ org_name.full_name }}</a></li>
+					{% endif %}
+				{% endfor %}
+				<li class="dropdown">
+					<a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-expanded="false">
+						<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
+					</a>
+					<ul class="dropdown-menu" role="menu">
+						<li role="presentation"><a role="menuitem" tabindex="-1" href="/settings">Settings</a></li>
+						<li role="presentation"><a role="menuitem" tabindex="-1" href="/sign-out">Sign Out</a></li>
+					</ul>
+				</li>
+			{% else %}
+				{{ g.extra_nav_items|safe }}
+				<li><a href="/sign-in">Sign In</a></li>
+			{% endif %}
+		</ul>
+	</div>
+</div>
+<div class="container">
+
+	<!---- location navigation ---->
+	{% if hide_loc_nav %}
+	<div id="noLocNavBar"></div>
+	{% else %}
+	<div id="locNavBar"><span id="locNav"></span><span id="menuArea" class="pull-right"></span></div>
+	{% endif %}
+
+	<!---- page content ---->
+	<div id="content">
+	{% block content %}{% endblock %}
+	</div>
+</div>
+
+<!---- js code at end of page body ---->
+<script>
+if (!window.console) {
+	console = {log: function() { }};
+}
+var g_csrfToken = '{{ csrf_token() }}';
+
+// create nav bar links/text
+{% if not hide_loc_nav %}
+function buildLocationNav(fullPath) {
+	var fullPath = fullPath.slice(1); // remove leading slash
+	var parts = fullPath.split('/');
+	var locNav = '';
+	for (var i = 0; i < parts.length - 1; i++) {
+		var path = '';
+		for (var j = 0; j <= i; j++) {
+			path += '/' + parts[j];
+		}
+		locNav += '<a href="' + path + '">' + parts[i] + '</a> / '
+	}
+	locNav += parts[parts.length - 1];
+	return locNav;
+}
+$(function() {
+	$('#locNav').html(buildLocationNav(window.location.pathname));
+	$('.dropdown-toggle').dropdown();
+});
+{% endif %}
+
+</script>
+{% block script %}{% endblock %}
+</body>
+</html>

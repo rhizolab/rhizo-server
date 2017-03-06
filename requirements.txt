@@ -1,0 +1,18 @@
+bcrypt
+boto
+Flask
+Flask-Login
+Flask-RESTful
+Flask-Sockets
+Flask-SQLAlchemy
+gevent
+gevent-websocket
+greenlet
+gunicorn
+Markdown
+Pillow
+pycrypto  # remove
+SQLAlchemy
+twilio  # make this optional
+xlrd
+xlwt
