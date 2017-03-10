@@ -296,7 +296,7 @@ class ResourceRecord(ApiResource):
             if 'contents' in args:
                 data = args['contents']
             else:
-                data = args['data']
+                data = str(args['data'])  # convert unicode to regular string / fix(soon): revisit this
             timestamp = datetime.datetime.utcnow()
             if r.type == Resource.SEQUENCE:  # fix(later): collapse these two cases?
                 resource_path = resource.path()  # fix(faster): don't need to use this if were given path as arg
