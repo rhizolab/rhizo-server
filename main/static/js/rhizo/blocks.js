@@ -172,7 +172,6 @@ function initLog(block) {
 
 	// handle an update message for this sequence
 	block.onValue = function(timestamp, value) {
-		console.log('adding: ' + this.nextLogEntryIndex);
 		var logEntryDiv = $('<div/>', {id: this.id + '_' + this.nextLogEntryIndex});
 		this.nextLogEntryIndex++;
 		var timeStr = moment(timestamp).format('YYYY-M-DD H:mm:ss');
@@ -182,7 +181,6 @@ function initLog(block) {
 		var maxCount = 50;
 		if (this.nextLogEntryIndex > maxCount) {
 			var removeIndex = this.nextLogEntryIndex - maxCount - 1;
-			console.log('removing: ' + removeIndex);
 			$('#' + this.id + '_' + removeIndex).remove();
 		}
 	}
@@ -202,8 +200,8 @@ function initImageSequence(block) {
 
 	// handle an update message for this sequence
 	block.onValue = function(timestamp, value) {
-		console.log('block: ' + this.id);
-		console.log('image: ' + value);
+//		console.log('block: ' + this.id);
+//		console.log('image: ' + value);
 		var resourceName = this.sequenceName;  // we assume the sequence name has a leading slash
 		var d = new Date();
 		$('#' + this.id + '_img').attr('src', '/api/v1/resources' + resourceName + '?' + d.getTime());  // add time to prevent caching
