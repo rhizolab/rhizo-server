@@ -229,12 +229,13 @@ class ResourceRecord(ApiResource):
         # update resource name/location
         if 'name' in args:
             new_name = args['name']
-            try:
-                Resource.query.filter(Resource.parent_id == r.parent_id, Resource.name == new_name, Resource.deleted == False).one()
-                abort(400)  # a resource already exists with this name
-            except NoResultFound:
-                pass
-            r.name = new_name
+            if new_name != r.name:
+                try:
+                    Resource.query.filter(Resource.parent_id == r.parent_id, Resource.name == new_name, Resource.deleted == False).one()
+                    abort(400)  # a resource already exists with this name
+                except NoResultFound:
+                    pass
+                r.name = new_name
         if 'parent' in args:
             parent_resource = find_resource(args['parent'])  # expects leading slash
             if not parent_resource:
@@ -264,7 +265,7 @@ class ResourceRecord(ApiResource):
         if 'user_attributes' in args:
             r.user_attributes = args['user_attributes']
         if r.type == Resource.SEQUENCE:
-            if 'data_type' in args or 'decimal_places' in args:
+            if 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args:
                 system_attributes = json.loads(r.system_attributes)
                 if 'data_type' in args:
                     system_attributes['data_type'] = args['data_type']

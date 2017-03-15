@@ -726,6 +726,8 @@ function editSequenceSettings(resource) {
 		formData.add({id: 'data_type', value: dataTypeSelector});
 		formData.add({id: 'decimal_places', value: resourceInfo.system_attributes.decimal_places});
 		formData.add({id: 'max_history', value: resourceInfo.system_attributes.max_history});
+		formData.add({id: 'min_storage_interval', value: resourceInfo.system_attributes.min_storage_interval});
+		formData.add({id: 'units', value: resourceInfo.system_attributes.units});
 		var doneHandler = function() {
 			window.location.reload(); // in case name has changed
 		}

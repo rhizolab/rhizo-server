@@ -170,6 +170,7 @@ def mime_type_from_ext(file_name):
 # this is a high-level function for setting the value of a sequence;
 # it (1) creates a sequence value record and (2) sends out a sequence_update message;
 # note that we don't commit resource here; outside code must commit
+# value should be a plain string (not unicode string), possibly containing binary data or encoded unicode data
 def update_sequence_value(resource, resource_path, timestamp, value):
     data_type = json.loads(resource.system_attributes)['data_type']
 
@@ -215,6 +216,7 @@ def update_sequence_value(resource, resource_path, timestamp, value):
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
 # note that we don't commit resource here; outside code must commit
+# data should be a plain string (not unicode string), possibly containing binary data or encoded unicode data
 def add_resource_revision(resource, timestamp, data):
     resource_revision = ResourceRevision()
     resource_revision.resource_id = resource.id
