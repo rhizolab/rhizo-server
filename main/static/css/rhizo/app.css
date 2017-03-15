@@ -22,6 +22,7 @@ div.hgroup {
 
 button.block {
 	margin-right: 5px;
+	margin-bottom: 8px;
 }
 
 
@@ -35,6 +36,7 @@ div.sequenceBlock {
 	margin-right: 50px;
 	margin-bottom: 8px;
 	color: #000000;
+	vertical-align: bottom;
 }
 
 div.sequenceBlock:hover {
