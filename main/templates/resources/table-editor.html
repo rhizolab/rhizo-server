@@ -1,6 +1,17 @@
 {% extends "base.html"%}
 {% block title %}Table Viewer{% endblock %}
 
+<!---- css/js dependencies ---->
+{% block head %}
+<style>
+table.colorMap td {
+	width: 20px;
+	height: 20px;
+}
+</style>
+{% endblock %}
+
+
 <!---- js code ---->
 {% block script %}
 <script>
@@ -8,8 +19,25 @@
 // for now we assume data is a row-oriented list of lists
 var g_data = {{ data_json|safe }};
 
+
+// based on code from here: https://css-tricks.com/snippets/javascript/get-url-variables/
+function queryVariable(name, defaultValue) {
+	var query = window.location.search.substring(1);
+	var vars = query.split('&');
+	for (var i = 0; i < vars.length; i++) {
+		var pair = vars[i].split('=');
+		if (pair[0] == name) {
+			return pair[1];
+		}
+	}
+	return defaultValue;
+}
+
 $(function() {
-	
+
+	// get URL options
+	var view = parseInt(queryVariable('view', '1'));
+
 	// create a set of columns
 	var columnNames = [];
 	var columnValues = [];
@@ -62,14 +90,45 @@ $(function() {
 	}
 	
 	// create a table data object
-	var tableData = createTableData();
-	for (var j = 0; j < columnNames.length; j++) {
-		var columnName = columnNames[j];
-		var columnValue = columnValues[j];
-		tableData.addColumn(columnName, columnValue);
+	if (view === 1) {
+		var tableData = createTableData();
+		for (var j = 0; j < columnNames.length; j++) {
+			var columnName = columnNames[j];
+			var columnValue = columnValues[j];
+			tableData.addColumn(columnName, columnValue);
+		}
+		var tableHolder = $('#tableHolder');
+		createTable(tableData).appendTo(tableHolder, g_data.tableSpec);
+	} else {
+		var maxColor = [255, 0, 0];
+		var minColor = [0, 0, 255];  // fix(later): use color library to smartly interpolate keypoints
+		var table = $('<table>', {class: 'colorMap'});
+		for (var i = 0; i < g_data.length; i++) {
+			var dataRow = g_data[i];
+			var tr = $('<tr>');
+			for (var j = 0; j < dataRow.length; j++) {
+				var data = dataRow[j];
+				var val = parseFloat(data);
+				if (i === 0 && isNaN(val)) {  // fix(later): handle mixture of text and numbers in header row
+					$('<th>', {html: data}).appendTo(tr);
+				} else {
+					td = $('<td>');
+					if (!isNaN(val)) {
+						var frac = (val - minVal) / (maxVal - minVal);
+						var color = [];
+						for (var k = 0; k < 3; k++) {
+							color[k] = Math.round(minColor[k] + frac * (maxColor[k] - minColor[k]));
+						}
+						td.css('background-color', 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')');
+					}
+					td.appendTo(tr);
+					// fix(soon): use pop-overs to show values
+				}
+				tr.appendTo(table);
+			}
+		}
+		table.appendTo($('#tableHolder'));
 	}
-	var tableHolder = $('#tableHolder');
-	createTable(tableData).appendTo(tableHolder, g_data.tableSpec);
 	
 	// add an edit link
 	$('<a>', {href: window.location.href + '?edit=1', html: 'edit'}).appendTo($('#menuArea'));
