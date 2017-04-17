@@ -4,8 +4,8 @@ from optparse import OptionParser
 from geventwebsocket.handler import WebSocketHandler
 from main.app import app, db
 from main.users.auth import create_user, migrate_keys
-from main.users.models import User
-from main.resources.resource_util import create_system_resources
+from main.users.models import User, OrganizationUser
+from main.resources.resource_util import create_system_resources, find_resource
 
 # import all views
 from main.users import views
@@ -50,7 +50,13 @@ if __name__ == '__main__':
         email_address = parts[0]
         password = parts[1]
         assert '.' in email_address and '@' in email_address
-        create_user(email_address, '', password, 'System Admin', User.SYSTEM_ADMIN)
+        user_id = create_user(email_address, '', password, 'System Admin', User.SYSTEM_ADMIN)
+        org_user = OrganizationUser()  # add to system organization
+        org_user.organization_id = find_resource('/system').id
+        org_user.user_id = user_id
+        org_user.is_admin = True
+        db.session.add(org_user)
+        db.session.commit()
         print('created system admin: %s' % email_address)
     elif options.migrate_db:
         migrate_keys()

@@ -525,7 +525,8 @@ def resource_list(parent_id, recursive, type, filter, extended):
     for child in children:
         file_info = child.as_dict(extended = extended)
         if recursive:
-            file_info['fullPath'] = child.path()
+            file_info['path'] = child.path()
+            file_info['fullPath'] = child.path()  # fix(soon): remove this
         file_infos.append(file_info)
     if recursive:
         child_folders = Resource.query.filter(Resource.parent_id == parent_id, Resource.type >= 10, Resource.type < 20, Resource.deleted == False)
