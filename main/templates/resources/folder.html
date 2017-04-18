@@ -32,6 +32,12 @@ div.attribCategory {
 button#sendMessage {
 	margin-top: 5px;
 }
+table.plateMap th {
+	text-align: center;
+}
+table.plateMap th.wellLetter {
+	padding-right: 5px;
+}
 </style>
 {% endblock %}
 
@@ -163,12 +169,103 @@ $(function() {
 
 
 function displayResourceTiles() {
+
+	// check for well images
+	var minWellLetter = null;
+	var maxWellLetter = null;
+	var minWellNumber = null;
+	var maxWellNumber = null;
+	var wellImageCount = 0;
+	var wellResources = {};
+	for (var i = 0; i < g_resources.length; i++) {
+		var resource = g_resources[i];
+		var dotPos = resource.name.lastIndexOf('.');
+		var fileExt = resource.name.substr(dotPos + 1).toLowerCase();
+		if ((fileExt == 'png' || fileExt == 'jpg')) {
+			var fileBase = resource.name.slice(0, dotPos);
+			// fix(clean): use regex
+			if (fileBase.length == 3 && fileBase[0] >= 'A' && fileBase[0] <= 'Z' && fileBase[1] >= '0' && fileBase[1] <= '9' && fileBase[2] >= '0' && fileBase[2] <= '9') {
+				var wellLetter = fileBase[0];
+				var wellNumber = parseInt(fileBase.slice(1, 3));
+				if (minWellLetter === null || wellLetter < minWellLetter) {
+					minWellLetter = wellLetter;
+				}
+				if (maxWellLetter === null || wellLetter > maxWellLetter) {
+					maxWellLetter = wellLetter;
+				}
+				if (minWellNumber === null || wellNumber < minWellNumber) {
+					minWellNumber = wellNumber;
+				}
+				if (maxWellNumber === null || wellNumber > maxWellNumber) {
+					maxWellNumber = wellNumber;
+				}
+				var wellName = fileBase;
+				if (!(wellName in wellResources)) {  // check this in case we have A01.png and A01.jpg (in which case we'll just use the first)
+					wellResources[wellName] = resource;
+					resource.isWell = true;
+					wellImageCount++;
+				}
+			}
+		}
+	}
+
+	// display folder contents
 	$('#resources').html('');
 	if (g_resources.length) {
-		addResourceList('Apps', 22, 22);
-		addResourceList('Folders', 10, 19);
-		addResourceList('Files', 20, 20);
-		addResourceList('Sequences', 21, 21);
+
+		// if multiple well images, display in plate map layout
+		if (wellImageCount > 1) {
+			var minWellLetterCode = minWellLetter.charCodeAt(0);
+			var maxWellLetterCode = maxWellLetter.charCodeAt(0);
+			var table = $('<table>', {class: 'plateMap'});
+			var tr = $('<tr>');
+			var td = $('<th>').appendTo(tr);
+			for (var j = minWellNumber; j <= maxWellNumber; j++) {
+				$('<th>', {html: j}).appendTo(tr);
+			}
+			tr.appendTo(table);
+			for (var i = minWellLetterCode; i <= maxWellLetterCode; i++) {
+				var wellLetter = String.fromCharCode(i);
+				var tr = $('<tr>');
+				$('<th>', {html: wellLetter, class: 'wellLetter'}).appendTo(tr);
+				for (var j = minWellNumber; j <= maxWellNumber; j++) {
+					var wellName = wellLetter + (j < 10 ? '0' : '') + j;
+					var td = $('<td>');
+					if (wellName in wellResources) {
+						var resource = wellResources[wellName];
+						var url = resourceUrl(resource);
+						var a = $('<a>', {href: url});
+						var thumbnailUrl = url + '?width=120';
+						$('<img>', {src: thumbnailUrl}).appendTo(a);
+						a.appendTo(td);
+					}
+					td.appendTo(tr);
+				}
+				tr.appendTo(table);
+			}
+			table.appendTo('#resources');
+			$('#content').css('display', 'inline-block');  // this is probably going to be wider than screen
+
+			// display other resources
+			if (wellImageCount < g_resources.length) {
+				var resourceDiv = $("#resources");
+				$('<h3>', {html: 'Other Files/Folders'}).appendTo(resourceDiv);
+				var div = $('<div>').appendTo(resourceDiv);
+				for (var i = 0; i < g_resources.length; i++) {
+					var resource = g_resources[i];
+					if (!resource.isWell) {
+						createResourceTile(resource).appendTo(div);
+					}
+				}
+			}
+
+		// regular folder
+		} else {
+			addResourceList('Apps', 22, 22);
+			addResourceList('Folders', 10, 19);
+			addResourceList('Files', 20, 20);
+			addResourceList('Sequences', 21, 21);
+		}
 	} else {
 		$('<span>', {id: 'emptyFolder', html: 'This folder is empty.'}).appendTo('#resources');
 	}
