@@ -73,7 +73,7 @@ $(function() {
 			}
 		}
 	}
-	
+
 	// compute stats
 	statsValues.sort(function(a, b){return a-b});
 	var len = statsValues.length;
@@ -91,8 +91,9 @@ $(function() {
 		}
 		var meanVal = sum / len;
 	}
-	
-	// create a table data object
+
+	// create a table viewer
+	var tableHolder = $('#tableHolder');
 	if (view === 1) {
 		var tableData = createTableData();
 		for (var j = 0; j < columnNames.length; j++) {
@@ -100,42 +101,80 @@ $(function() {
 			var columnValue = columnValues[j];
 			tableData.addColumn(columnName, columnValue);
 		}
-		var tableHolder = $('#tableHolder');
 		createTable(tableData).appendTo(tableHolder, g_data.tableSpec);
 	} else {
-		var maxColor = [255, 0, 0];
-		var minColor = [0, 0, 255];  // fix(later): use color library to smartly interpolate keypoints
-		var table = $('<table>', {class: 'colorMap'});
-		for (var i = 0; i < g_data.length; i++) {
-			var dataRow = g_data[i];
-			var tr = $('<tr>');
-			for (var j = 0; j < dataRow.length; j++) {
-				var data = dataRow[j];
-				var val = parseFloat(data);
-				if (i === 0 && isNaN(val)) {  // fix(later): handle mixture of text and numbers in header row
-					$('<th>', {html: data}).appendTo(tr);
-				} else {
-					td = $('<td>');
-					if (!isNaN(val)) {
-						var frac = (val - minVal) / (maxVal - minVal);
-						var color = [];
-						for (var k = 0; k < 3; k++) {
-							color[k] = Math.round(minColor[k] + frac * (maxColor[k] - minColor[k]));
-						}
-						td.css('background-color', 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')');
-					}
-					td.appendTo(tr);
-					// fix(soon): use pop-overs to show values
+
+		// check for well field; if found, show in plate map format
+		if (g_data[0][0] == 'well') {
+			console.log('plate map');
+
+			// get well bounds and data values
+			var dataByWell = {};
+			var minDispValue = null, maxDispValue = null;
+			var minWellLetter = null, maxWellLetter = null, minWellNumber = null, maxWellNumber = null;
+			for (var i = 1; i < g_data.length; i++) {
+				var dataRow = g_data[i];
+				var wellName = dataRow[0];
+				var wellLetter = wellName[0];
+				var wellNumber = parseInt(wellName.slice(1, 3));
+				if (minWellLetter === null || wellLetter < minWellLetter) {
+					minWellLetter = wellLetter;
 				}
-				tr.appendTo(table);
+				if (maxWellLetter === null || wellLetter > maxWellLetter) {
+					maxWellLetter = wellLetter;
+				}
+				if (minWellNumber === null || wellNumber < minWellNumber) {
+					minWellNumber = wellNumber;
+				}
+				if (maxWellNumber === null || wellNumber > maxWellNumber) {
+					maxWellNumber = wellNumber;
+				}
+				var value = dataRow[dataRow.length - 1];
+				dataByWell[wellName] = value;
+				if (i === 0 || value < minDispValue) {
+					minDispValue = value;
+				}
+				if (i === 0 || value > maxDispValue) {
+					maxDispValue = value;
+				}
 			}
+			console.log(minWellLetter, maxWellLetter, minWellNumber, maxWellNumber);
+
+			// populate a new data object; compute min/max as go
+			var dataGrid = [];
+			var minWellLetterCode = minWellLetter.charCodeAt(0);
+			var maxWellLetterCode = maxWellLetter.charCodeAt(0);
+			var headers = [''];
+			for (var j = minWellNumber; j <= maxWellNumber; j++) {
+				headers.push(j);
+			}
+			dataGrid.push(headers);
+			for (var i = minWellLetterCode; i <= maxWellLetterCode; i++) {
+				var wellLetter = String.fromCharCode(i);
+				var row = [wellLetter];
+				for (var j = minWellNumber; j <= maxWellNumber; j++) {
+					var wellName = wellLetter + (j < 10 ? '0' : '') + j;
+					if (wellName in dataByWell) {
+						row.push(dataByWell[wellName]);
+					} else {
+						row.push('');
+					}
+				}
+				dataGrid.push(row);
+			}
+			console.log(dataGrid.length, dataGrid[0].length, dataGrid[1].length);
+			console.log(dataGrid)
+			createColorMapTable(dataGrid, minDispValue, maxDispValue).appendTo(tableHolder);
+
+		// regular color map
+		} else {
+			createColorMapTable(g_data, minVal, maxVal).appendTo(tableHolder);
 		}
-		table.appendTo($('#tableHolder'));
 	}
-	
+
 	// add an edit link
 	$('<a>', {href: window.location.href + '?edit=1', html: 'edit'}).appendTo($('#menuArea'));
-	
+
 	// display stats
 	$('<h3>', {html: 'Stats'}).appendTo(tableHolder);
 	var nvd = createNameValueData();
@@ -145,6 +184,42 @@ $(function() {
 	nvd.add('median', medianVal.toFixed(4));
 	createNameValueView(nvd).appendTo(tableHolder);
 });
+
+
+// fix(later): move this into same library as createTable? take a TableData object as input?
+function createColorMapTable(dataGrid, minVal, maxVal) {
+	var maxColor = [255, 0, 0];
+	var minColor = [0, 0, 255];  // fix(later): use color library to smartly interpolate keypoints
+	var table = $('<table>', {class: 'colorMap'});
+	for (var i = 0; i < dataGrid.length; i++) {
+		var dataRow = dataGrid[i];
+		var tr = $('<tr>');
+		for (var j = 0; j < dataRow.length; j++) {
+			var data = dataRow[j];
+			var val = parseFloat(data);
+			if (i === 0) {  // fix(later): handle mixture of text and numbers in header row
+				$('<th>', {html: data}).appendTo(tr);
+			} else {
+				var td = $('<td>');
+				if (!isNaN(val)) {
+					var frac = (val - minVal) / (maxVal - minVal);
+					var color = [];
+					for (var k = 0; k < 3; k++) {
+						color[k] = Math.round(minColor[k] + frac * (maxColor[k] - minColor[k]));
+					}
+					td.css('background-color', 'rgb(' + color[0] + ',' + color[1] + ',' + color[2] + ')');
+				} else {
+					td.html(data);
+				}
+				td.appendTo(tr);
+				// fix(soon): use pop-overs to show values
+			}
+			tr.appendTo(table);
+		}
+	}
+	return table;
+}
+
 
 </script>
 {% endblock %}
