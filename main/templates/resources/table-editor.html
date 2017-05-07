@@ -131,14 +131,13 @@ $(function() {
 				}
 				var value = dataRow[dataRow.length - 1];
 				dataByWell[wellName] = value;
-				if (i === 0 || value < minDispValue) {
+				if (i === 1 || value < minDispValue) {
 					minDispValue = value;
 				}
-				if (i === 0 || value > maxDispValue) {
+				if (i === 1 || value > maxDispValue) {
 					maxDispValue = value;
 				}
 			}
-			console.log(minWellLetter, maxWellLetter, minWellNumber, maxWellNumber);
 
 			// populate a new data object; compute min/max as go
 			var dataGrid = [];
@@ -162,8 +161,6 @@ $(function() {
 				}
 				dataGrid.push(row);
 			}
-			console.log(dataGrid.length, dataGrid[0].length, dataGrid[1].length);
-			console.log(dataGrid)
 			createColorMapTable(dataGrid, minDispValue, maxDispValue).appendTo(tableHolder);
 
 		// regular color map
