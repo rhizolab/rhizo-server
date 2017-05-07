@@ -265,7 +265,7 @@ class ResourceRecord(ApiResource):
         if 'user_attributes' in args:
             r.user_attributes = args['user_attributes']
         if r.type == Resource.SEQUENCE:
-            if 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args:
+            if 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args or 'units' in args:
                 system_attributes = json.loads(r.system_attributes)
                 if 'data_type' in args:
                     system_attributes['data_type'] = args['data_type']
@@ -273,6 +273,8 @@ class ResourceRecord(ApiResource):
                     system_attributes['decimal_places'] = int(args['decimal_places'])  # fix(later): safe convert
                 if args.get('max_history', '') != '':
                     system_attributes['max_history'] = int(args['max_history'])  # fix(later): safe convert
+                if args.get('units', '') != '':
+                    system_attributes['units'] = args['units']
                 if args.get('min_storage_interval', '') != '':
                     system_attributes['min_storage_interval'] = int(args['min_storage_interval'])  # fix(later): safe convert
                 r.system_attributes = json.dumps(system_attributes)
@@ -321,7 +323,7 @@ class ResourceList(ApiResource):
         type = int(args['type'])
         extended = int(args.get('extended', '0'))
         include_path = args.get('folder_info', args.get('folderInfo', False))  # fix(soon): change folderInfo to include_path?
-        resources = Resource.query.filter(Resource.type == type)
+        resources = Resource.query.filter(Resource.type == type, Resource.deleted == False)
         result = {}
         for r in resources:
             d = r.as_dict(extended = extended)
@@ -446,6 +448,8 @@ class ResourceList(ApiResource):
                     min_storage_interval = 0  # default to 0 seconds for text sequences (want to record all log entries)
                 else:
                     min_storage_interval = 50  # default to 50 seconds for numeric and image sequences
+            if args.get('units'):
+                system_attributes['units'] = args['units']
             system_attributes['min_storage_interval'] = min_storage_interval
             r.system_attributes = json.dumps(system_attributes)
         elif type == Resource.REMOTE_FOLDER:

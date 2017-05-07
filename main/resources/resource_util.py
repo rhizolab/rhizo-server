@@ -176,8 +176,8 @@ def update_sequence_value(resource, resource_path, timestamp, value):
 
     # determine min interval between updates
     system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
-    min_storage_inteval = system_attributes.get('min_storage_inteval')
-    if min_storage_inteval is None:
+    min_storage_interval = system_attributes.get('min_storage_interval')
+    if min_storage_interval is None:
         if data_type == Resource.TEXT_SEQUENCE:
             min_storage_interval = 0
         else:
