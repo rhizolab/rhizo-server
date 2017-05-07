@@ -964,10 +964,12 @@ function createFrame( ctx ) {
 					if( y !== null ) {
 						var xPlot = xBoxMin + (xBoxMax - xBoxMin) * (xDataRaw[ i ] - xDataMin) / (xDataMax - xDataMin);
 						var yPlot = yBoxMin + (yBoxMax - yBoxMin) * (1.0 - (y - yDataMin) / (yDataMax - yDataMin));
-						if (first)
+						if (first) {
 							ctx.moveTo( xPlot, yPlot );
-						else
+						} else {
 							ctx.lineTo( xPlot, yPlot );
+							ctx.lineTo( xPlot + 0.1, yPlot );  // hack to avoid sharp spikes in plots
+						}
 						first = false;
 					}
 				}
