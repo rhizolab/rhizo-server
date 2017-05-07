@@ -56,7 +56,7 @@ $(function() {
 	nvd.add('Decimal Places', g_resource.system_attributes.decimal_places);
 	nvd.add('Units', g_resource.system_attributes.units);
 	nvd.add('Max History', g_resource.system_attributes.max_history);
-	nvd.add('Min Storage Interval', g_resource.system_attributes.min_storage_interval ? g_resource.system_attributes.min_storage_interval + ' seconds' : '');
+	nvd.add('Min Storage Interval', g_resource.system_attributes.min_storage_interval ? g_resource.system_attributes.min_storage_interval + ' seconds' : '0');
 	createNameValueView(nvd).appendTo($('#sequenceInfo'));
 	var decimalPlaces = g_resource.decimal_places;
 	var format = '.' + decimalPlaces + 'f';
