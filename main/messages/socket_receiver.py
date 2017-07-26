@@ -169,7 +169,11 @@ def process_web_socket_message(message_struct, ws_conn):
             if folder_path == 'self' or folder_path == '[self]':
                 folder_id = ws_conn.controller_id
             elif hasattr(folder_path, 'strip'):
-                folder_id = find_resource(folder_path).id
+                resource = find_resource(folder_path)
+                if not resource:
+                    print('unable to find subscription folder: %s' % folder_path)
+                    return
+                folder_id = resource.id
             else:
                 folder_id = folder_path
 
