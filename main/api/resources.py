@@ -516,6 +516,21 @@ class ResourceList(ApiResource):
 
         return {'status': 'ok', 'id': r.id}
 
+    # update multiple resources at once
+    # (currently only intended for updating multiple sequences at once)
+    # values should be a dictionary mapping resource paths (starting with slash) to values
+    # if timestamp is specified, it will be applied used for the updates
+    def put(self):
+        values = json.loads(request.values['values'])
+        if 'timestamp' in request.values:
+            timestamp = parse_json_datetime(request.values['timestamp'])
+        else:
+            timestamp = datetime.datetime.utcnow()
+        for (name, value) in values.iteritems():
+            resource = find_resource(name)
+            if resource:
+                update_sequence_value(resource, name, timestamp, str(value))
+
 
 # get a list of all resources contained with a folder (specified by parent_id)
 def resource_list(parent_id, recursive, type, filter, extended):
