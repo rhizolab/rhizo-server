@@ -524,11 +524,39 @@ class ResourceList(ApiResource):
         values = json.loads(request.values['values'])
         if 'timestamp' in request.values:
             timestamp = parse_json_datetime(request.values['timestamp'])
+            
+            # check for drift
+            delta = datetime.datetime.utcnow() - timestamp
+            drift = delta.total_seconds()
+            #print 'drift', drift
+            if abs(drift) > 30:
+            
+                # get current controller correction
+                # fix(later): support user updates as well?
+                auth = request.authorization
+                key = find_key(auth.password)  # key is provided as HTTP basic auth password
+                if key and key.access_as_controller_id:
+                    controller_id = key.access_as_controller_id
+                    controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
+                    attributes = json.loads(controller_status.attributes)
+                    correction = attributes.get('timestamp_correction', 0)
+                    
+                    # if stored correction is reasonable, use it; otherwise store new correction
+                    if abs(correction - drift) > 10:
+                        correction = drift
+                        attributes['timestamp_correction'] = drift
+                        controller_status.attributes = json.dumps(attributes)
+                        db.session.commit()
+                        #print 'storing new correction (%.2f)' % correction
+                    else:
+                        pass
+                        #print 'applying previous correction (%.2f)' % correction
+                    timestamp += datetime.timedelta(seconds=correction)
         else:
             timestamp = datetime.datetime.utcnow()
         for (name, value) in values.iteritems():
             resource = find_resource(name)
-            if resource:
+            if resource and access_level(resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
                 update_sequence_value(resource, name, timestamp, str(value))
 
 
