@@ -52,7 +52,10 @@ class MessageQueueBasic(MessageQueue):
             else:
                 messages = Message.query.filter(Message.timestamp > self._start_timestamp).order_by('id')
             if messages.count():
-                self._last_message_id = messages[-1].id  # fix(soon): check that this works
+                try:
+                    self._last_message_id = messages[-1].id  # fix(soon): check that this works
+                except:
+                    pass
                 return messages
 
     # delete old messages
