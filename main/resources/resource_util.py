@@ -171,7 +171,7 @@ def mime_type_from_ext(file_name):
 # it (1) creates a sequence value record and (2) sends out a sequence_update message;
 # note that we don't commit resource here; outside code must commit
 # value should be a plain string (not unicode string), possibly containing binary data or encoded unicode data
-def update_sequence_value(resource, resource_path, timestamp, value):
+def update_sequence_value(resource, resource_path, timestamp, value, emit_message=True):
     data_type = json.loads(resource.system_attributes)['data_type']
 
     # determine min interval between updates
@@ -184,13 +184,14 @@ def update_sequence_value(resource, resource_path, timestamp, value):
             min_storage_interval = 50
 
     # prep sequence update message data
-    message_params = {
-        'id': resource.id,
-        'name': resource_path,
-        'timestamp': timestamp.isoformat() + 'Z',
-    }
-    if data_type != Resource.IMAGE_SEQUENCE:  # for images we'll send revision IDs
-        message_params['value'] = value  # fix(soon): json.dumps crashes if this included binary data
+    if emit_message:
+        message_params = {
+            'id': resource.id,
+            'name': resource_path,
+            'timestamp': timestamp.isoformat() + 'Z',
+        }
+        if data_type != Resource.IMAGE_SEQUENCE:  # for images we'll send revision IDs
+            message_params['value'] = value  # fix(soon): json.dumps crashes if this included binary data
 
     # if too soon since last update, don't store a new value (but do still send out an update message)
     if min_storage_interval == 0 or timestamp >= resource.modification_timestamp + datetime.timedelta(seconds=min_storage_interval):
@@ -207,11 +208,13 @@ def update_sequence_value(resource, resource_path, timestamp, value):
             except NoResultFound:
                 thumbnail_resource = create_sequence(resource, name, Resource.IMAGE_SEQUENCE)
             thumbnail_revision = add_resource_revision(thumbnail_resource, timestamp, thumbnail_contents)
-            message_params['revision_id'] = resource_revision.id
-            message_params['thumbnail_revision_id'] = thumbnail_revision.id
+            if emit_message:
+                message_params['revision_id'] = resource_revision.id
+                message_params['thumbnail_revision_id'] = thumbnail_revision.id
 
     # create a short lived update message for subscribers to the folder containing this sequence
-    message_queue.add(folder_id = resource.parent_id, type = 'sequence_update', parameters = message_params, timestamp = timestamp)
+    if emit_message:
+        message_queue.add(folder_id = resource.parent_id, type = 'sequence_update', parameters = message_params, timestamp = timestamp)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);

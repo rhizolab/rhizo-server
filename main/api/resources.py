@@ -1,4 +1,5 @@
 import json
+import time  # fix(clean): remove?
 import base64
 import hashlib  # fix(clean): remove?
 import zipfile
@@ -521,26 +522,30 @@ class ResourceList(ApiResource):
     # values should be a dictionary mapping resource paths (starting with slash) to values
     # if timestamp is specified, it will be applied used for the updates
     def put(self):
+        start_time = time.time()
         values = json.loads(request.values['values'])
         if 'timestamp' in request.values:
             timestamp = parse_json_datetime(request.values['timestamp'])
-            
+
             # check for drift
             delta = datetime.datetime.utcnow() - timestamp
             drift = delta.total_seconds()
             #print 'drift', drift
             if abs(drift) > 30:
-            
+
                 # get current controller correction
                 # fix(later): support user updates as well?
                 auth = request.authorization
+                start_key_time = time.time()
                 key = find_key(auth.password)  # key is provided as HTTP basic auth password
+                end_key_time = time.time()
+                print '---- key: %.2f' % (end_key_time - start_key_time)
                 if key and key.access_as_controller_id:
                     controller_id = key.access_as_controller_id
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
                     attributes = json.loads(controller_status.attributes)
                     correction = attributes.get('timestamp_correction', 0)
-                    
+
                     # if stored correction is reasonable, use it; otherwise store new correction
                     if abs(correction - drift) > 10:
                         correction = drift
@@ -554,10 +559,22 @@ class ResourceList(ApiResource):
                     timestamp += datetime.timedelta(seconds=correction)
         else:
             timestamp = datetime.datetime.utcnow()
-        for (name, value) in values.iteritems():
-            resource = find_resource(name)
-            if resource and access_level(resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
-                update_sequence_value(resource, name, timestamp, str(value))
+
+        # for now, assume all sequences in same folder
+        first_name = values.iterkeys().next()
+        folder_name = first_name.rsplit('/', 1)[0]
+        folder_resource = find_resource(folder_name)
+        if folder_resource: # and access_level(folder_resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
+            for (full_name, value) in values.iteritems():
+                seq_name = full_name.rsplit('/', 1)[1]
+                try:
+                    resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
+                    update_sequence_value(resource, full_name, timestamp, str(value), emit_message=False)  # fix(later): revisit emit_message
+                except NoResultFound:
+                    pass
+        db.session.commit()
+        end_time = time.time()
+        print '==== %.2f' % (end_time - start_time)
 
 
 # get a list of all resources contained with a folder (specified by parent_id)

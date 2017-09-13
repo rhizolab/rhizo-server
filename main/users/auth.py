@@ -1,5 +1,6 @@
 # standard python imports
 import os
+import time  # fix(clean): remove
 import random
 import base64
 import hashlib
@@ -135,8 +136,9 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
 # find a key record from the database given the raw key string
 def find_key(key_text):
     key_part = key_text[:3] + key_text[-3:]
+    iph = inner_password_hash(key_text)
     for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp == None):
-        if bcrypt.checkpw(inner_password_hash(key_text), key.key_hash.encode()):
+        if bcrypt.checkpw(iph, key.key_hash.encode()):
             return key
     return None
 
