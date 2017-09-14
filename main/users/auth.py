@@ -143,6 +143,16 @@ def find_key(key_text):
     return None
 
 
+# find a key record from the database given the raw key string;
+# a temporary/fast version that doesn't actually check for a full key match
+def find_key_fast(key_text):
+    key_part = key_text[:3] + key_text[-3:]
+    iph = inner_password_hash(key_text)
+    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp == None):
+        return key
+    return None
+
+
 # find a key given an auth code (a hashed version of the key)
 # fix(soon): remove this
 def find_key_by_code(auth_code):

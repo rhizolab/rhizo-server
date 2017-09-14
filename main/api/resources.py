@@ -22,7 +22,7 @@ from main.util import parse_json_datetime
 from main.resources.models import Resource, ResourceRevision, ResourceView, ControllerStatus, Thumbnail
 from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, resource_type_number, _create_folders, create_sequence
 from main.resources.file_conversion import convert_csv_to_xls, convert_xls_to_csv, convert_new_lines, compute_thumbnail
-from main.users.auth import find_key, find_key_by_code  # fix(clean): remove?
+from main.users.auth import find_key, find_key_fast, find_key_by_code  # fix(clean): remove?
 
 
 class ResourceRecord(ApiResource):
@@ -537,7 +537,7 @@ class ResourceList(ApiResource):
                 # fix(later): support user updates as well?
                 auth = request.authorization
                 start_key_time = time.time()
-                key = find_key(auth.password)  # key is provided as HTTP basic auth password
+                key = find_key_fast(auth.password)  # key is provided as HTTP basic auth password
                 end_key_time = time.time()
                 print '---- key: %.2f' % (end_key_time - start_key_time)
                 if key and key.access_as_controller_id:
