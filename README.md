@@ -134,3 +134,43 @@ Coding style guidelines:
 *   JavaScript code should use camel case.
 *   JavaScript code should have two blank lines between top-level code blocks (to match Python code).
 *   JavaScript and HTML files should use dashes as word separators in their file names.
+
+## Running in Production
+
+These are preliminary notes on running the server in a production environment with nginx.
+We have previously deployed the server on EC2 instances running Ubuntu.
+We assume that you have followed the setup instructions above and have placed
+the rhizo-server repository at /home/ubuntu/rhizo-server
+
+Copy the `nginx.conf` file from `sample_settings` to `settings` and set your domain name
+within the file.
+
+Install dependencies:
+
+    sudo apt install nginx
+    sudo apt install libpq-dev
+    sudo pip install uwsgi
+    sudo apt install letsencrypt
+
+Configure nginx:
+
+    cd /etc/nginx/sites-enabled
+    sudo rm default
+    sudo ln -s /home/ubuntu/rhizo-server/settings/nginx.conf rhizo-server
+
+Get SSL certificates:
+
+    sudo systemctl stop nginx
+    sudo letsencrypt certonly --standalone -d [domain name here]
+    sudo systemctl start nginx
+
+Configure systemd services:
+
+    sudo cp /home/ubuntu/rhizo-zerver/sample_settings/*.service /etc/systemd/system
+    sudo systemctl enable nginx
+    sudo systemctl enable rs
+    sudo systemctl enable rs-ws
+    sudo systemctl enable rs-worker
+    sudo systemctl start rs
+    sudo systemctl start rs-ws
+    sudo systemctl start rs-worker

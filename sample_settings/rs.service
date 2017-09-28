@@ -1,0 +1,12 @@
+[Unit]
+Description=uWSGI instance to serve rhizo-server
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/rhizo-server
+ExecStart=/usr/local/bin/uwsgi --ini /home/ubuntu/rhizo-server/settings/uwsgi.ini
+
+[Install]
+WantedBy=multi-user.target

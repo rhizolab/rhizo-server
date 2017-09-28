@@ -1,0 +1,12 @@
+[Unit]
+Description=Run gunicorn process to handle websocket requests
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/rhizo-server
+ExecStart=/usr/local/bin/gunicorn -k flask_sockets.worker main.app_run:app -c settings/ws-config.py
+
+[Install]
+WantedBy=multi-user.target

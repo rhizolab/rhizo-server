@@ -1,0 +1,12 @@
+[Unit]
+Description=Run python worker process
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/rhizo-server
+ExecStart=/usr/bin/python run_worker.py
+
+[Install]
+WantedBy=multi-user.target
