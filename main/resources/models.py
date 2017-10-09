@@ -178,19 +178,22 @@ class ControllerStatus(db.Model):
     __tablename__               = 'controller_status'
     id                          = db.Column(db.ForeignKey('resources.id'), primary_key = True)
     client_version              = db.Column(db.String(80), nullable = False)
-    web_socket_connected        = db.Column(db.Boolean, nullable = False)
+    web_socket_connected        = db.Column(db.Boolean, nullable = False)  # not used currently (may be too brittle); remove?
     last_connect_timestamp      = db.Column(db.DateTime)                   # last time the controler connected
     last_watchdog_timestamp     = db.Column(db.DateTime)                   # last time the controller sent good watchdog message
     watchdog_notification_sent  = db.Column(db.Boolean, nullable = False)
-    attributes                  = db.Column(db.String, nullable = False)   # JSON field containing extra attributes
+    attributes                  = db.Column(db.String, nullable = False)   # JSON field containing extra controller status information
 
-    def as_dict(self):
-        return {
+    def as_dict(self, extended=False):
+        d = {
             'client_version': self.client_version,
             'web_socket_connected': self.web_socket_connected,
             'last_connect_timestamp': self.last_connect_timestamp.isoformat() + ' Z' if self.last_connect_timestamp else '',
             'last_watchdog_timestamp': self.last_watchdog_timestamp.isoformat() + ' Z' if self.last_watchdog_timestamp else '',
         }
+        if extended:
+            d['status'] = json.loads(self.attributes)
+        return d
 
 
 # the Thumbnail model stores versions of image resources at multiple scales

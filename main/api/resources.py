@@ -291,6 +291,15 @@ class ResourceRecord(ApiResource):
             if 'full_name' in args and args['full_name']:
                 system_attributes['full_name'] = args['full_name']
             r.system_attributes = json.dumps(system_attributes)
+        elif r.type == Resource.CONTROLLER_FOLDER:
+            if 'status' in args:
+                try:
+                    controller_status = ControllerStatus.query.filter(ControllerStatus.id == r.id).one()
+                    status = json.loads(controller_status.attributes)
+                    status.update(json.loads(args['status']))  # add/update status (don't provide way to remove status fields; maybe should overwrite instead)
+                    controller_status.attributes = json.dumps(status)
+                except NoResultFound:
+                    pass
         else:  # fix(soon): remove this case
             if 'system_attributes' in args:
                 r.system_attributes = args['system_attributes']  # note that this will overwrite any existing system attributes; client must preserve any that aren't modified
@@ -315,7 +324,7 @@ class ResourceRecord(ApiResource):
 class ResourceList(ApiResource):
 
     # get a list of resources of a particular type
-    # (use the individual resource GET method to get a list of resources contained with a foldeR)
+    # (use the individual resource GET method to get a list of resources contained with a folder)
     # fix(later): decide what this should do; current just using for system controller list
     def get(self):
         args = request.values
@@ -588,6 +597,12 @@ def resource_list(parent_id, recursive, type, filter, extended):
     file_infos = []
     for child in children:
         file_info = child.as_dict(extended = extended)
+        if extended and child.type == Resource.CONTROLLER_FOLDER:
+            try:
+                controller_status = ControllerStatus.query.filter(ControllerStatus.id == child.id).one()
+                file_info.update(controller_status.as_dict(extended=True))
+            except NoResultFound:
+                pass
         if recursive:
             file_info['path'] = child.path()
             file_info['fullPath'] = child.path()  # fix(soon): remove this
