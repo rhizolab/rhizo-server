@@ -64,6 +64,8 @@ class Resource(db.Model):
             d['user_attributes'] = json.loads(self.user_attributes) if self.user_attributes else {}
             d['lastRevisionId'] = self.last_revision_id  # fix(soon): remove
             d['last_revision_id'] = self.last_revision_id
+            if self.last_revision_id:
+                d['storage_path'] = self.storage_path(self.last_revision_id)
             if self.type == self.FILE:  # fix(later): remove this case after migrate DB and update client sync code (and browser display code) to use direct system_attributes
                 d['hash'] = d['system_attributes'].get('hash') or self.hash
                 d['size'] = d['system_attributes'].get('size') or self.size
@@ -123,6 +125,14 @@ class Resource(db.Model):
             else:
                 permissions = parent_permissions
         return permissions
+
+    # get the path of the resource in the bulk storage system
+    def storage_path(self, revision_id):
+        org_id = self.organization_id
+        if not org_id:  # fix(clean): remove this
+            org_id = self.root().id
+        id_str = '%09d' % self.id
+        return '%d/%s/%s/%s/%d_%d' % (org_id, id_str[-9:-6], id_str[-6:-3], id_str[-3:], self.id, revision_id)
 
 
 # The ResourceRevision model holds a revision history or time series history of a resource.

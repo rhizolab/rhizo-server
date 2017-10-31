@@ -43,9 +43,6 @@ def storage_exists(key_path):
 
 
 # the path of resource contents in bulk storage
+# fix(clean): remove this; use direct calls to resource.storage_path
 def storage_path(resource, revision_id):
-    org_id = resource.organization_id
-    if not org_id:  # fix(clean): remove this
-        org_id = resource.root().id
-    id_str = '%09d' % resource.id
-    return '%d/%s/%s/%s/%d_%d' % (org_id, id_str[-9:-6], id_str[-6:-3], id_str[-3:], resource.id, revision_id)
+    return resource.storage_path(revision_id)
