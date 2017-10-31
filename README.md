@@ -137,13 +137,17 @@ Coding style guidelines:
 
 ## Running in Production
 
-These are preliminary notes on running the server in a production environment with nginx.
+These are preliminary notes on running the server in a production environment with nginx and uwsgi.
+When running the server in this way, you will no longer execute 'run.py' from the command line.
+Instead the server will be run as a set of systemd services.
+
 We have previously deployed the server on EC2 instances running Ubuntu.
 We assume that you have followed the setup instructions above and have placed
-the rhizo-server repository at /home/ubuntu/rhizo-server
+the rhizo-server repository at `/home/ubuntu/rhizo-server` (if you want to use a 
+different path, update the settings and service files accordingly).
 
-Copy the `nginx.conf` file from `sample_settings` to `settings` and set your domain name
-within the file.
+Copy `nginx.conf`, `uwsgi.ini`, and `ws-config.py` from `sample_settings` to `settings`. 
+Set your domain name within the file `nginx.conf`.
 
 Install dependencies:
 
