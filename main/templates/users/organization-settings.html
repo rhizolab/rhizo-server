@@ -31,6 +31,9 @@ $(function() {
 		tableData.add('Email', orgUser.email_address);
 		tableData.add('Name', orgUser.full_name);
 		tableData.add('Admin', orgUser.is_admin ? 'Yes' : '');
+		{% if is_system_admin %}
+			tableData.add('Remove', createLink({text: 'remove', clickFunc: removeUser, clickData: orgUser.user_id}));
+		{% endif %}
 	}
 	createTable(tableData).appendTo($('#orgUsers'));
 });
@@ -66,6 +69,35 @@ function inviteUser() {
 	// display the modal
 	modalDiv.modal('show');
 }
+
+
+// remove a user from this organization
+{% if is_system_admin %}
+function removeUser(event) {
+	var userId = event.data;
+	var orgUser = null;
+	for (var i = 0; i < g_orgUsers.length; i++) {
+		var ou = g_orgUsers[i];
+		if (ou.user_id === userId) {
+			orgUser = ou;
+		}
+	}
+	if (orgUser) {
+		modalConfirm({
+			title: 'Remove ' + orgUser.email_address,
+			'prompt': 'Are you sure you want to remove <b>' + orgUser.email_address + '</b> from this organization?',
+			yesFunc: function() {
+				$.ajax({
+					url: '/api/v1/organizations/{{ org_resource.id }}/users/' + userId,
+					data: {'csrf_token': g_csrfToken},
+					type: 'DELETE',
+					success: function() {window.location.reload();}, // fix(later): make more graceful
+				});
+			}
+		});
+	}
+}
+{% endif %}
 
 
 {% if is_system_admin %}

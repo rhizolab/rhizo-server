@@ -60,7 +60,15 @@ class OrganizationUserRecord(ApiResource):
 
     # remove a user from an organization
     def delete(self, org_id, org_user_id):
-        pass
+        if current_user.role == current_user.SYSTEM_ADMIN:
+            try:
+                org_users = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == org_user_id)
+                org_users.delete()
+                db.session.commit()
+            except NoResultFound:
+                abort(404)
+        else:
+            abort(403)
 
     # update a user/organization association
     def put(self, org_id, org_user_id):
