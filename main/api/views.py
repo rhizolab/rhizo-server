@@ -63,28 +63,16 @@ def connect_web_socket(ws):
 
 
 # check for CSRF token on every user POST
-# (we only check CSRF token if user is authenticated; not needed for API calls using authCode)
+# (we only check CSRF token if user is authenticated; not needed for API calls using keys)
 # the CSRF token provided with the request (in the form data) should match the CSRF token we put into the user's cookie
 @app.before_request
 def csrf_protect():
     if request.method != 'GET' and current_user.is_authenticated:
-        token = session.pop('csrf_token', None)
+        token = session.get('csrf_token', None)
         if not token:
-
-            # fix(soon): this handles an issue with multiple API calls in a single page view:
-            # first API response is missing CSRF token from session (in headers),
-            # so subsequent request session is missing CSRF token
-            if str(request.url_rule).startswith('/api/v1/') and request.form.get('csrf_token'):
-                return
-
             print('CSRF token not found: %s' % request.url_rule)
             abort(403)
         if token != request.form.get('csrf_token'):
-
-            # fix(soon): this handles an issue with stale tokens
-            if str(request.url_rule).startswith('/api/v1/') and request.form.get('csrf_token'):
-                return
-
             print('CSRF invalid: %s' % request.url_rule)
             abort(403)
 
