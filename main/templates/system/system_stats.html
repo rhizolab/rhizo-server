@@ -22,13 +22,10 @@ $(function() {
 	var handler = function(stats) {
 		console.log(stats);
 		var nvd = createNameValueData();
-		nvd.add('Organizations', stats.organization_count);
 		nvd.add('Users', stats.user_count);
-		nvd.add('Controllers', stats.controller_count);
 		nvd.add('Resources', stats.resource_count);
 		nvd.add('Resource Revisions', stats.resource_revision_count);
 		nvd.add('Thumbnails', stats.thumbnail_count);
-		nvd.add('Sequences', stats.sequence_count);
 		nvd.add('Messages', stats.message_count);
 		createNameValueView(nvd).appendTo($('#systemStats'));
 	}
@@ -63,8 +60,10 @@ function updateTables() {
 	var tableData = createTableData();
 	for (var i = 0; i < g_processes.length; i++) {
 		var process = g_processes[i];
-		tableData.add('ID', process.processId);
+		tableData.add('ID', process.process_id);
 		tableData.add('Clients', process.clients.length);
+		tableData.add('DB Pool', process.db_pool);
+		tableData.add('DB Conn', process.db_conn);
 	}
 	var div = $('#processStats');
 	div.html(''); // fix(clean): is there a better way to do this?

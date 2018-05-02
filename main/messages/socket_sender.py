@@ -2,6 +2,7 @@ import json
 import datetime
 import gevent
 from geventwebsocket.websocket import WebSocketError
+from main.app import db
 
 
 # The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
@@ -87,11 +88,14 @@ class SocketSender(object):
                 'controller_id': ws_conn.controller_id,
                 'user_id': ws_conn.user_id,
                 'auth_method': ws_conn.auth_method,
+                'process_id', process_id,
                 'subscriptions': [s.as_dict() for s in ws_conn.subscriptions],
             })
         parameters = {
-            'processId': process_id,
+            'process_id': process_id,
             'clients': connections,  # fix(later): rename to connections?
+            'db_pool': db.engine.pool.size(),
+            'db_conn': db.engine.pool.checkedout(),
         }
         system_folder_id = find_resource('/system').id
         message_queue.add(system_folder_id, 'processStatus', parameters)
