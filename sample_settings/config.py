@@ -11,7 +11,6 @@ CSRF_ENABLED = True
 CSRF_SESSION_KEY = '[Random String Here]'
 SECRET_KEY = '[Random String Here]'
 SALT = '[Random String Here]'
-KEY_STORAGE_KEY = '[Random String Here]'
 KEY_PREFIX = 'RHIZO'  # replace this if you want to identify your keys more easily
 TWILIO_ACCOUNT_SID = ''
 TWILIO_AUTH_TOKEN = ''

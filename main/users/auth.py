@@ -16,7 +16,6 @@ from sqlalchemy.orm.exc import NoResultFound
 # internal imports
 from main.app import db
 from main.app import login_manager
-from main.users.encrypt import AESCipher
 from main.users.models import User, Key
 from main.util import load_server_config  # fix(clean): remove?
 
@@ -112,10 +111,15 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
         key_text = current_app.config['KEY_PREFIX'] + generate_access_code(50)
 
     # encrypt the key
-    # fix(soon): remove this and just used keys hashed like passwords
-    nonce = base64.b64encode(os.urandom(32))
-    aes = AESCipher(current_app.config['KEY_STORAGE_KEY'])
-    key_enc = aes.encrypt(nonce + ';' + key_text)
+    # fix(soon): remove this once no longer in use
+    if current_app.config.get('KEY_STORAGE_KEY'):  # not needed on new systems
+        from main.users.encrypt import AESCipher
+        nonce = base64.b64encode(os.urandom(32))
+        aes = AESCipher(current_app.config['KEY_STORAGE_KEY'])
+        key_enc = aes.encrypt(nonce + ';' + key_text)
+    else:
+        nonce = ''
+        key_enc = ''
 
     # create a key record
     key = Key()

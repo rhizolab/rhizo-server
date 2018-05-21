@@ -50,8 +50,8 @@ class Key(db.Model):
     key_hash                = db.Column(db.String(128), nullable = False)  # like a password hash, but for a key
 
     # fix(soon): remove these and just use key_hash
-    key_storage             = db.Column(db.String(), nullable = False)
-    key_storage_nonce       = db.Column(db.String(), nullable = False)
+    key_storage             = db.Column(db.String(), nullable = True)
+    key_storage_nonce       = db.Column(db.String(), nullable = True)
 
     def as_dict(self):
         return {
