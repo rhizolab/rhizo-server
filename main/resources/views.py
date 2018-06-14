@@ -79,6 +79,9 @@ def view_item(item_path):
                 folder = Resource.query.filter(Resource.parent == parent_folder, Resource.name == path_part, Resource.deleted == False).one()
             except NoResultFound:
                 pass
+            except MultipleResultsFound:
+                print('multiple results for %s at level %s' % (item_path, path_part))
+                abort(404)
         else:
             try:
                 folder = Resource.query.filter(Resource.parent == None, Resource.name == path_part, Resource.deleted == False).one()
