@@ -32,11 +32,19 @@ sockets = Sockets(app)
 # create login manager
 login_manager = LoginManager(app)
 
-# create a storage manager
+# create a storage manager;
+# this is responsible for bulk data storage of large files/objects
 # fix(later): make this into class?
-storage_manager = {
-    'enabled': True if app.config.get('S3_STORAGE_BUCKET') else False
-}
+if app.config.get('S3_STORAGE_BUCKET'):
+    from resources.s3_storage_manager import S3StorageManager
+    print('using S3 storage manager')
+    storage_manager = S3StorageManager(app.config)
+elif app.config.get('FILE_SYSTEM_STORAGE_PATH'):
+    from resources.file_system_storage_manager import FileSystemStorageManager
+    print('using file system storage manager')
+    storage_manager = FileSystemStorageManager(app.config)
+else:
+    storage_manager = None
 
 # create a static file manager
 static_manager = {}

@@ -13,7 +13,6 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 # internal imports
 from main.app import db, message_queue, storage_manager
 from main.resources.models import Resource, ResourceRevision, Thumbnail
-from main.resources.bulk_storage import read_storage, write_storage, storage_path
 from main.resources.file_conversion import compute_thumbnail
 from main.users.permissions import ACCESS_LEVEL_WRITE, ACCESS_TYPE_ORG_USERS, ACCESS_TYPE_ORG_CONTROLLERS
 
@@ -224,7 +223,7 @@ def add_resource_revision(resource, timestamp, data):
     resource_revision = ResourceRevision()
     resource_revision.resource_id = resource.id
     resource_revision.timestamp = timestamp
-    if len(data) < 1000 or not storage_manager['enabled']:
+    if len(data) < 1000 or not storage_manager:
         resource_revision.data = data
         bulk_storage = False
     else:
@@ -232,7 +231,7 @@ def add_resource_revision(resource, timestamp, data):
     db.session.add(resource_revision)
     db.session.commit()
     if bulk_storage:
-        write_storage(storage_path(resource, resource_revision.id), data)
+        storage_manager.write(resource.storage_path(resource_revision.id), data)
     resource.last_revision_id = resource_revision.id  # note that we don't commit here; outside code must commit
     return resource_revision
 
@@ -253,10 +252,10 @@ def read_resource(resource, revision_id = None, check_timing = False):
             data = resource_revision.data
         except NoResultFound:
             pass
-        if data is None and storage_manager['enabled']:  # fix(later): move this inside try statement; we should always have a resource revision if we have data in storage
+        if data is None and storage_manager:  # fix(later): move this inside try statement; we should always have a resource revision if we have data in storage
             if check_timing:
                 start_time = time.time()
-            data = read_storage(storage_path(resource, revision_id))
+            data = storage_manager.read(resource.storage_path(revision_id))
             if check_timing:
                 print('storage time: %.4f' % (time.time() - start_time))
     return data
