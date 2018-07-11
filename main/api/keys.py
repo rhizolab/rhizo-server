@@ -13,7 +13,7 @@ from flask_login import current_user  # fix(later): remove
 from main.app import db
 from main.users.models import Key, User
 from main.users.permissions import access_level, ACCESS_LEVEL_WRITE
-from main.users.auth import create_key
+from main.users.auth import create_key, find_key
 from main.resources.models import Resource
 
 
@@ -94,10 +94,19 @@ class KeyList(ApiResource):
             if access_level(r.query_permissions()) < ACCESS_LEVEL_WRITE:  # require write access to the controller to create a key for it
                 abort(403)
             organization_id = r.root().id
+            if current_user.is_anonymous:  # handle special case of creating a key using a user-associated key (controllers aren't allowed to create keys)
+                key = find_key(request.authorization.password)
+                if key.access_as_user_id:
+                    creation_user_id = key.access_as_user_id
+                else:
+                    abort(403)
+            else:
+                creation_user_id = current_user.id
             (k, key_text) = create_key(current_user.id, organization_id, None, access_as_controller_id)
             return {'status': 'ok', 'id': k.id, 'secret_key': key_text}
 
         # create a key for a users
+        # fix(later): handle case of creating a user-associated key using a user-associated key (see code above)
         elif 'access_as_user_id' in request.values:
             access_as_user_id = request.values['access_as_user_id']
             try:

@@ -18,6 +18,9 @@ For development purposes you can run the server with automatic code reloading: `
 
 You can also run it with websocket support (but no auto-reloading): `python run.py -s`
 
+Note: this websocket server (`-s` option) don't seem to work with gevent 1.2 (at least on Windows); 
+you may need to downgrade to gevent 1.1.2.
+
 ## System Design
 
 ### Users

@@ -58,7 +58,7 @@ def manage_web_socket(ws):
 
     # handle key-based authentication
     if request.authorization:
-        print 'ws connect with auth'
+        print('ws connect with auth')
         auth = request.authorization
         key = find_key(auth.password)  # key is provided as HTTP basic auth password
         if not key:
@@ -78,6 +78,7 @@ def manage_web_socket(ws):
 
     # handle regular user authentication
     elif current_user.is_authenticated:
+        print('ws connect with current user')
         ws_conn.user_id = current_user.id
         ws_conn.auth_method = 'user'
 
@@ -86,14 +87,15 @@ def manage_web_socket(ws):
 
     # process incoming messages
     while not ws_conn.ws.closed:
-        gevent.sleep(0.05)  # sleep to let other stuff run
         message = ws_conn.ws.receive()
         if message:
             message_struct = json.loads(message)
             process_web_socket_message(message_struct, ws_conn)
+        gevent.sleep(0.05)  # sleep to let other stuff run
 
-    # client disconnect; update controller record
-    ws_conn.set_disconnected()
+    # websocket has been closed
+    ws_conn.log_disconnect()
+    socket_sender.unregister(ws_conn)
     db.session.close()
 
 
@@ -129,6 +131,7 @@ def process_web_socket_message(message_struct, ws_conn):
                     if not controller_resource:
                         ws_conn.ws.close()
                         print('unable to find child controller: %s' % parameters['name'])  # fix(soon): what should we do in this case?
+                        return
                 ws_conn.controller_id = controller_resource.id
                 ws_conn.auth_method = 'authCode'
                 try:

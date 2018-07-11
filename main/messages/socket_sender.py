@@ -12,21 +12,21 @@ class SocketSender(object):
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
-        print('new client registered')
+        print('client registered (%s)' % ws_conn)
         self.connections.append(ws_conn)
 
-    # send a message to a specific client (using websocket connection specified in wsConn)
+    # unregister a client (e.g. after it has been closed
+    def unregister(self, ws_conn):
+        print('client unregistered (%s)' % ws_conn)
+        self.connections.remove(ws_conn)
+
+    # send a message to a specific client (using websocket connection specified in ws_conn)
     def send(self, ws_conn, message):
-        try:
-            ws_conn.ws.send(message)
-        except:  # WebSocketError:
-            if ws_conn.controller_id:
-                print('send error to controller ID: %d' % ws_conn.controller_id)
-            else:
-                print('send error')
-            ws_conn.set_disconnected()
-            if ws_conn in self.connections:  # fix(soon): shouldn't they always be in list?
-                self.connections.remove(ws_conn)
+        if not ws_conn.ws.closed:  # if it was recently closed, it may still be in the list of connections; it should be removed as soon as the manage_web_socket function terminates
+            try:
+                ws_conn.ws.send(message)
+            except:  # WebSocketError:
+                print('unable to send to websocket (%s)' % ws_conn)
 
     # send an error message back to a client
     def send_error(self, ws_conn, message_text):
@@ -37,8 +37,8 @@ class SocketSender(object):
         }
         self.send(ws_conn, json.dumps(message_struct))
 
-    # this function sits in a loop, waiting for messages that need to be sent out to subscribers)
-    def run(self):
+    # this function sits in a loop, waiting for messages that need to be sent out to subscribers
+    def send_messages(self):
         from main.app import message_queue
         debug_mode = False  # fix(later): global verbosity settings?
         while True:
@@ -71,7 +71,7 @@ class SocketSender(object):
 
     # spawn a greenlet that sends messages to clients
     def start(self):
-        gevent.spawn(self.run)
+        gevent.spawn(self.send_messages)
 
     # send information about the current process as a message to the system folder
     # (in a multi-process environment, each process has an instance of this class)
@@ -84,7 +84,7 @@ class SocketSender(object):
         connections = []
         for ws_conn in self.connections:
             connections.append({
-                'connected': ws_conn.connected,
+                'connected': ws_conn.connected(),
                 'controller_id': ws_conn.controller_id,
                 'user_id': ws_conn.user_id,
                 'auth_method': ws_conn.auth_method,

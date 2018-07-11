@@ -17,7 +17,15 @@ class WebSocketConnection(object):
         self.user_id = None
         self.controller_id = None
         self.auth_method = None
-        self.connected = True
+
+    # a string representation of the identity of this websocket connection (possibly not unique)
+    def __repr__(self):
+        if self.controller_id:
+            return 'controller %d' % self.controller_id
+        elif self.user_id:
+            return 'user %d' % self.user_id
+        else:
+            return 'invalid'
 
     # returns level of permissions client (user or controller) has for this folder
     def access_level(self, folder_id):
@@ -31,18 +39,17 @@ class WebSocketConnection(object):
             pass
         return client_access_level
 
+    # returns True if connected
+    def connected(self):
+        return not self.ws.closed
+
     # call this when we detect the the connection has been terminated
-    def set_disconnected(self):
-        self.connected = False
+    def log_disconnect(self):
+        print('websocket disconnected (%s)' % self)
         if self.controller_id:
-            print('disconnect controller: %d' % self.controller_id)
             try:
                 controller_status = ControllerStatus.query.filter(ControllerStatus.id == self.controller_id).one()
                 controller_status.web_socket_connected = False
                 db.session.commit()
             except:
                 print('unable to find controller')
-        elif self.user_id:
-            print('disconnect user: %d' % self.user_id)
-        else:
-            print('disconnect without controller_id or user_id')
