@@ -548,7 +548,7 @@ class ResourceList(ApiResource):
                 start_key_time = time.time()
                 key = find_key_fast(auth.password)  # key is provided as HTTP basic auth password
                 end_key_time = time.time()
-                print '---- key: %.2f' % (end_key_time - start_key_time)
+                #print '---- key: %.2f' % (end_key_time - start_key_time)
                 if key and key.access_as_controller_id:
                     controller_id = key.access_as_controller_id
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
@@ -556,7 +556,7 @@ class ResourceList(ApiResource):
                     correction = attributes.get('timestamp_correction', 0)
 
                     # if stored correction is reasonable, use it; otherwise store new correction
-                    if abs(correction - drift) > 10:
+                    if abs(correction - drift) > 100:
                         correction = drift
                         attributes['timestamp_correction'] = drift
                         controller_status.attributes = json.dumps(attributes)
@@ -583,7 +583,7 @@ class ResourceList(ApiResource):
                     pass
         db.session.commit()
         end_time = time.time()
-        print '==== %.2f' % (end_time - start_time)
+        #print '==== %.2f' % (end_time - start_time)
 
 
 # get a list of all resources contained with a folder (specified by parent_id)
