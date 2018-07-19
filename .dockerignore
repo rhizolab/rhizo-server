@@ -1,0 +1,10 @@
+*.pyc
+*~
+*.lock
+venv
+uwsgi.sock
+ws.sock
+settings
+extensions
+main/rhizo.db
+main/static/css/system.css

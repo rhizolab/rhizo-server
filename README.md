@@ -18,7 +18,7 @@ For development purposes you can run the server with automatic code reloading: `
 
 You can also run it with websocket support (but no auto-reloading): `python run.py -s`
 
-Note: this websocket server (`-s` option) don't seem to work with gevent 1.2 (at least on Windows); 
+Note: this websocket server (`-s` option) don't seem to work with gevent 1.2 (at least on Windows);
 you may need to downgrade to gevent 1.1.2.
 
 ## System Design
@@ -68,8 +68,8 @@ placed directly in the server database.
 Messages have types and parameters. The longest allowed value for a type is 40 characters.
 Parameters are represented as a dictionary.
 
-All messages are addressed to a folder. A client (whether browser or controller) can subscribe to 
-messages on a per-folder basis. A controller does not need to specify the target folder; its messages will be 
+All messages are addressed to a folder. A client (whether browser or controller) can subscribe to
+messages on a per-folder basis. A controller does not need to specify the target folder; its messages will be
 addressed to a folder that is created for each controller.
 
 Many messages pass through the server from one client to another (between browser and controller or between
@@ -83,25 +83,25 @@ controller and controller). Some messages are handled specifically by the server
 
 ### WebSocket connections
 
-A WebSocket connection is opened by via `/api/v1/websocket`. Authentication is similar to the REST 
+A WebSocket connection is opened by via `/api/v1/websocket`. Authentication is similar to the REST
 authentication described below.
 
-Websocket messages are sent as JSON strings with the following minimum format: 
-`{ “type”: <type>, “parameters”: { <parameters> }`. 
+Websocket messages are sent as JSON strings with the following minimum format:
+`{ “type”: <type>, “parameters”: { <parameters> }`.
 Here `<parameters>` is a dictionary of parameter names and values.
 
 ## Permissions
 
-Permissions specify which users can access which resources. We're currently reworking the permission 
+Permissions specify which users can access which resources. We're currently reworking the permission
 system and will provide more documentation on that down the road.
 
 ## Keys
 
-Each organization can have a set of API keys. An API key can be associated with a controller or a user, providing 
-access equivalent to that controller or user, as determined by the permissions system. 
+Each organization can have a set of API keys. An API key can be associated with a controller or a user, providing
+access equivalent to that controller or user, as determined by the permissions system.
 
-Currently keys can be created and revoked only by human users. Creating/revoking a key for a controller requires 
-write access to the controller. Creating/revoking a key for a user requires organization admin access or access as 
+Currently keys can be created and revoked only by human users. Creating/revoking a key for a controller requires
+write access to the controller. Creating/revoking a key for a user requires organization admin access or access as
 that user. The revocation user and timestamp (along with creation user and timestamp) are stored.
 
 Data on the server can be accessed via three kinds of authentication:
@@ -146,10 +146,10 @@ Instead the server will be run as a set of systemd services.
 
 We have previously deployed the server on EC2 instances running Ubuntu.
 We assume that you have followed the setup instructions above and have placed
-the rhizo-server repository at `/home/ubuntu/rhizo-server` (if you want to use a 
+the rhizo-server repository at `/home/ubuntu/rhizo-server` (if you want to use a
 different path, update the settings and service files accordingly).
 
-Copy `nginx.conf`, `uwsgi.ini`, and `ws-config.py` from `sample_settings` to `settings`. 
+Copy `nginx.conf`, `uwsgi.ini`, and `ws-config.py` from `sample_settings` to `settings`.
 Set your domain name within the file `nginx.conf`.
 
 Install dependencies:
@@ -181,3 +181,43 @@ Configure systemd services:
     sudo systemctl start rs
     sudo systemctl start rs-ws
     sudo systemctl start rs-worker
+
+# Development under Docker
+
+A Dockerfile and a docker-compose.yml file are provided to enable development under Docker.
+This should not be used for production.
+
+## Setup
+
+The following two commands only need to be run once:
+
+1. First run `docker-compose run app python run.py --init-db` to create the database
+2. Then run `docker-compose run app python run.py --create-admin [email_address]:[password]` to create the admin user.
+
+These will be persisted in the postgres volume defined in docker-compose.yml.
+
+## Running
+
+After the initial setup run `docker-compose up` to start the rhizo server and database.
+
+NOTE: this runs the server with websockets enabled which disables the auto-reloading. You will need
+to stop and restart docker-compose manually if you make changes to the code.
+
+## Using extensions
+
+To include an extension add a volume section to the app service in `docker-compose.yml` and link
+the local code to the container in the server extensions folder.  The Dockerfile creates the extensions folder automatically and populates it with a blank `__init__.py` file.
+
+Here is an example that adds the flow-server which is stored locally in a peer folder to the server folder:
+
+```
+volumes:
+  - ../flow-server:/rhizo-server/extensions/flow-server
+```
+
+When the AUTOLOAD_EXTENSIONS environment variable in the app service in docker-compose.yml is set to 'true' any extension
+found in the extensions folder will be automatically added - you do not need to manually add the extension in the config.
+
+The extension loader will also check the AUTOLOAD_EXTENSIONS environment variable and when true it will try to load the
+`autoload-config.py` file in the root of the extension folder and add any configuration values found there to the app's
+config.  If the `autoload-config.py` does not exist no error will be raised.

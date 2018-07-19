@@ -1,9 +1,11 @@
+import os
+
 PRODUCTION = False
 DEBUG = True
 SSL = False  # enables ssl_required decorator
 SYSTEM_NAME = 'Rhizo Server'  # replace this
 EXTENSIONS = []
-SQLALCHEMY_DATABASE_URI = 'sqlite:///rhizo.db'  # format for postgres: 'postgres://[username]:[password]@[hostname]/[db]'
+SQLALCHEMY_DATABASE_URI = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///rhizo.db') # format for postgres: 'postgres://[username]:[password]@[hostname]/[db]'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 DATABASE_CONNECT_OPTIONS = {}
 THREADS_PER_PAGE = 8
@@ -23,3 +25,6 @@ OUTGOING_EMAIL_PASSWORD = ''
 OUTGOING_EMAIL_SERVER = ''
 EXTRA_NAV_ITEMS = ''
 DOC_FILE_PREFIX = ''
+
+if os.environ.get('AUTOLOAD_EXTENSIONS') in ['True', 'true'] and os.path.exists('./extensions'):
+    EXTENSIONS = [o for o in os.listdir('./extensions/') if os.path.isdir(os.path.join('./extensions', o))]
