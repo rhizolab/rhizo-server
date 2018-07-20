@@ -102,7 +102,7 @@ class KeyList(ApiResource):
                     abort(403)
             else:
                 creation_user_id = current_user.id
-            (k, key_text) = create_key(current_user.id, organization_id, None, access_as_controller_id)
+            (k, key_text) = create_key(current_user.id, organization_id, None, access_as_controller_id, key_text = request.values.get('key'))
             return {'status': 'ok', 'id': k.id, 'secret_key': key_text}
 
         # create a key for a users

@@ -765,7 +765,27 @@ function editControllerSettings(resource) {
 					}
 				});
 			});
-			
+
+			// add button for entering a new/existing key
+			$('<span>', {html: ' '}).appendTo(modalBody);
+			$('<button>', {class: 'btn btn-default', html: 'Enter New Key'}).appendTo(modalBody).click(function() {
+				var key = prompt('Enter your key:');
+				if (key) {
+					var params = {
+						'access_as_controller_id': resource.id,
+						'csrf_token': g_csrfToken,
+						'key': key,
+					};
+					$.post('/api/v1/keys', params, function(results) {
+						if (results && results.status == 'ok') {
+							$('#controllerSettings').modal('hide');  // would be better to update the dialog
+						} else {
+							alert('Error creating key.');
+						}
+					});
+				}
+			});
+
 			// handle user choosing to proceed
 			$('#controllerSettings-ok').click(function() {
 				var name = $('#ctrlEdit_name').val();
