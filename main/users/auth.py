@@ -160,6 +160,7 @@ def find_key_fast(key_text):
 # find a key given an auth code (a hashed version of the key)
 # fix(soon): remove this
 def find_key_by_code(auth_code):
+    from main.users.encrypt import AESCipher
     parts = auth_code.split(';')
     if len(parts) != 3:
         return None
