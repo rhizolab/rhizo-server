@@ -78,7 +78,7 @@ def manage_web_socket(ws):
 
     # handle regular user authentication
     elif current_user.is_authenticated:
-        print('ws connect with current user')
+        print('ws connect with web browser session')
         ws_conn.user_id = current_user.id
         ws_conn.auth_method = 'user'
 

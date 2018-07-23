@@ -274,9 +274,9 @@ def sequence_viewer(resource):
 
 # a viewer for a data file
 def file_viewer(resource, check_timing = False, is_home_page = False):
-    contents = read_resource(resource, check_timing)
+    contents = read_resource(resource, check_timing=check_timing)
     if contents is None:
-        print('file_viewer: storage not found')
+        print('file_viewer: storage not found (resource: %d, path: %s)' % (resource.id, resource.path()))
         abort(404)
     system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
     if system_attributes.get('file_type') == 'md' or resource.name.endswith('.md'):  # fix(soon): revisit this
