@@ -13,7 +13,7 @@ from flask_login import current_user
 
 
 # internal imports
-from main.app import db, socket_sender, app, message_queue
+from main.app import db, socket_sender, app, message_queue, extension_interface
 from main.users.auth import find_key, find_key_by_code
 from main.users.permissions import ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE
 from main.messages.outgoing_messages import handle_send_email, handle_send_text_message
@@ -84,6 +84,7 @@ def manage_web_socket(ws):
 
     # register this socket to receive outgoing messages
     socket_sender.register(ws_conn)
+    extension_interface.emit('socket_connected', ws_conn, socket_sender)
 
     # process incoming messages
     while not ws_conn.ws.closed:
@@ -95,6 +96,7 @@ def manage_web_socket(ws):
 
     # websocket has been closed
     ws_conn.log_disconnect()
+    extension_interface.emit('socket_disconnected', ws_conn)
     socket_sender.unregister(ws_conn)
     db.session.close()
 
