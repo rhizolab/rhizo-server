@@ -78,6 +78,7 @@ socket_sender.start()
 
 # load server extensions
 extensions = []
+auto_load_config = os.environ.get('AUTOLOAD_EXTENSIONS') in ['True', 'true']
 for extension_name in app.config.get('EXTENSIONS', []):
     print('loading extension: %s' % extension_name)
     extension_module = importlib.import_module('extensions.' + extension_name + '.ext')
@@ -87,7 +88,8 @@ for extension_name in app.config.get('EXTENSIONS', []):
     if not os.path.isabs(extension.path):
         extension.path = os.getcwd() + '/' + extension.path
     extensions.append(extension)
-
+    if auto_load_config:
+        app.config.from_pyfile(extension.path + '/autoload-config.py', True)
 
 # a static file function for templates that uses content-based hashes to avoid cache problems
 def static_file(path):
