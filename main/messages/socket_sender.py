@@ -28,14 +28,18 @@ class SocketSender(object):
             except:  # WebSocketError:
                 print('unable to send to websocket (%s)' % ws_conn)
 
-    # send an error message back to a client
-    def send_error(self, ws_conn, message_text):
+    # send a message structure to a specific client
+    def send_message(self, ws_conn, type, parameters):
         message_struct = {
-            'type': 'error',
+            'type': type,
             'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
-            'parameters': {'message': message_text},
+            'parameters': parameters
         }
         self.send(ws_conn, json.dumps(message_struct))
+
+    # send an error message back to a client
+    def send_error(self, ws_conn, message_text):
+        self.send_message(ws_conn, 'error', {'message': message_text})
 
     # this function sits in a loop, waiting for messages that need to be sent out to subscribers
     def send_messages(self):
