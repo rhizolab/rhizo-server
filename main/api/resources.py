@@ -142,7 +142,8 @@ class ResourceRecord(ApiResource):
                         epoch = datetime.datetime.utcfromtimestamp(0)  # fix(clean): merge with similar code for sequence viewer
                         timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
                         values = [rr.data for rr in resource_revisions]
-                        return {'name': r.name, 'timestamps': timestamps, 'values': values}
+                        units = json.loads(r.system_attributes).get('units', None)
+                        return {'name': r.name, 'units': units, 'timestamps': timestamps, 'values': values}
 
                 # if no filter assume just want current value
                 # fix(later): should instead provide all values and have a separate way to get more recent value?
