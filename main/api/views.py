@@ -48,14 +48,16 @@ api_.add_resource(MessageList, '/api/v1/messages')
 # fix(clean): remove this version
 @app.route('/api/v1/connectWebSocket')
 def old_connect_web_socket():
-    manage_web_socket(request.environ["wsgi.websocket"])
+    manage_web_socket(request.environ['wsgi.websocket'])
+    return '{}'
 
 
 
 # endpoint for creating a new websocket connect
 @app.route('/api/v1/websocket')
 def connect_web_socket():
-    manage_web_socket(request.environ["wsgi.websocket"])
+    manage_web_socket(request.environ['wsgi.websocket'])
+    return '{}'
 
 
 # ======== CSRF PROTECTION ========
