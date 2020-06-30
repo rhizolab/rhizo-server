@@ -11,7 +11,7 @@ from flask_login import current_user
 
 
 # internal imports from outside API directory
-from main.app import db, app, api_, sockets
+from main.app import db, app, api_
 from main.util import ssl_required
 from main.users.permissions import generate_access_code
 from main.messages.socket_receiver import manage_web_socket
@@ -45,17 +45,17 @@ api_.add_resource(MessageList, '/api/v1/messages')
 
 
 # endpoint for creating a new websocket connect
-@sockets.route('/api/v1/connectWebSocket')
-#@ssl_required
-def old_connect_web_socket(ws):
-    manage_web_socket(ws)
+# fix(clean): remove this version
+@app.route('/api/v1/connectWebSocket')
+def old_connect_web_socket():
+    manage_web_socket(request.environ["wsgi.websocket"])
+
 
 
 # endpoint for creating a new websocket connect
-@sockets.route('/api/v1/websocket')
-#@ssl_required
-def connect_web_socket(ws):
-    manage_web_socket(ws)
+@app.route('/api/v1/websocket')
+def connect_web_socket():
+    manage_web_socket(request.environ["wsgi.websocket"])
 
 
 # ======== CSRF PROTECTION ========

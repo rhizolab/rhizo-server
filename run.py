@@ -12,7 +12,6 @@ from main.users import views
 from main.api import views
 from main.resources import views  # this should be last because it includes the catch-all resource viewer
 
-
 # import all models
 from main.users import models
 from main.messages import models
@@ -21,7 +20,7 @@ from main.resources import models
 
 # run a local server with websocket support
 def run_with_web_sockets():
-    server = gevent.pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+    server = gevent.pywsgi.WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

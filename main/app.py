@@ -5,7 +5,6 @@ from flask import Flask, render_template, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_restful import Api
-from flask_sockets import Sockets
 from messages.socket_sender import SocketSender, clear_web_sockets
 from messages.message_queue_basic import MessageQueueBasic
 from main.extension import ExtensionInterface
@@ -26,9 +25,6 @@ db = SQLAlchemy(app)
 
 # create REST API object
 api_ = Api(app)
-
-# init websocket system
-sockets = Sockets(app)
 
 # create login manager
 login_manager = LoginManager(app)
