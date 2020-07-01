@@ -2,44 +2,87 @@
 
 body {
 	font-family: 'Open Sans', sans-serif;
-	background-color: #778899;
-}
-
-.footer {
-	padding-bottom: 15px;
-	text-align: center;
-	color: #ffffff;
+	background-color: #fff;
+	height: 100%;
 }
 
 h1,h2,h3,h4 {
 	font-family: 'Open Sans', sans-serif;
 }
 
-.nav {
-	margin-top: 5px;
-	margin-bottom: 5px;
+h2 {
+	margin-bottom: 4px;
+}
+
+h2:first-child {
+	margin-top: 0px;
+}
+
+.btn-primary {
+	background-color: #059b9a;
+	border-color: #059b9a;
+}
+
+.btn-primary:hover {
+	background-color: #15abaa;
+	border-color: #059b9a;
+}
+
+/*********** NAV/HEADER/FOOTER ***********/
+
+div#mainBody {
+	width: 100%;
+	min-height: 100vh;
+	display: flex;
+}
+
+div#leftSide {
+	background-color: #095169;
+	min-width: 250px;
+	max-width: 250px;
+	padding: 20px;
+}
+
+div#rightSide {
+	flex-grow: 1;
+}
+
+div.navBarDivider {
+	width: 100%;
+	height: 1px;
+	margin-bottom: 10px;
+	margin-top: 10px;
+	background-color: #059b9a;
+}
+
+a.navBarItem {
+	color: #ddd;
+}
+
+a#systemName {
+	font-size: 22px;
+	font-weight: 300;
+	color: #ddd;
 }
 
 div#content {
 	padding: 20px;
-	background-color: #ffffff;
-	margin-top: 0px;
-	margin-bottom: 40px;
 }
 
 div#locNavBar {
 	padding: 10px 20px;
-	margin-top: 15px;
 	background-color: #eeeeee;
 	border-bottom: 1px solid #dddddd;
 }
 
-span#locNavNote {
-	
+div#noLocNavBar {
+	/*margin-top: 15px;*/
 }
 
-div#noLocNavBar {
-	margin-top: 15px;
+.footer {
+	padding-bottom: 15px;
+	text-align: center;
+	color: #ffffff;
 }
 
 /*********** GENERIC CLASSES ***********/
@@ -65,7 +108,7 @@ div#noLocNavBar {
 /*********** LINKS ***********/
 
 a {
-	color: #0088cc;
+	color: #059b9a;
 }
 
 
@@ -83,37 +126,6 @@ a.box:hover {
 
 .popover {
 	width: auto;
-}
-
-/*********** PAGE HEADER ***********/
-
-div.navbar {
-	background-color: #ffffff;
-	margin-bottom: 5px;
-}
-
-span#navName {
-	font-size: 28px;
-	line-height: 30px;
-	font-weight: 300;
-	color: #000;
-}
-
-span#navBeta {
-	color: #999;
-	margin-top: 8px;
-	text-align: bottom;
-	font-weight: 300;
-}
-
-/*********** GENERAL HEADERS ***********/
-
-h2 {
-	margin-bottom: 4px;
-}
-
-h2:first-child {
-	margin-top: 0px;
 }
 
 /*********** HOME PAGE BOXES ***********/

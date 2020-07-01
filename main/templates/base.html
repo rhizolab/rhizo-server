@@ -20,49 +20,39 @@
 </head>
 <body>
 
-<!---- top navigation bar ---->
-<div class="navbar navbar-static-top">
-	<div class="container">
-		<div class="navbar-header">
-			<a class="navbar-brand" href="/"><span id="navName">{{ g.system_name }}</span></a> 
-		</div>
-		<ul class="nav navbar-nav navbar-right">
+<div id="mainBody">
+	<div id="leftSide">
+		<!---- side navigation bar ---->
+		<div><a href="/" id="systemName">{{ g.system_name }}</a></div>
+		<div class="navBarDivider"></div>
+		<div>
 			{% if g.user.is_authenticated %}
-				<li><a href="/">Home</a></li>
-				<li><a href="/doc">Docs</a></li>
 				{% for org_name in g.organization_names %}
 					{% if org_name.full_name != 'Docs' %}
-						<li><a href="/{{ org_name.folder_name }}">{{ org_name.full_name }}</a></li>
+						<div><a class="navBarItem" href="/{{ org_name.folder_name }}">{{ org_name.full_name }}</a></div>
 					{% endif %}
 				{% endfor %}
-				<li class="dropdown">
-					<a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-expanded="false">
-						<span class="glyphicon glyphicon-cog" aria-hidden="true"></span>
-					</a>
-					<ul class="dropdown-menu" role="menu">
-						<li role="presentation"><a role="menuitem" tabindex="-1" href="/settings">Settings</a></li>
-						<li role="presentation"><a role="menuitem" tabindex="-1" href="/sign-out">Sign Out</a></li>
-					</ul>
-				</li>
+				<div class="navBarDivider"></div>
+				<div><a class="navBarItem" href="/settings">Settings</a></div>
+				<div><a class="navBarItem" href="/sign-out">Sign Out</a></div>
 			{% else %}
 				{{ g.extra_nav_items|safe }}
-				<li><a href="/sign-in">Sign In</a></li>
+				<div><a class="navBarItem" href="/sign-in">Sign In</a></div>
 			{% endif %}
-		</ul>
+			</ul>
+		</div>
 	</div>
-</div>
-<div class="container">
-
-	<!---- location navigation ---->
-	{% if hide_loc_nav %}
-	<div id="noLocNavBar"></div>
-	{% else %}
-	<div id="locNavBar"><span id="locNav"></span><span id="menuArea" class="pull-right"></span></div>
-	{% endif %}
-
-	<!---- page content ---->
-	<div id="content">
-	{% block content %}{% endblock %}
+	<div id="rightSide">
+		<!---- location navigation ---->
+		{% if hide_loc_nav %}
+		<div id="noLocNavBar"></div>
+		{% else %}
+		<div id="locNavBar"><span id="locNav"></span><span id="menuArea" class="pull-right"></span></div>
+		{% endif %}
+		<!---- page content ---->
+		<div id="content">
+		{% block content %}{% endblock %}
+		</div>
 	</div>
 </div>
 
