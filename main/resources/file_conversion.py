@@ -1,4 +1,4 @@
-import cStringIO
+from io import StringIO
 import csv
 import markdown
 import xlwt
@@ -11,10 +11,10 @@ from PIL import Image
 def compute_thumbnail(image_data, width, output_format = 'JPEG'):
     max_width = width
     max_height = width * 10
-    in_stream = cStringIO.StringIO(image_data)
+    in_stream = StringIO(image_data)
     image = Image.open(in_stream)
     image.thumbnail((max_width, max_height), Image.ANTIALIAS)
-    out_stream = cStringIO.StringIO()
+    out_stream = StringIO()
     image.save(out_stream, format = output_format, quality = 80)
     return (out_stream.getvalue(), image.size[0], image.size[1])
 
@@ -49,7 +49,7 @@ def process_doc_page(markdown_source):
 def convert_csv_to_xls(data):
 
     # create CSV reader for the data
-    in_stream = cStringIO.StringIO(data)
+    in_stream = StringIO(data)
     reader = csv.reader(in_stream)
 
     # create Excel workbook
@@ -62,7 +62,7 @@ def convert_csv_to_xls(data):
             ws.write(row_index, col_index, item)
 
     # get the workbook file contents
-    out_stream = cStringIO.StringIO()
+    out_stream = StringIO()
     wb.save(out_stream)
     return out_stream.getvalue()
 
@@ -75,7 +75,7 @@ def convert_xls_to_csv(data):
     ws = wb.sheet_by_index(0)
 
     # open CSV writer object
-    out_stream = cStringIO.StringIO()
+    out_stream = StringIO()
     writer = csv.writer(out_stream)
 
     # read rows

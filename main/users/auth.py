@@ -24,7 +24,7 @@ from main.util import load_server_config  # fix(clean): remove?
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        user = User.query.filter(User.id == user_id, User.deleted == False).one()
+        user = User.query.filter(User.id == int(user_id), User.deleted == False).one()
     except NoResultFound:
         user = None
     return user
@@ -218,4 +218,4 @@ def migrate_keys():
             secret_key = parts[1]
             key.key_hash = hash_password(secret_key)
             db.session.commit()
-    print 'migrated keys:', count
+    print('migrated keys:', count)

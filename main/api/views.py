@@ -19,13 +19,13 @@ from main.resources.models import Resource
 
 
 # internal local (API) imports
-from users import UserRecord, UserList
-from keys import KeyRecord, KeyList
-from organizations import OrganizationList, OrganizationUserRecord, OrganizationUserList
-from messages import MessageList
-from resources import ResourceRecord, ResourceList
-from pins import PinRecord, PinList
-from system import SystemStats
+from .users import UserRecord, UserList
+from .keys import KeyRecord, KeyList
+from .organizations import OrganizationList, OrganizationUserRecord, OrganizationUserList
+from .messages import MessageList
+from .resources import ResourceRecord, ResourceList
+from .pins import PinRecord, PinList
+from .system import SystemStats
 
 
 # API resources

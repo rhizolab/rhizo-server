@@ -4,7 +4,7 @@ import base64
 import hashlib  # fix(clean): remove?
 import zipfile
 import datetime
-import cStringIO
+from io import StringIO
 
 
 # external imports
@@ -421,7 +421,7 @@ class ResourceList(ApiResource):
 
             # get file contents (if any) from request
             if file:
-                stream = cStringIO.StringIO()
+                stream = StringIO()
                 file.save(stream)
                 data = stream.getvalue()
             else:
@@ -678,7 +678,7 @@ def add_to_zip(zip, resource, path_prefix, uncompressed_size):
 def batch_download(parent_folder, ids):
 
     # create zip file
-    zip_file = cStringIO.StringIO()
+    zip_file = StringIO()
     zip = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED, False)
     uncompressed_size = [0]
 

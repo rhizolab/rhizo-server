@@ -5,8 +5,8 @@ from flask import Flask, render_template, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_restful import Api
-from messages.socket_sender import SocketSender, clear_web_sockets
-from messages.message_queue_basic import MessageQueueBasic
+from .messages.socket_sender import SocketSender, clear_web_sockets
+from .messages.message_queue_basic import MessageQueueBasic
 
 # create and configure the application
 app = Flask(__name__)
@@ -32,11 +32,11 @@ login_manager = LoginManager(app)
 # this is responsible for bulk data storage of large files/objects
 # fix(later): make this into class?
 if app.config.get('S3_STORAGE_BUCKET'):
-    from resources.s3_storage_manager import S3StorageManager
+    from .resources.s3_storage_manager import S3StorageManager
     print('using S3 storage manager')
     storage_manager = S3StorageManager(app.config)
 elif app.config.get('FILE_SYSTEM_STORAGE_PATH'):
-    from resources.file_system_storage_manager import FileSystemStorageManager
+    from .resources.file_system_storage_manager import FileSystemStorageManager
     print('using file system storage manager')
     storage_manager = FileSystemStorageManager(app.config)
 else:

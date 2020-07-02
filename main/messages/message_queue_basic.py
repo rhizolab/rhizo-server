@@ -1,7 +1,7 @@
 import json
 import datetime
 import gevent
-from message_queue import MessageQueue
+from .message_queue import MessageQueue
 
 
 # A basic message queue using a message table in the primary database.

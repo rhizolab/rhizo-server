@@ -7,7 +7,10 @@ from email.mime.text import MIMEText
 
 
 # external imports
-from twilio.rest import TwilioRestClient
+try:
+    from twilio.rest import TwilioRestClient
+except ModuleNotFoundError:
+    pass
 from sqlalchemy.orm.exc import NoResultFound
 
 

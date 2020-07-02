@@ -2,8 +2,8 @@
 import csv
 import time  # fix(clean): remove
 import json
-import cStringIO
 import datetime
+from io import StringIO
 
 
 # external imports
@@ -295,7 +295,7 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
         file_ext = resource.name.rsplit('.', 1)[-1]
         edit = request.args.get('edit', False)
         if file_ext == 'csv' and edit == False:
-            reader = csv.reader(cStringIO.StringIO(contents))
+            reader = csv.reader(StringIO(contents))
             data = list(reader)
             return render_template('resources/table-editor.html', resource = resource, data_json = json.dumps(data))
         elif file_ext == 'txt' or file_ext == 'csv':

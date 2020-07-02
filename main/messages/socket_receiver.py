@@ -62,7 +62,7 @@ def manage_web_socket(ws):
         auth = request.authorization
         key = find_key(auth.password)  # key is provided as HTTP basic auth password
         if not key:
-            print 'key not found'
+            print('key not found')
             return  # would be nice to abort(403), but doesn't look like you can do that inside a websocket handler
         ws_conn.controller_id = key.access_as_controller_id
         ws_conn.user_id = key.access_as_user_id
@@ -74,7 +74,7 @@ def manage_web_socket(ws):
                 controller_status.client_version = auth.username  # client should pass version in HTTP basic auth user name
                 db.session.commit()
             except NoResultFound:
-                print 'warning: unable to find controller status record'
+                print('warning: unable to find controller status record')
 
     # handle regular user authentication
     elif current_user.is_authenticated:
@@ -108,7 +108,7 @@ def process_web_socket_message(message_struct, ws_conn):
     # handle new connection (updates controller status record)
     if type == 'connect':  # fix(soon): remove this
         parameters = message_struct['parameters']
-        print 'connect message'
+        print('connect message')
 
         # clients/controllers should send authCode in connect message
         if 'authCode' in parameters:
