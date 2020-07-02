@@ -7,7 +7,6 @@ from flask_login import LoginManager
 from flask_restful import Api
 from messages.socket_sender import SocketSender, clear_web_sockets
 from messages.message_queue_basic import MessageQueueBasic
-from main.extension import ExtensionInterface
 
 # create and configure the application
 app = Flask(__name__)
@@ -73,20 +72,13 @@ socket_sender.start()
 # fix(later): revisit this
 #clear_web_sockets()
 
-# create the extension interface
-extension_interface = ExtensionInterface()
-
 # load server extensions
 extensions = []
 auto_load_config = os.environ.get('AUTOLOAD_EXTENSIONS') in ['True', 'true']
 for extension_name in app.config.get('EXTENSIONS', []):
     print('loading extension: %s' % extension_name)
     extension_module = importlib.import_module('extensions.' + extension_name + '.ext')
-    try:
-        extension = extension_module.create(extension_interface)
-    except TypeError:
-        # fallback for extensions that haven't updated to use the interface
-        extension = extension_module.create()
+    extension = extension_module.create()
     extension.name = extension_name
     extension.path = os.path.dirname(extension_module.__file__)
     if not os.path.isabs(extension.path):
