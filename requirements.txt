@@ -3,12 +3,11 @@ boto
 Flask
 Flask-Login
 Flask-RESTful
-Flask-Sockets
 Flask-SQLAlchemy
 gevent
 gevent-websocket
 greenlet
-gunicorn
+gunicorn  # make this optional
 Markdown
 Pillow
 pycrypto  # remove
