@@ -10,7 +10,6 @@ greenlet
 gunicorn  # make this optional
 Markdown
 Pillow
-pycrypto  # remove
 SQLAlchemy
 twilio==5.6.0  # make this optional
 xlrd
