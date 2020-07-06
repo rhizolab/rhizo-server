@@ -218,13 +218,13 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
 # note that we don't commit resource here; outside code must commit
-# data should be a plain string (not unicode string), possibly containing binary data or encoded unicode data
+# data should be binary data or encoded unicode string
 def add_resource_revision(resource, timestamp, data):
     resource_revision = ResourceRevision()
     resource_revision.resource_id = resource.id
     resource_revision.timestamp = timestamp
     if len(data) < 1000 or not storage_manager:
-        resource_revision.data = data
+        resource_revision.data = data.encode()
         bulk_storage = False
     else:
         bulk_storage = True

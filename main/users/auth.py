@@ -42,7 +42,7 @@ def login_validate(user_name_or_email, password):
             user = User.query.filter(User.user_name == user_name_or_email, User.deleted == False).one()
         except NoResultFound:
             user = None
-    if user and not bcrypt.checkpw(inner_password_hash(password), user.password_hash.encode()):
+    if user and not bcrypt.checkpw(inner_password_hash(password).encode(), user.password_hash.encode()):
         user = None
     return user
 
@@ -94,12 +94,12 @@ def inner_password_hash(password):
     except RuntimeError:  # handle case that we're running outside app (e.g. creating admin from command line)
         config = load_server_config()
         salt = config['SALT']
-    return base64.standard_b64encode(hashlib.sha512(password + salt).digest())
+    return base64.standard_b64encode(hashlib.sha512((password + salt).encode('utf-8')).digest()).decode()
 
 
 # compute a full hash of the password
 def hash_password(password):
-    return bcrypt.hashpw(inner_password_hash(password), bcrypt.gensalt(12))
+    return bcrypt.hashpw(inner_password_hash(password).encode(), bcrypt.gensalt(12)).decode('utf-8')
 
 
 # create a new access key associated with a user or controller
@@ -142,7 +142,7 @@ def find_key(key_text):
     key_part = key_text[:3] + key_text[-3:]
     iph = inner_password_hash(key_text)
     for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp == None):
-        if bcrypt.checkpw(iph, key.key_hash.encode()):
+        if bcrypt.checkpw(iph.encode(), key.key_hash.encode()):
             return key
     return None
 

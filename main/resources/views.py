@@ -287,7 +287,7 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
                 show_view_button = True,
             )
         else:
-            file_html = process_doc_page(contents)
+            file_html = process_doc_page(contents.decode())
             allow_edit = access_level(resource.query_permissions()) >= ACCESS_LEVEL_WRITE
             title = current_app.config['SYSTEM_NAME'] if is_home_page else resource.name  # fix(later): allow specify title for doc page?
             return render_template('resources/doc-viewer.html', resource = resource, allow_edit = allow_edit, file_html = file_html, hide_loc_nav = is_home_page, title = title)
