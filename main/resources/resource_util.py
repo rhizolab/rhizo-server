@@ -217,7 +217,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
-# note that we don't commit resource here; outside code must commit
+# note that we don't commit resource here (just resource revision); outside code must commit resource
 # data should be binary data or encoded unicode string
 def add_resource_revision(resource, timestamp, data):
     resource_revision = ResourceRevision()
@@ -325,10 +325,11 @@ def create_system_resources():
 
 If you are logged in as a system admin, you can [edit this page](/system/home.md?edit=1).
 '''
-        add_resource_revision(resource, datetime.datetime.utcnow(), home_contents)
-        print('created home page')
+        resource_revision = add_resource_revision(resource, datetime.datetime.utcnow(), home_contents)
+        db.session.commit()
+        print('created home page (resource: %d, revision: %d)' % (resource.id, resource_revision.id))
 
-    # fix(soon): create workers folder, log sequence, doc org, workers/log
+    # fix(soon): create workers folder, system log sequence, doc org?, workers/log
 
     # add apps for system app templates
     file_names = os.listdir('main/templates/system')
