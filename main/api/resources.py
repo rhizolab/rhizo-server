@@ -571,11 +571,12 @@ class ResourceList(ApiResource):
             timestamp = datetime.datetime.utcnow()
 
         # for now, assume all sequences in same folder
-        first_name = values.iterkeys().next()
+        items = list(values.items())
+        first_name = items[0][0]
         folder_name = first_name.rsplit('/', 1)[0]
         folder_resource = find_resource(folder_name)
         if folder_resource: # and access_level(folder_resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
-            for (full_name, value) in values.iteritems():
+            for (full_name, value) in items:
                 seq_name = full_name.rsplit('/', 1)[1]
                 try:
                     resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()

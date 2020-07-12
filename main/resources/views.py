@@ -243,7 +243,7 @@ def sequence_viewer(resource):
     resource_revisions = list(ResourceRevision.query.filter(ResourceRevision.resource_id == resource.id).order_by(ResourceRevision.timestamp.desc())[:history_count])
     epoch = datetime.datetime.utcfromtimestamp(0)
     timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
-    values = [rr.data for rr in resource_revisions]
+    values = [rr.data.decode() for rr in resource_revisions]
     thumbnail_revs = []
     full_image_revs = []
     resource_path = resource.path()
