@@ -1,4 +1,4 @@
-from io import StringIO
+from io import BytesIO, StringIO
 import csv
 import markdown
 import xlwt
@@ -11,10 +11,10 @@ from PIL import Image
 def compute_thumbnail(image_data, width, output_format = 'JPEG'):
     max_width = width
     max_height = width * 10
-    in_stream = StringIO(image_data)
+    in_stream = BytesIO(image_data)
     image = Image.open(in_stream)
     image.thumbnail((max_width, max_height), Image.ANTIALIAS)
-    out_stream = StringIO()
+    out_stream = BytesIO()
     image.save(out_stream, format = output_format, quality = 80)
     return (out_stream.getvalue(), image.size[0], image.size[1])
 
@@ -62,7 +62,7 @@ def convert_csv_to_xls(data):
             ws.write(row_index, col_index, item)
 
     # get the workbook file contents
-    out_stream = StringIO()
+    out_stream = BytesIO()
     wb.save(out_stream)
     return out_stream.getvalue()
 
