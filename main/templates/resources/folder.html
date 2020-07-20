@@ -38,6 +38,9 @@ table.plateMap th {
 table.plateMap th.wellLetter {
 	padding-right: 5px;
 }
+div.seqTileValue {
+	font-size: 36px;
+}
 </style>
 {% endblock %}
 
@@ -52,6 +55,7 @@ var g_fullPath = '{{ full_path }}';  // should start with leading slash
 var g_resources = {{ resources_json|safe }};
 var g_view = {{ view_json|safe }};
 var g_liveBlocks = [];  // fix(clean): remove this after move sequence_update handler from messages.js to blocks.js?
+var g_liveViewHandlerAdded = false;
 
 
 function resourceUrl(resource) {
@@ -89,6 +93,8 @@ function createResourceTile(resource) {
 		var thumbnailUrl = url + '?width=120';
 		$('<br>').prependTo(a);
 		$('<img>', {src: thumbnailUrl}).prependTo(a);
+	} else if (resource.type === 21) {  // sequence
+		$('<div>', {class: 'seqTileValue', html: '...', id: 'seqVal_' + resource.id}).prependTo(a);
 	}
 {% if user_access_level >= 20 %}
 	var menuButton = $('<button>', {type: 'button', class: 'btn btn-default dropdown-toggle', 'data-toggle': 'dropdown', 'aria-expanded': 'false'}).appendTo(btnGroup);
@@ -163,6 +169,33 @@ $(function() {
 {% endif %}
 	createDropDownMenu({id: 'folderMenu', label: 'View', compact: true, alignRight: true, menuData: folderMenuData}).appendTo(navMenuArea);
 {% endif %}
+
+	// if this folder includes sequences, subscribe for updates
+	var hasSequence = false;
+	for (var i = 0; i < g_resources.length; i++) {
+		var resource = g_resources[i];
+		if (resource.type === 21) {
+			hasSequence = true;
+			break;
+		}
+	}
+	if (hasSequence) {
+		if (!g_wsh.connectStarted) {
+			subscribeToFolder(g_fullPath);
+			connectWebSocket();
+		}
+		g_wsh.addGenericHandler(function(timestamp, type, params) {
+			if (type === 'sequence_update') {
+				for (var i = 0; i < g_resources.length; i++) {
+					var resource = g_resources[i];
+					if (resource.id === params['id']) {
+						$('#seqVal_' + resource.id).html(params['value']);
+						break;
+					}
+				}
+			}
+		});
+	}
 
 	updateView();
 });
@@ -320,23 +353,21 @@ function displayResourceList() {
 function viewSendMessages() {
 
 	// open websocket connection
-	var firstTime = false;
 	if (!g_wsh.connectStarted) {
 		subscribeToFolder(g_fullPath);
 		connectWebSocket();
-		firstTime = true;
 	}
-	
+
 	var modalDiv = createBasicModal('viewSendMessages', 'View/Send Messages', {infoOnly: true});
 	modalDiv.appendTo($('body')); // fix(later): would be nice to avoid this step
 	var modalBody = $('#viewSendMessages-body');
-	
+
 	// area for displaying received messages
 	$('<h3>', {html: 'Live Messages'}).appendTo(modalBody);
 	var liveMessages = $('<div>', {id: 'liveMessages', class: 'log'}).appendTo(modalBody);
-	
+
 	// add handler for messages
-	if (firstTime) {
+	if (g_liveViewHandlerAdded === false) {
 		g_wsh.addGenericHandler(function(timestamp, type, params) {
 			var paramStr = '';
 			for (var name in params) {
@@ -353,6 +384,7 @@ function viewSendMessages() {
 			$("<span/>", {html: message, class: "logText"}).appendTo(logEntryDiv);
 			logEntryDiv.prependTo(liveMessages);
 		});
+		g_liveViewHandlerAdded = true;
 	}
 
 	// prompt for message type and parameters

@@ -580,7 +580,7 @@ class ResourceList(ApiResource):
                 seq_name = full_name.rsplit('/', 1)[1]
                 try:
                     resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
-                    update_sequence_value(resource, full_name, timestamp, str(value), emit_message=False)  # fix(later): revisit emit_message
+                    update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
                 except NoResultFound:
                     pass
         db.session.commit()
