@@ -118,6 +118,7 @@ def send_email(to_email_address, subject, body, server_config):
 
     # get settings
     from_email_address = server_config['OUTGOING_EMAIL_ADDRESS']
+    smtp_user_name = server_config['OUTGOING_EMAIL_USER_NAME']
     password = server_config['OUTGOING_EMAIL_PASSWORD']
     server = server_config['OUTGOING_EMAIL_SERVER']
 
@@ -134,7 +135,7 @@ def send_email(to_email_address, subject, body, server_config):
     try:
         smtp_server = smtplib.SMTP(server)
         smtp_server.starttls()
-        smtp_server.login(from_email_address, password)
+        smtp_server.login(smtp_user_name, password)
         smtp_server.sendmail(from_email_address, to_email_address, message.as_string())
         smtp_server.quit()
     except smtplib.SMTPRecipientsRefused:

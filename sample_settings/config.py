@@ -21,6 +21,7 @@ S3_ACCESS_KEY = ''
 S3_SECRET_KEY = ''
 S3_STORAGE_BUCKET = ''
 OUTGOING_EMAIL_ADDRESS = ''  # these OUTGOING_EMAIL settings are required if you want to invite people to create accounts
+OUTGOING_EMAIL_USER_NAME = ''
 OUTGOING_EMAIL_PASSWORD = ''
 OUTGOING_EMAIL_SERVER = ''
 EXTRA_NAV_ITEMS = ''
