@@ -2,7 +2,7 @@
 # it includes the app object from the app module and makes sure all views/models are imported;
 # it provides an alternative to putting everything inside an __init__.py file;
 # it isn't used by the top-level run.py program
-from app import *
+from main.app import *
 
 
 # import all views
