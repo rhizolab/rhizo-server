@@ -121,6 +121,7 @@ def send_email(to_email_address, subject, body, server_config):
     smtp_user_name = server_config['OUTGOING_EMAIL_USER_NAME']
     password = server_config['OUTGOING_EMAIL_PASSWORD']
     server = server_config['OUTGOING_EMAIL_SERVER']
+    port = server_config['OUTGOING_EMAIL_PORT']
 
     # build message object
     message = MIMEMultipart()
@@ -133,7 +134,7 @@ def send_email(to_email_address, subject, body, server_config):
     # send email message
     result = 'ok'
     try:
-        smtp_server = smtplib.SMTP(server)
+        smtp_server = smtplib.SMTP(server, port)
         smtp_server.starttls()
         smtp_server.login(smtp_user_name, password)
         smtp_server.sendmail(from_email_address, to_email_address, message.as_string())
