@@ -572,20 +572,21 @@ class ResourceList(ApiResource):
 
         # for now, assume all sequences in same folder
         items = list(values.items())
-        first_name = items[0][0]
-        folder_name = first_name.rsplit('/', 1)[0]
-        folder_resource = find_resource(folder_name)
-        if folder_resource: # and access_level(folder_resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
-            for (full_name, value) in items:
-                seq_name = full_name.rsplit('/', 1)[1]
-                try:
-                    resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
-                    update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
-                except NoResultFound:
-                    pass
-        db.session.commit()
-        end_time = time.time()
-        #print '==== %.2f' % (end_time - start_time)
+        if items:
+            first_name = items[0][0]
+            folder_name = first_name.rsplit('/', 1)[0]
+            folder_resource = find_resource(folder_name)
+            if folder_resource: # and access_level(folder_resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
+                for (full_name, value) in items:
+                    seq_name = full_name.rsplit('/', 1)[1]
+                    try:
+                        resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
+                        update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
+                    except NoResultFound:
+                        pass
+            db.session.commit()
+            #end_time = time.time()
+            #print '==== %.2f' % (end_time - start_time)
 
 
 # get a list of all resources contained with a folder (specified by parent_id)

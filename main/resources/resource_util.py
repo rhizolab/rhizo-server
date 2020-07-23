@@ -186,7 +186,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
     if emit_message:
         message_params = {
             'id': resource.id,
-            'name': resource_path,
+            'name': resource_path,  # full/absolute path of the sequence
             'timestamp': timestamp.isoformat() + 'Z',
         }
         if data_type != Resource.IMAGE_SEQUENCE:  # for images we'll send revision IDs

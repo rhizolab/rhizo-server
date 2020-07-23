@@ -89,29 +89,30 @@ function createBlock(blockSpec) {
 	case 'sequence':
 		var name = blockSpec.name;
 		var label = blockSpec.label || generateLabel(blockSpec.name);
+		var fullSeqPath = g_sequencePrefix + '/' + name;
+		var folderPath = fullSeqPath.substr(0, fullSeqPath.lastIndexOf('/'));
 
 		// prepare block object
 		var block = {
-			id: name,
-			sequenceName: g_sequencePrefix + '/' + name, // fix(soon): we're assuming this global are set
-			folderPath: g_sequencePrefix,  // fix(clean): could remove this and compute from sequenceName
+			id: name.split('/').join('_'),  // fix(clean): use replace function instead?
+			sequenceName: fullSeqPath, // fix(soon): we're assuming this global is set
+			folderPath: folderPath,  // fix(clean): could remove this and compute from sequenceName
 		};
 
 		// create DOM element and init block class
 		if (blockSpec.view == 'large') {// fix(soon): rethink view modes
-			var name = blockSpec.name;
 			blockElem = $('<div>');
 			$('<h3>', {html: label}).appendTo(blockElem);
-			$('<div>', {id: blockSpec.name}).appendTo(blockElem);
+			$('<div>', {id: block.id}).appendTo(blockElem);
 			initLog(block);
 		} else if (blockSpec.view == 'image') {
-			blockElem = $('<div>', {id: blockSpec.name, class: 'imageSequence'});
-			$('<img>', {id: blockSpec.name + '_img'}).appendTo(blockElem);
+			blockElem = $('<div>', {id: block.id, class: 'imageSequence'});
+			$('<img>', {id: block.id + '_img'}).appendTo(blockElem);
 			initImageSequence(block);
 		} else {
 			blockElem = $('<div>', {class: 'sequenceBlock'});
 			$('<div>', {class: 'sequenceLabel', html: label}).appendTo(blockElem);
-			$('<div>', {class: 'sequenceValue', id: blockSpec.name, html: '...'}).appendTo(blockElem);
+			$('<div>', {class: 'sequenceValue', id: block.id, html: '...'}).appendTo(blockElem);
 			initSequence(block);
 		}
 
