@@ -64,7 +64,7 @@ class KeyList(ApiResource):
     # get a list of keys
     def get(self):
         if 'access_as_controller_id' in request.values:
-            access_as_controller_id = request.values['access_as_controller_id']
+            access_as_controller_id = int(request.values['access_as_controller_id'])
             try:
                 r = Resource.query.filter(Resource.id == access_as_controller_id, Resource.deleted == False).one()
             except NoResultFound:
