@@ -9,7 +9,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 
 # internal imports
-from util import worker_log
+from main.workers.util import worker_log
 from main.app import db
 from main.util import load_server_config
 from main.resources.models import Resource, ControllerStatus
