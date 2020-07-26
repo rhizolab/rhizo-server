@@ -266,7 +266,7 @@ class ResourceRecord(ApiResource):
         # update other resource metadata
         if 'user_attributes' in args:
             r.user_attributes = args['user_attributes']
-        if r.type == Resource.SEQUENCE:
+        if r.type == Resource.SEQUENCE:  # fix(soon): should use args['system_attributes'] instead of just args
             if 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args or 'units' in args:
                 system_attributes = json.loads(r.system_attributes)
                 if 'data_type' in args:
@@ -281,17 +281,9 @@ class ResourceRecord(ApiResource):
                     system_attributes['min_storage_interval'] = int(args['min_storage_interval'])  # fix(later): safe convert
                 r.system_attributes = json.dumps(system_attributes)
         elif r.type == Resource.REMOTE_FOLDER:
-            system_attributes = json.loads(r.system_attributes) if r.system_attributes else {}
-            if 'remote_path' in args:
-                system_attributes['remote_path'] = args['remote_path']
-            if 'controller_id' in args:
-                system_attributes['controller_id'] = args['controller_id']
-            r.system_attributes = json.dumps(system_attributes)
+            update_system_attributes(r, args, ['remote_path', 'controller_id'])  # fix(soon): should use args['system_attributes'] instead of just args
         elif r.type == Resource.ORGANIZATION_FOLDER:
-            system_attributes = json.loads(r.system_attributes) if r.system_attributes else {}
-            if 'full_name' in args and args['full_name']:
-                system_attributes['full_name'] = args['full_name']
-            r.system_attributes = json.dumps(system_attributes)
+            update_system_attributes(r, args, ['full_name'])  # fix(soon): should use args['system_attributes'] instead of just args
         elif r.type == Resource.CONTROLLER_FOLDER:
             if 'status' in args:
                 try:
@@ -301,6 +293,7 @@ class ResourceRecord(ApiResource):
                     controller_status.attributes = json.dumps(status)
                 except NoResultFound:
                     pass
+            update_system_attributes(r, json.loads(args['system_attributes']), ['watchdog_recipients', 'watchdog_minutes'])
         else:  # fix(soon): remove this case
             if 'system_attributes' in args:
                 r.system_attributes = args['system_attributes']  # note that this will overwrite any existing system attributes; client must preserve any that aren't modified
@@ -587,6 +580,15 @@ class ResourceList(ApiResource):
             db.session.commit()
             #end_time = time.time()
             #print '==== %.2f' % (end_time - start_time)
+
+
+# update resource record system attributes using a dictionary of new system attributes (send via REST API)
+def update_system_attributes(resource, new_system_attribs, allowed_attribs):
+    system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
+    for attrib_name in allowed_attribs:
+        if attrib_name in new_system_attribs and new_system_attribs[attrib_name]:
+            system_attributes[attrib_name] = new_system_attribs[attrib_name]
+    resource.system_attributes = json.dumps(system_attributes)
 
 
 # get a list of all resources contained with a folder (specified by parent_id)
