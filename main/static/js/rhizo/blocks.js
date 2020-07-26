@@ -38,9 +38,12 @@ function addSequenceHandler() {
 			//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
 			var sequencePath = params['name'];  // full/absolute path of sequence
 			$.each(g_liveBlocks, function(id, block) {
-				if (block.sequenceName && block.sequenceName == sequencePath) {
-					// fix(soon): should use params['timestamp']? (not defined if from arduino)
-					block.onValue(sequencePath, timestamp, params['value']);
+				var seqPaths = block.sequencePaths;
+				for (var i = 0; i < seqPaths.length; i++) {
+					if (seqPaths[i] === sequencePath) {
+						// fix(soon): should use params['timestamp']? (not defined if from arduino)
+						block.onValue(sequencePath, timestamp, params['value']);
+					}
 				}
 			});
 		});
@@ -109,13 +112,11 @@ function createBlock(blockSpec) {
 		var name = blockSpec.name;
 		var label = blockSpec.label || generateLabel(blockSpec.name);
 		var fullSeqPath = g_sequencePrefix + '/' + name;
-		var folderPath = fullSeqPath.substr(0, fullSeqPath.lastIndexOf('/'));
 
 		// prepare block object
 		var block = {
 			id: name.split('/').join('_'),  // fix(clean): use replace function instead?
-			sequenceName: fullSeqPath, // fix(soon): we're assuming this global is set
-			folderPath: folderPath,  // fix(clean): could remove this and compute from sequenceName
+			sequencePaths: [fullSeqPath], 
 		};
 
 		// create DOM element and init block class
@@ -134,6 +135,23 @@ function createBlock(blockSpec) {
 			$('<div>', {class: 'sequenceValue', id: block.id, html: '...'}).appendTo(blockElem);
 			initSequence(block);
 		}
+
+		// make sure we receive updates for this sequence
+		subscribeToFolder(fullSeqPath.substr(0, fullSeqPath.lastIndexOf('/')));
+		addSequenceHandler();
+
+		// store in collection of blocks
+		g_liveBlocks[name] = block;
+		break;
+
+	case 'plot':
+		var name = blockSpec.name;
+
+		// prepare block object
+		var block = {
+			id: name.split('/').join('_'),  // fix(clean): use replace function instead?
+			sequencePaths: [],
+		};
 
 		// store in collection of blocks
 		g_liveBlocks[name] = block;
@@ -228,10 +246,6 @@ function initSequence(block) {
 		}
 		$('#' + this.id).html(value);
 	}
-
-	// make sure we receive updates for this sequence
-	subscribeToFolder(block.folderPath);
-	addSequenceHandler();
 }
 
 
@@ -263,10 +277,6 @@ function initLog(block) {
 			$('#' + this.id + '_' + removeIndex).remove();
 		}
 	}
-
-	// make sure we receive updates for this sequence
-	subscribeToFolder(block.folderPath);
-	addSequenceHandler();
 }
 
 
@@ -282,14 +292,10 @@ function initImageSequence(block) {
 	block.onValue = function(sequencePath, timestamp, value) {
 //		console.log('block: ' + this.id);
 //		console.log('image: ' + value);
-		var resourceName = this.sequenceName;  // we assume the sequence name has a leading slash
+		var resourceName = this.sequencePaths[0];  // we assume the sequence name has a leading slash
 		var d = new Date();
 		$('#' + this.id + '_img').attr('src', '/api/v1/resources' + resourceName + '?' + d.getTime());  // add time to prevent caching
 	}
-
-	// make sure we receive updates for this sequence
-	subscribeToFolder(block.folderPath);
-	addSequenceHandler();
 }
 
 
