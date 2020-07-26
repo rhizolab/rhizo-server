@@ -7,6 +7,7 @@
 
 // a subset of blocks that are interactive or update with live server data
 var g_liveBlocks = {};
+var g_addedSeqHandler = false;
 
 
 // creates a block DOM elements and code given a list of block specifications;
@@ -27,6 +28,24 @@ function readyBlocks() {
 			block.onready();
 		}
 	});
+}
+
+
+// register sequence_update handler (if not already done)
+function addSequenceHandler() {
+	if (g_addedSeqHandler === false) {
+		g_wsh.addHandler('sequence_update', function(timestamp, params) {
+			//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
+			var sequencePath = params['name'];  // full/absolute path of sequence
+			$.each(g_liveBlocks, function(id, block) {
+				if (block.sequenceName && block.sequenceName == sequencePath) {
+					// fix(soon): should use params['timestamp']? (not defined if from arduino)
+					block.onValue(sequencePath, timestamp, params['value']);
+				}
+			});
+		});
+		g_addedSeqHandler = true;
+	}
 }
 
 
@@ -202,7 +221,7 @@ function initSequence(block) {
 	}
 
 	// handle an update message for this sequence
-	block.onValue = function(timestamp, value) {
+	block.onValue = function(sequencePath, timestamp, value) {
 		if (this.format && this.dataType === 1) {
 			var decimalPlaces = parseInt(this.format);
 			value = value.toFixed(decimalPlaces);
@@ -212,6 +231,7 @@ function initSequence(block) {
 
 	// make sure we receive updates for this sequence
 	subscribeToFolder(block.folderPath);
+	addSequenceHandler();
 }
 
 
@@ -224,13 +244,13 @@ function initLog(block) {
 	block.onready = function() {
 		$.each(this.entries, function(index, value) {
 			console.log('initLog:' + value);
-			block.onValue(value[0], value[1]);
+			block.onValue('', value[0], value[1]);
 		});
 		connectWebSocket();
 	}
 
 	// handle an update message for this sequence
-	block.onValue = function(timestamp, value) {
+	block.onValue = function(sequencePath, timestamp, value) {
 		var logEntryDiv = $('<div/>', {id: this.id + '_' + this.nextLogEntryIndex});
 		this.nextLogEntryIndex++;
 		var timeStr = moment(timestamp).format('YYYY-M-DD H:mm:ss');
@@ -246,6 +266,7 @@ function initLog(block) {
 
 	// make sure we receive updates for this sequence
 	subscribeToFolder(block.folderPath);
+	addSequenceHandler();
 }
 
 
@@ -258,7 +279,7 @@ function initImageSequence(block) {
 	}
 
 	// handle an update message for this sequence
-	block.onValue = function(timestamp, value) {
+	block.onValue = function(sequencePath, timestamp, value) {
 //		console.log('block: ' + this.id);
 //		console.log('image: ' + value);
 		var resourceName = this.sequenceName;  // we assume the sequence name has a leading slash
@@ -268,6 +289,7 @@ function initImageSequence(block) {
 
 	// make sure we receive updates for this sequence
 	subscribeToFolder(block.folderPath);
+	addSequenceHandler();
 }
 
 
