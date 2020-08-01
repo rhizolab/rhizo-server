@@ -146,12 +146,29 @@ function createBlock(blockSpec) {
 
 	case 'plot':
 		var name = blockSpec.name;
+		var id = name.split('/').join('_');  // fix(clean): use replace function instead?
+		var relSeqPaths = blockSpec.sequences;
+		var width = 700;
+		var height = 200;
+		var seqPaths = [];
+		for (var i = 0; i < relSeqPaths.length; i++) {
+			seqPaths.push(g_sequencePrefix + '/' + relSeqPaths[i]);
+		}
+
+		blockElem = $('<div>');
+		$('<canvas>', {id: id + '_canvas', width: width, height: height}).appendTo(blockElem);
+		//$('<br>').appendTo(blockElem);
+		//$('<button>', {class: 'btn', html: 'Zoom In'}).appendTo(blockElem);  // plotHandler.zoomIn()
+		//$('<button>', {class: 'btn', html: 'Zoom Out'}).appendTo(blockElem);
 
 		// prepare block object
 		var block = {
-			id: name.split('/').join('_'),  // fix(clean): use replace function instead?
-			sequencePaths: [],
+			id: id,
+			sequencePaths: seqPaths,
+			width: width,
+			height: height,
 		};
+		initPlot(block, blockSpec);
 
 		// store in collection of blocks
 		g_liveBlocks[name] = block;
@@ -295,6 +312,80 @@ function initImageSequence(block) {
 		var resourceName = this.sequencePaths[0];  // we assume the sequence name has a leading slash
 		var d = new Date();
 		$('#' + this.id + '_img').attr('src', '/api/v1/resources' + resourceName + '?' + d.getTime());  // add time to prevent caching
+	}
+}
+
+
+function initPlot(block, blockSpec) {
+
+	// create plot using manyplot library
+	block.xData = createDataColumn('timestamp', []);
+	block.xData.type = 'timestamp';
+	block.yData = createDataColumn(blockSpec.label, []);
+	block.yData.name = blockSpec.label;  // fix(soon): use sequence name
+	var dataPairs = [
+		{
+			'xData': block.xData,
+			'yData': block.yData,
+		}
+	];
+
+	var addPlotHandler = function() {
+		var canvas = document.getElementById(block.id + '_canvas');  // fix(soon): use block ID
+		canvas.width = block.width;  // we set this earlier with jquery when creating the element, but that seems to have set the style width/height not canvas internal pixel dimensions
+		canvas.height = block.height;
+		block.plotHandler = createPlotHandler(canvas);
+		block.plotHandler.plotter.setData(dataPairs);
+	}
+
+	// request some historical data from server
+	var handler = function(data) {
+		var blockName = data.name;
+		var values = data.values;
+		var timestamps = data.timestamps;
+		var len = values.length;
+		for (var i = 0; i < len; i++) {
+			var val = values[i];
+			if (val !== null) {
+				values[i] = +val;  // convert to number
+			}
+		}
+		block.xData.data = timestamps;  // we are updating the plotter's internal data; for now we assume we haven't received any live updates
+		block.yData.data = values;
+		if (!block.plotHandler) {
+			addPlotHandler();
+		}
+		block.plotHandler.plotter.autoBounds(true);
+		block.plotHandler.drawPlot(null, null);
+	}
+	var url = '/api/v1/resources' + block.sequencePaths[0];
+	var historySeconds = 24 * 60 * 60;
+	var now = moment().valueOf();
+	now = Math.round((now + 999) / 1000) * 1000;  // round up to next whole second
+	var start = moment(now - (historySeconds * 1000)).toISOString();
+	var end = moment(now).toISOString();
+	var params = {
+		count: 100000,
+		start_timestamp: start,
+		end_timestamp: end
+	};
+	$.get(url, params, handler);
+
+	block.onready = function() {
+		if (!block.plotHandler) {
+			addPlotHandler();
+		}
+		block.plotHandler.drawPlot(null, null);
+		$('#plot').show();
+	}
+
+	// handle an update message for this sequence
+	block.onValue = function(sequencePath, timestamp, value) {
+		var unixTimestamp = timestamp.unix();
+		block.xData.data.push(unixTimestamp);
+		block.yData.data.push(value);
+		block.plotHandler.plotter.autoBounds();
+		block.plotHandler.drawPlot(null, null);
 	}
 }
 

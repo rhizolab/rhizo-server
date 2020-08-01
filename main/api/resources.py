@@ -141,7 +141,7 @@ class ResourceRecord(ApiResource):
                     else:
                         epoch = datetime.datetime.utcfromtimestamp(0)  # fix(clean): merge with similar code for sequence viewer
                         timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
-                        values = [rr.data for rr in resource_revisions]
+                        values = [rr.data.decode() for rr in resource_revisions]
                         units = json.loads(r.system_attributes).get('units', None)
                         return {'name': r.name, 'units': units, 'timestamps': timestamps, 'values': values}
 
