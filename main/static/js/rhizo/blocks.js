@@ -356,6 +356,11 @@ function initPlot(block, blockSpec) {
 			addPlotHandler();
 		}
 		block.plotHandler.plotter.autoBounds(true);
+		if ('min' in blockSpec && 'max' in blockSpec) {
+			var frame = block.plotHandler.plotter.frames[0];
+			frame.dataMinY = blockSpec.min;
+			frame.dataMaxY = blockSpec.max;
+		}
 		block.plotHandler.drawPlot(null, null);
 	}
 	var url = '/api/v1/resources' + block.sequencePaths[0];
@@ -384,7 +389,12 @@ function initPlot(block, blockSpec) {
 		var unixTimestamp = timestamp.unix();
 		block.xData.data.push(unixTimestamp);
 		block.yData.data.push(value);
-		block.plotHandler.plotter.autoBounds();
+		block.plotHandler.plotter.autoBounds(true);
+		if ('min' in blockSpec && 'max' in blockSpec) {
+			var frame = block.plotHandler.plotter.frames[0];
+			frame.dataMinY = blockSpec.min;
+			frame.dataMaxY = blockSpec.max;
+		}
 		block.plotHandler.drawPlot(null, null);
 	}
 }
