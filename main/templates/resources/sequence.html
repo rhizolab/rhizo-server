@@ -134,8 +134,7 @@ $(function() {
 	// subscribe to updates
 	subscribeToFolder(g_resource.parent_id);
 	connectWebSocket();
-	
-	// handle plant info message (based on bar code) 
+
 	addMessageHandler('sequence_update', function(timestamp, params) {
 		//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
 		if (params['name'] == g_resourcePath) {

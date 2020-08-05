@@ -1,5 +1,4 @@
 from flask import render_template_string
-from collections import defaultdict, OrderedDict
 
 # a super-class to be sub-classes by server extension packages
 class Extension(object):
