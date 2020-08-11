@@ -31,9 +31,12 @@ $(function() {
 		tableData.add('Email', orgUser.email_address);
 		tableData.add('Name', orgUser.full_name);
 		tableData.add('Admin', orgUser.is_admin ? 'Yes' : '');
-		{% if is_system_admin %}
-			tableData.add('Remove', createLink({text: 'remove', clickFunc: removeUser, clickData: orgUser.user_id}));
-		{% endif %}
+		if (orgUser.is_admin) {
+			tableData.add('Edit', createLink({text: 'make non-admin', clickFunc: makeNonAdmin, clickData: orgUser.user_id}));
+		} else {
+			tableData.add('Edit', createLink({text: 'make admin', clickFunc: makeAdmin, clickData: orgUser.user_id}));
+		}
+		tableData.add('Remove', createLink({text: 'remove', clickFunc: removeUser, clickData: orgUser.user_id}));
 	}
 	createTable(tableData).appendTo($('#orgUsers'));
 });
@@ -72,7 +75,6 @@ function inviteUser() {
 
 
 // remove a user from this organization
-{% if is_system_admin %}
 function removeUser(event) {
 	var userId = event.data;
 	var orgUser = null;
@@ -97,7 +99,28 @@ function removeUser(event) {
 		});
 	}
 }
-{% endif %}
+
+
+function makeAdmin(event) {
+	var userId = event.data;
+	$.ajax({
+		url: '/api/v1/organizations/{{ org_resource.id }}/users/' + userId,
+		data: {'csrf_token': g_csrfToken, 'is_admin': 1},
+		type: 'PUT',
+		success: function() {window.location.reload();}, // fix(later): make more graceful
+	});
+}
+
+
+function makeNonAdmin(event) {
+	var userId = event.data;
+	$.ajax({
+		url: '/api/v1/organizations/{{ org_resource.id }}/users/' + userId,
+		data: {'csrf_token': g_csrfToken, 'is_admin': 0},
+		type: 'PUT',
+		success: function() {window.location.reload();}, // fix(later): make more graceful
+	});
+}
 
 
 {% if is_system_admin %}

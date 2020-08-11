@@ -19,6 +19,14 @@ from main.messages.outgoing_messages import send_email
 from main.resources.resource_util import create_organization
 
 
+def is_org_admin(user, org_id):
+    try:
+        org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == user.id).one()
+        return org_user.is_admin
+    except NoResultFound:
+        return False
+
+
 class OrganizationList(ApiResource):
 
     # fix(soon): remove this?
@@ -46,12 +54,13 @@ class OrganizationList(ApiResource):
 class OrganizationUserRecord(ApiResource):
 
     # get a user/organization association
-    # fix(clean): remove this
+    # fix(clean): remove this? doesn't look like it is being used
+    # note: this takes a user_id not org_user_id
     @login_required
-    def get(self, org_id, org_user_id):
-        if current_user.role == current_user.SYSTEM_ADMIN:
+    def get(self, org_id, user_id):
+        if is_org_admin(current_user, org_id):
             try:
-                org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.id == org_user_id).one()
+                org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == user_id).one()
             except NoResultFound:
                 abort(404)
             return org_user.as_dict()
@@ -59,10 +68,11 @@ class OrganizationUserRecord(ApiResource):
             abort(403)
 
     # remove a user from an organization
-    def delete(self, org_id, org_user_id):
-        if current_user.role == current_user.SYSTEM_ADMIN:
+    # note: this takes a user_id not org_user_id
+    def delete(self, org_id, user_id):
+        if is_org_admin(current_user, org_id):
             try:
-                org_users = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == org_user_id)
+                org_users = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == user_id)
                 org_users.delete()
                 db.session.commit()
             except NoResultFound:
@@ -71,8 +81,19 @@ class OrganizationUserRecord(ApiResource):
             abort(403)
 
     # update a user/organization association
-    def put(self, org_id, org_user_id):
-        pass
+    # note: this takes a user_id not org_user_id
+    def put(self, org_id, user_id):
+        if is_org_admin(current_user, org_id):
+            args = request.values
+            try:
+                org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == user_id).one()
+                if 'is_admin' in args:
+                    org_user.is_admin = bool(int(args['is_admin']))
+                db.session.commit()
+            except NoResultFound:
+                abort(404)
+        else:
+            abort(403)
 
 
 class OrganizationUserList(ApiResource):
