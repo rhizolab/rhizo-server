@@ -93,7 +93,7 @@ function createResourceTile(resource) {
 		var thumbnailUrl = url + '?width=120';
 		$('<br>').prependTo(a);
 		$('<img>', {src: thumbnailUrl}).prependTo(a);
-	} else if (resource.type === 21) {  // sequence
+	} else if (resource.type === 21 && resource.name != 'log') {  // non-log sequence
 		$('<div>', {class: 'seqTileValue', html: '...', id: 'seqVal_' + resource.id}).prependTo(a);
 	}
 {% if user_access_level >= 20 %}
@@ -188,7 +188,7 @@ $(function() {
 			if (type === 'sequence_update') {
 				for (var i = 0; i < g_resources.length; i++) {
 					var resource = g_resources[i];
-					if (resource.id === params['id']) {
+					if (resource.id === params['id'] && resource.name != 'log') {
 						$('#seqVal_' + resource.id).html(params['value']);
 						break;
 					}
