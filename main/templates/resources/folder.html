@@ -377,12 +377,7 @@ function viewSendMessages() {
 					paramStr += name + ': ' + params[name];
 				}
 			}
-			var timeStr = moment(timestamp).format("YYYY-M-DD H:mm:ss");
-			var message = type + ' ' + paramStr;
-			var logEntryDiv = $('<div>');
-			$("<span/>", {html: timeStr, class: "logTimestamp"}).appendTo(logEntryDiv);
-			$("<span/>", {html: message, class: "logText"}).appendTo(logEntryDiv);
-			logEntryDiv.prependTo(liveMessages);
+			createTimeValueItem(timestamp, type + ' ' + paramStr).prependTo(liveMessages);
 		});
 		g_liveViewHandlerAdded = true;
 	}

@@ -269,31 +269,52 @@ function initSequence(block) {
 // init a block object for displaying updates to a log sequence
 function initLog(block) {
 	block.nextLogEntryIndex = 0;
-	block.entries = [];
+	block.prevTimestamps = [];
+	block.prevValues = [];
+	block.ready = false;
+
+	block.addItem = function(timestamp, value) {
+		var id = block.id + '_' + block.nextLogEntryIndex;
+		block.nextLogEntryIndex++;
+		createTimeValueItem(timestamp, value, id).prependTo($('#' + block.id));
+		var maxCount = 50;
+		if (block.nextLogEntryIndex > maxCount) {
+			var removeIndex = block.nextLogEntryIndex - maxCount - 1;
+			$('#' + block.id + '_' + removeIndex).remove();
+		}
+	}
+
+	block.showPrevItems = function() {
+		var len = block.prevValues.length;
+		for (var i = 0; i < len; i++) {
+			block.addItem(block.prevTimestamps[i], block.prevValues[i]);
+		}
+		block.prevValues = [];
+		block.prevTimestamps = [];
+	}
 
 	// fix(clean): remove?
 	block.onready = function() {
-		$.each(this.entries, function(index, value) {
-			console.log('initLog:' + value);
-			block.onValue('', value[0], value[1]);
-		});
+		block.ready = true;
+		block.showPrevItems();
 		connectWebSocket();
 	}
 
 	// handle an update message for this sequence
 	block.onValue = function(sequencePath, timestamp, value) {
-		var logEntryDiv = $('<div/>', {id: this.id + '_' + this.nextLogEntryIndex});
-		this.nextLogEntryIndex++;
-		var timeStr = moment(timestamp).format('YYYY-M-DD H:mm:ss');
-		$('<span/>', {html: timeStr, class: 'logTimestamp'}).appendTo(logEntryDiv);
-		$('<span/>', {html: value, class: 'logText'}).appendTo(logEntryDiv);
-		logEntryDiv.prependTo($('#' + this.id));
-		var maxCount = 50;
-		if (this.nextLogEntryIndex > maxCount) {
-			var removeIndex = this.nextLogEntryIndex - maxCount - 1;
-			$('#' + this.id + '_' + removeIndex).remove();
+		block.addItem(timestamp, value);
+	}
+
+	// request some historical data from server
+	var handler = function(data) {
+		var blockName = data.name;
+		block.prevValues = data.values;
+		block.prevTimestamps = data.timestamps;
+		if (block.ready) {
+			block.showPrevItems();
 		}
 	}
+	$.get('/api/v1/resources' + block.sequencePaths[0], { count: 20 }, handler);
 }
 
 

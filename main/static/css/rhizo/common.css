@@ -200,3 +200,12 @@ a.adminLink {
 	color: #dddddd;
 }
 
+div.tvTimestamp {
+	color: #aaaaaa;
+	width: 145px;
+	display: inline-block;
+}
+
+div.tvValue {
+	display: inline-block;
+}

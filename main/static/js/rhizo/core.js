@@ -140,6 +140,18 @@ function createNameValueView(nameValueData) {
 }
 
 
+function createTimeValueItem(timestamp, value, id) {
+	var timeStr = moment(timestamp).format("YYYY-M-DD H:mm:ss");
+	var itemDiv = $('<div>');
+	if (id) {
+		itemDiv.attr('id', id);
+	}
+	$("<div/>", {html: timeStr, class: "tvTimestamp"}).appendTo(itemDiv);
+	$("<div/>", {html: value, class: "tvValue"}).appendTo(itemDiv);
+	return itemDiv;
+}
+
+
 // create a column used within a TableData object
 function createTableColumn(name) {
 	var tableColumn = {};

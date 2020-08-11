@@ -78,16 +78,6 @@ div.log {
 	margin-bottom: 8px;
 }
 
-span.logTimestamp {
-	color: #aaaaaa;
-	padding-right: 8px;
-	display: inline-block;
-}
-
-span.logText {
-	display: inline-block;
-}
-
 div.groupLabel {
 	margin-top: 10px;
 	font-size: 16px;
