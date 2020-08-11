@@ -140,6 +140,8 @@ function createNameValueView(nameValueData) {
 }
 
 
+// create a timestamp/value item (to display a sequence of values, messages, or log entries)
+// expects timestamp to by a JS timestamp (milliseconds since epoch)
 function createTimeValueItem(timestamp, value, id) {
 	var timeStr = moment(timestamp).format("YYYY-M-DD H:mm:ss");
 	var itemDiv = $('<div>');

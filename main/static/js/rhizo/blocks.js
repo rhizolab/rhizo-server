@@ -287,7 +287,7 @@ function initLog(block) {
 	block.showPrevItems = function() {
 		var len = block.prevValues.length;
 		for (var i = 0; i < len; i++) {
-			block.addItem(block.prevTimestamps[i], block.prevValues[i]);
+			block.addItem(block.prevTimestamps[i] * 1000.0, block.prevValues[i]);
 		}
 		block.prevValues = [];
 		block.prevTimestamps = [];
