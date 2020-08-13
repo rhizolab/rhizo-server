@@ -56,6 +56,7 @@ def controller_watchdog():
                             if controller_status.watchdog_notification_sent:
                                 controller_status.watchdog_notification_sent = False
                                 db.session.commit()
+                        db.session.expire(controller_status)
                     except NoResultFound:
                         worker_log('controller_watchdog', 'controller status not found (%d)' % controller.id)
 
