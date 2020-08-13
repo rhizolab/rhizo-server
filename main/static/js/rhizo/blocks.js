@@ -148,8 +148,8 @@ function createBlock(blockSpec) {
 		var name = blockSpec.name;
 		var id = name.split('/').join('_');  // fix(clean): use replace function instead?
 		var relSeqPaths = blockSpec.sequences;
-		var width = 700;
-		var height = 200;
+		var width = blockSpec.width || 700;
+		var height = blockSpec.height || 200;
 		var seqPaths = [];
 		for (var i = 0; i < relSeqPaths.length; i++) {
 			seqPaths.push(g_sequencePrefix + '/' + relSeqPaths[i]);
@@ -338,30 +338,35 @@ function initImageSequence(block) {
 
 
 function initPlot(block, blockSpec) {
+	var seqCount = blockSpec.sequences.length;
 
 	// create plot using manyplot library
-	block.xData = createDataColumn('timestamp', []);
-	block.xData.type = 'timestamp';
-	block.yData = createDataColumn(blockSpec.label, []);
-	block.yData.name = blockSpec.label;  // fix(soon): use sequence name
-	var dataPairs = [
-		{
-			'xData': block.xData,
-			'yData': block.yData,
-		}
-	];
+	block.dataPairs = [];
+	for (var i = 0; i < seqCount; i++) {
+		var label = blockSpec.labels[i];
+		var xData = createDataColumn('timestamp', []);
+		xData.type = 'timestamp';
+		var yData = createDataColumn(label, []);
+		yData.name = label;  // fix(soon): use sequence name if no label?
+		block.dataPairs.push({
+			'xData': xData,
+			'yData': yData,
+			'sequencePath': block.sequencePaths[i],
+		});
+	}
 
 	var addPlotHandler = function() {
 		var canvas = document.getElementById(block.id + '_canvas');  // fix(soon): use block ID
 		canvas.width = block.width;  // we set this earlier with jquery when creating the element, but that seems to have set the style width/height not canvas internal pixel dimensions
 		canvas.height = block.height;
 		block.plotHandler = createPlotHandler(canvas);
-		block.plotHandler.plotter.setData(dataPairs);
+		block.plotHandler.plotter.setData(block.dataPairs);
 	}
 
-	// request some historical data from server
+	// handle historical data from server
 	var handler = function(data) {
-		var blockName = data.name;
+		var seqName = data.name;
+		console.log(seqName);
 		var values = data.values;
 		var timestamps = data.timestamps;
 		var len = values.length;
@@ -371,8 +376,16 @@ function initPlot(block, blockSpec) {
 				values[i] = +val;  // convert to number
 			}
 		}
-		block.xData.data = timestamps;  // we are updating the plotter's internal data; for now we assume we haven't received any live updates
-		block.yData.data = values;
+		for (i = 0; i < seqCount; i++) {
+			var path = block.dataPairs[i].sequencePath;
+			var pathEnd = path.slice(path.lastIndexOf('/')+1);
+			if (pathEnd == seqName) {
+				console.log('found');
+				block.dataPairs[i].xData.data = timestamps;  // we are updating the plotter's internal data; for now we assume we haven't received any live updates
+				block.dataPairs[i].yData.data = values;
+				break;
+			}
+		}
 		if (!block.plotHandler) {
 			addPlotHandler();
 		}
@@ -384,7 +397,8 @@ function initPlot(block, blockSpec) {
 		}
 		block.plotHandler.drawPlot(null, null);
 	}
-	var url = '/api/v1/resources' + block.sequencePaths[0];
+
+	// request some historical data from server
 	var historySeconds = 24 * 60 * 60;
 	var now = moment().valueOf();
 	now = Math.round((now + 999) / 1000) * 1000;  // round up to next whole second
@@ -395,7 +409,10 @@ function initPlot(block, blockSpec) {
 		start_timestamp: start,
 		end_timestamp: end
 	};
-	$.get(url, params, handler);
+	for (var i = 0; i < seqCount; i++) {
+		var url = '/api/v1/resources' + block.sequencePaths[i];
+		$.get(url, params, handler);
+	}
 
 	block.onready = function() {
 		if (!block.plotHandler) {
@@ -407,14 +424,22 @@ function initPlot(block, blockSpec) {
 
 	// handle an update message for this sequence
 	block.onValue = function(sequencePath, timestamp, value) {
-		var unixTimestamp = timestamp.unix();
-		block.xData.data.push(unixTimestamp);
-		block.yData.data.push(value);
+		for (var i = 0; i < seqCount; i++) {
+			if (block.dataPairs[i].sequencePath == sequencePath) {
+				var unixTimestamp = timestamp.unix();
+				block.dataPairs[i].xData.data.push(unixTimestamp);
+				block.dataPairs[i].yData.data.push(value);
+				break;
+			}
+		}
 		block.plotHandler.plotter.autoBounds(true);
 		if ('min' in blockSpec && 'max' in blockSpec) {
-			var frame = block.plotHandler.plotter.frames[0];
-			frame.dataMinY = blockSpec.min;
-			frame.dataMaxY = blockSpec.max;
+			var frames = block.plotHandler.plotter.frames;
+			for (var i = 0; i < frames.length; i++) {
+				var frame = frames[i];
+				frame.dataMinY = blockSpec.min;
+				frame.dataMaxY = blockSpec.max;
+			}
 		}
 		block.plotHandler.drawPlot(null, null);
 	}
