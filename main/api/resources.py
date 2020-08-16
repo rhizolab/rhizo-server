@@ -309,7 +309,7 @@ class ResourceRecord(ApiResource):
                 resource_path = resource.path()  # fix(faster): don't need to use this if were given path as arg
                 update_sequence_value(resource, resource_path, timestamp, data)
             else:
-                add_resource_revision(r, timestamp, data)
+                add_resource_revision(r, timestamp, data.encode())
                 r.modification_timestamp = timestamp
         db.session.commit()
         return {'status': 'ok', 'id': r.id}
@@ -423,11 +423,11 @@ class ResourceList(ApiResource):
             # convert files to standard types/formgat
             # fix(soon): should give the user a warning or ask for confirmation
             if name.endswith('xls') or name.endswith('xlsx'):
-                data = convert_xls_to_csv(data)
+                data = convert_xls_to_csv(data).encode()
                 name = name.rsplit('.')[0] + '.csv'
                 r.name = name
             if name.endswith('csv') or name.endswith('txt'):
-                data = convert_new_lines(data)
+                data = convert_new_lines(data).encode()
 
             # compute other file attributes
             system_attributes = {
@@ -467,7 +467,7 @@ class ResourceList(ApiResource):
 
         # save file contents (after we have resource ID) and compute thumbnail if needed
         if type == Resource.FILE:
-            add_resource_revision(r, r.creation_timestamp, data)
+            add_resource_revision(r, r.creation_timestamp, data)  # we assume data is already binary/encoded
             r.deleted = False  # now that have sucessfully created revision, we can make the resource live
             db.session.commit()
 

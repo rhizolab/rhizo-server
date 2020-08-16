@@ -274,7 +274,7 @@ def sequence_viewer(resource):
 
 # a viewer for a data file
 def file_viewer(resource, check_timing = False, is_home_page = False):
-    contents = read_resource(resource, check_timing=check_timing)
+    contents = read_resource(resource, check_timing=check_timing)  # returns binary data; must decode if expecting a string
     if contents is None:
         print('file_viewer: storage not found (resource: %d, path: %s)' % (resource.id, resource.path()))
         abort(404)
@@ -283,7 +283,7 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
         if 'edit' in request.args:
             return render_template('resources/text-editor.html',
                 resource = resource,
-                contents = contents,
+                contents = contents.decode(),
                 show_view_button = True,
             )
         else:
@@ -295,11 +295,11 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
         file_ext = resource.name.rsplit('.', 1)[-1]
         edit = request.args.get('edit', False)
         if file_ext == 'csv' and edit == False:
-            reader = csv.reader(StringIO(contents))
+            reader = csv.reader(StringIO(contents.decode()))
             data = list(reader)
             return render_template('resources/table-editor.html', resource = resource, data_json = json.dumps(data))
         elif file_ext == 'txt' or file_ext == 'csv':
-            return render_template('resources/text-editor.html', resource = resource, contents = contents)
+            return render_template('resources/text-editor.html', resource = resource, contents = contents.decode())
         return Response(response=contents, status=200, mimetype=mime_type_from_ext(resource.name))
 
 

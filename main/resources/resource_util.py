@@ -62,10 +62,10 @@ def _create_folders(path):
     return parent
 
 
-# create a file-type resource with the given contents and other attributes;
+# create a file-type resource with the given file data and other attributes; file data should be binary
 # returns the newly created resource record object (or existing resource if already exists)
 # fix(soon): remove this
-def _create_file(file_name, creation_timestamp, modification_timestamp, contents):
+def _create_file(file_name, creation_timestamp, modification_timestamp, file_data):
     last_slash = file_name.rfind('/')
     path = file_name[:last_slash]
     short_file_name = file_name[last_slash+1:]
@@ -94,21 +94,21 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, contents
             system_attributes = json.loads(resource.system_attributes)
         else:
             system_attributes = {}
-        system_attributes['hash'] = hashlib.sha1(contents).hexdigest()
-        system_attributes['size'] = len(contents)
+        system_attributes['hash'] = hashlib.sha1(file_data).hexdigest()
+        system_attributes['size'] = len(file_data)
         resource.system_attributes = json.dumps(system_attributes)
     if new_resource:
         db.session.add(resource)
         db.session.commit()
 
     # write file contents to a resource revision (possibly bulk storage)
-    add_resource_revision(resource, modification_timestamp, contents)
+    add_resource_revision(resource, modification_timestamp, file_data)
     db.session.commit()
 
     # compute thumbnail for images
     if file_name.endswith('.png') or file_name.endswith('.jpg'):  # fix(soon): handle more types, capitalizations
         for width in [120]:  # fix(soon): what will be our standard sizes?
-            (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(contents, width)  # fix(later): if this returns something other than requested width, we'll keep missing the cache
+            (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(file_data, width)  # fix(later): if this returns something other than requested width, we'll keep missing the cache
             thumbnail = Thumbnail()
             thumbnail.resource_id = resource.id
             thumbnail.width = thumbnail_width
@@ -194,7 +194,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
 
     # if too soon since last update, don't store a new value (but do still send out an update message)
     if min_storage_interval == 0 or timestamp >= resource.modification_timestamp + datetime.timedelta(seconds=min_storage_interval):
-        resource_revision = add_resource_revision(resource, timestamp, value)
+        resource_revision = add_resource_revision(resource, timestamp, value.encode())
         resource.modification_timestamp = timestamp
 
         # create thumbnails for image sequences
@@ -218,13 +218,13 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
 # note that we don't commit resource here (just resource revision); outside code must commit resource
-# data should be binary data or encoded unicode string
+# data should be binary data (strings should be encoded first)
 def add_resource_revision(resource, timestamp, data):
     resource_revision = ResourceRevision()
     resource_revision.resource_id = resource.id
     resource_revision.timestamp = timestamp
     if len(data) < 1000 or not storage_manager:
-        resource_revision.data = data.encode()
+        resource_revision.data = data
         bulk_storage = False
     else:
         bulk_storage = True
@@ -325,7 +325,7 @@ def create_system_resources():
 
 If you are logged in as a system admin, you can [edit this page](/system/home.md?edit=1).
 '''
-        resource_revision = add_resource_revision(resource, datetime.datetime.utcnow(), home_contents)
+        resource_revision = add_resource_revision(resource, datetime.datetime.utcnow(), home_contents.encode())
         db.session.commit()
         print('created home page (resource: %d, revision: %d)' % (resource.id, resource_revision.id))
 
