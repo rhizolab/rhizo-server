@@ -15,10 +15,6 @@ app.config.from_object('settings.config')
 # check disclaimer
 assert app.config['DISCLAIMER'] == 'This is pre-release code; the API and database structure will probably change.'
 
-# assign an ID to this process
-# fix(later): revisit this
-process_id = random.randint(10000, 99999)
-
 # create database wrapper
 db = SQLAlchemy(app)
 

@@ -1,4 +1,6 @@
+import os
 import json
+import logging
 import datetime
 import gevent
 from geventwebsocket.websocket import WebSocketError
@@ -8,16 +10,17 @@ from geventwebsocket.websocket import WebSocketError
 class SocketSender(object):
 
     def __init__(self):
+        logging.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
-        print('client registered (%s)' % ws_conn)
+        logging.info('client registered (%s)' % ws_conn)
         self.connections.append(ws_conn)
 
     # unregister a client (e.g. after it has been closed
     def unregister(self, ws_conn):
-        print('client unregistered (%s)' % ws_conn)
+        logging.info('client unregistered (%s)' % ws_conn)
         self.connections.remove(ws_conn)
 
     # send a message to a specific client (using websocket connection specified in ws_conn)
@@ -43,15 +46,17 @@ class SocketSender(object):
 
     # this function sits in a loop, waiting for messages that need to be sent out to subscribers
     def send_messages(self):
-        from main.app import message_queue
-        debug_mode = False  # fix(later): global verbosity settings?
+        from main.app import message_queue, app
+        debug_messaging = app.config['DEBUG_MESSAGING']
         while True:
 
             # get all messages since the last message we processed
             messages = message_queue.receive()
+            if debug_messaging:
+                logging.debug('received %d messages from message queue' % messages.count())
             for message in messages:
-                if debug_mode:
-                    print('message type: %s, folder: %s' % (message.type, message.folder_id))
+                if debug_messaging:
+                    logging.debug('message type: %s, folder: %s' % (message.type, message.folder_id))
 
                 # handle special messages aimed at this module
                 if message.type == 'requestProcessStatus':
@@ -60,18 +65,18 @@ class SocketSender(object):
                 # all other messages are passed to clients managed by this process
                 else:
                     for ws_conn in self.connections:
-                        if client_is_subscribed(message, ws_conn, debug_mode):
+                        if client_is_subscribed(message, ws_conn, debug_messaging):
                             message_struct = {
                                 'type': message.type,
                                 'timestamp': message.timestamp.isoformat() + 'Z',
                                 'parameters': json.loads(message.parameters)
                             }
                             gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
-                            if debug_mode:
+                            if debug_messaging:
                                 if ws_conn.controller_id:
-                                    print('sending message to controller; type: %s' % message.type)
+                                    logging.debug('sending message to controller; type: %s' % message.type)
                                 else:
-                                    print('sending message to browser; type: %s' % message.type)
+                                    logging.debug('sending message to browser; type: %s' % message.type)
 
     # spawn a greenlet that sends messages to clients
     def start(self):
@@ -83,8 +88,8 @@ class SocketSender(object):
     def send_process_status(self):
         from main.app import db  # import here to avoid import loop
         from main.app import message_queue  # import here to avoid import loop
-        from main.app import process_id  # import here to avoid import loop
         from main.resources.resource_util import find_resource  # import here to avoid import loop
+        process_id = os.getpid()
         connections = []
         for ws_conn in self.connections:
             connections.append({
@@ -114,10 +119,13 @@ def client_is_subscribed(message, ws_conn, debug_mode):
         if ws_conn.user_id and message.sender_user_id == ws_conn.user_id:
             return False  # don't bounce messages back to user sender (note this prevents sending message from one browser tab to another)
     for subscription in ws_conn.subscriptions:
-        if debug_mode:
-            print('    client subscription folders: %s, type: %s' % (subscription.folder_ids, subscription.message_type))
         if subscription.matches(message):
+            if debug_mode:
+                print('    client subscription matches; folders: %s, type: %s' % (subscription.folder_ids, subscription.message_type))
             return True
+        else:
+            if debug_mode:
+                print('    client subscription does not match; folders: %s, type: %s' % (subscription.folder_ids, subscription.message_type))
     return False
 
 
