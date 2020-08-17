@@ -8,7 +8,6 @@ from .message_queue import MessageQueue
 class MessageQueueBasic(MessageQueue):
 
     def __init__(self):
-        self._wake_event = gevent.event.Event()
         self._last_message_id = None
         self._clean_up_running = False
         self._start_timestamp = datetime.datetime.utcnow()
@@ -30,9 +29,6 @@ class MessageQueueBasic(MessageQueue):
         db.session.add(message_record)
         db.session.commit()
 
-        # wake up the receiver thread
-        self._wake_event.set()
-
     # returns a list of message objects once some are ready
     def receive(self):
         from main.messages.models import Message  # would like to do at top, but creates import loop in __init__
@@ -41,9 +37,8 @@ class MessageQueueBasic(MessageQueue):
             gevent.spawn(self.clean_up)
         while True:
 
-            # wait for a wake-up call
-            gevent.wait([self._wake_event], timeout = 0.5)
-            self._wake_event.clear()
+            # sleep for a bit; don't want to overload the database
+            gevent.sleep(0.5)
 
             # fix(soon): is there a good way to avoid losing messages while server is restarting? could go back 5 minutes, but then we'd get duplicates
             # it would be nice if each web/worker process could remember where it was across restarts
@@ -63,7 +58,7 @@ class MessageQueueBasic(MessageQueue):
         from main.messages.models import Message  # would like to do at top, but creates import loop in __init__
         from main.app import db  # would like to do at top, but creates import loop in __init__
         while True:
-            thresh = datetime.datetime.utcnow() - datetime.timedelta(days = 1)
+            thresh = datetime.datetime.utcnow() - datetime.timedelta(hours = 1)
             Message.query.filter(Message.timestamp < thresh).delete()
             db.session.commit()
             db.session.expunge_all()

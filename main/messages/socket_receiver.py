@@ -1,7 +1,8 @@
 # standard python imports
 import json
-import datetime
 import base64
+import logging
+import datetime
 
 
 # external imports
@@ -58,11 +59,11 @@ def manage_web_socket(ws):
 
     # handle key-based authentication
     if request.authorization:
-        print('ws connect with auth')
+        logging.debug('ws connect with auth')
         auth = request.authorization
         key = find_key(auth.password)  # key is provided as HTTP basic auth password
         if not key:
-            print('key not found')
+            logging.debug('key not found')
             return  # would be nice to abort(403), but doesn't look like you can do that inside a websocket handler
         ws_conn.controller_id = key.access_as_controller_id
         ws_conn.user_id = key.access_as_user_id
@@ -74,11 +75,11 @@ def manage_web_socket(ws):
                 controller_status.client_version = auth.username  # client should pass version in HTTP basic auth user name
                 db.session.commit()
             except NoResultFound:
-                print('warning: unable to find controller status record')
+                logging.debug('warning: unable to find controller status record')
 
     # handle regular user authentication
     elif current_user.is_authenticated:
-        print('ws connect with web browser session')
+        logging.debug('ws connect with web browser session')
         ws_conn.user_id = current_user.id
         ws_conn.auth_method = 'user'
 
@@ -89,7 +90,10 @@ def manage_web_socket(ws):
     while not ws_conn.ws.closed:
         message = ws_conn.ws.receive()
         if message:
-            message_struct = json.loads(message)
+            try:
+                message_struct = json.loads(message)
+            except:
+                break  # if client sends bad message; close this connection
             process_web_socket_message(message_struct, ws_conn)
         gevent.sleep(0.05)  # sleep to let other stuff run
 

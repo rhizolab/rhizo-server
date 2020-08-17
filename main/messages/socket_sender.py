@@ -12,6 +12,8 @@ class SocketSender(object):
     def __init__(self):
         logging.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
+        from main.app import app
+        self.debug_messaging = app.config['DEBUG_MESSAGING']
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
@@ -46,16 +48,15 @@ class SocketSender(object):
 
     # this function sits in a loop, waiting for messages that need to be sent out to subscribers
     def send_messages(self):
-        from main.app import message_queue, app
-        debug_messaging = app.config['DEBUG_MESSAGING']
+        from main.app import message_queue
         while True:
 
             # get all messages since the last message we processed
             messages = message_queue.receive()
-            if debug_messaging:
+            if self.debug_messaging:
                 logging.debug('received %d messages from message queue' % messages.count())
             for message in messages:
-                if debug_messaging:
+                if self.debug_messaging:
                     logging.debug('message type: %s, folder: %s' % (message.type, message.folder_id))
 
                 # handle special messages aimed at this module
@@ -65,14 +66,14 @@ class SocketSender(object):
                 # all other messages are passed to clients managed by this process
                 else:
                     for ws_conn in self.connections:
-                        if client_is_subscribed(message, ws_conn, debug_messaging):
+                        if client_is_subscribed(message, ws_conn, False):
                             message_struct = {
                                 'type': message.type,
                                 'timestamp': message.timestamp.isoformat() + 'Z',
                                 'parameters': json.loads(message.parameters)
                             }
                             gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
-                            if debug_messaging:
+                            if self.debug_messaging:
                                 if ws_conn.controller_id:
                                     logging.debug('sending message to controller; type: %s' % message.type)
                                 else:
