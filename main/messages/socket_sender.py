@@ -6,6 +6,21 @@ import gevent
 from geventwebsocket.websocket import WebSocketError
 
 
+def prep_logging(log_path):
+    formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+    time_str = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+    file_handler = logging.FileHandler('%s/%d-%s.txt' % (log_path, os.getpid(), time_str))
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+    root = logging.getLogger()
+    root.addHandler(console_handler)
+    root.addHandler(file_handler)
+    root.setLevel(logging.DEBUG)
+
+
 # The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
 class SocketSender(object):
 
@@ -13,7 +28,18 @@ class SocketSender(object):
         logging.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
         from main.app import app
-        self.debug_messaging = app.config['DEBUG_MESSAGING']
+        self.logging_prepped = False
+        self.debug_messaging(app.config['DEBUG_MESSAGING'])
+
+    def debug_messaging(self, enable):
+        from main.app import app
+        self._debug_messaging = enable
+        if enable and not self.logging_prepped:
+            prep_logging(app.config['MESSAGING_LOG_PATH'])
+            self.logging_prepped = True
+        if self.logging_prepped and not enable:
+            root = logging.getLogger()
+            root.setLevel(logging.INFO)
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
@@ -53,10 +79,10 @@ class SocketSender(object):
 
             # get all messages since the last message we processed
             messages = message_queue.receive()
-            if self.debug_messaging:
+            if self._debug_messaging:
                 logging.debug('received %d messages from message queue' % messages.count())
             for message in messages:
-                if self.debug_messaging:
+                if self._debug_messaging:
                     logging.debug('message type: %s, folder: %s' % (message.type, message.folder_id))
 
                 # handle special messages aimed at this module
@@ -73,7 +99,7 @@ class SocketSender(object):
                                 'parameters': json.loads(message.parameters)
                             }
                             gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
-                            if self.debug_messaging:
+                            if self._debug_messaging:
                                 if ws_conn.controller_id:
                                     logging.debug('sending message to controller; type: %s' % message.type)
                                 else:

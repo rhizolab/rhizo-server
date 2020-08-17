@@ -106,4 +106,9 @@ function updateTables() {
 <h3>Clients</h3>
 <div id="clientStats"></div>
 
+<div>
+	<button class="btn" onclick="sendMessage('debug_messaging', {enable: 1})">Enable Message Debug</button>
+	<button class="btn" onclick="sendMessage('debug_messaging', {enable: 0})">Disable Message Debug</button>
+</div>
+
 {% endblock %}

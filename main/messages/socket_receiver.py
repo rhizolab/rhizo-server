@@ -223,6 +223,7 @@ def process_web_socket_message(message_struct, ws_conn):
 
     # update a resource
     elif type == 'write_resource':
+        parameters = message_struct['parameters']
         if 'path' and 'data' in parameters:
             path = parameters['path']
             if not path.startswith('/'):  # fix(soon): remove this after clients updated
@@ -240,6 +241,12 @@ def process_web_socket_message(message_struct, ws_conn):
                 socket_sender.send_error(ws_conn, 'resource not found: %s' % path)
         else:
             socket_sender.send_error(ws_conn, 'expected data and path parameters for write_resource message')
+
+    # handle request for detailed message logging
+    elif type == 'debug_messaging':
+        parameters = message_struct['parameters']
+        enable = bool(parameters['enable'])
+        socket_sender.debug_messaging(enable)
 
     # handle other action messages
     elif type in ('sendEmail', 'sendTextMessage', 'send_email', 'send_text_message'):
