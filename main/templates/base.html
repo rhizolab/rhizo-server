@@ -7,14 +7,14 @@
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 	<title>{% block title %}{{ g.system_name }}{% endblock %}</title>
 	<link rel="shortcut icon" href="/static/favicon.ico">
-	<link rel="stylesheet" type="text/css" href="/static/bootstrap/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="/static/bootstrap-3.4.1/css/bootstrap.min.css">
 	<link rel="stylesheet" type="text/css" href="{{ static_file('css/rhizo/common.css') }}">
 {% if g.use_system_css %}
 	<link rel="stylesheet" type="text/css" href="{{ static_file('css/system.css') }}">
 {% endif %}
 	<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,300,600' rel='stylesheet' type='text/css'>
 	<script type="text/javascript" src="/static/js/jquery-1.11.3.min.js"></script>
-	<script type="text/javascript" src="/static/bootstrap/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="/static/bootstrap-3.4.1/js/bootstrap.min.js"></script>
 	<script type="text/javascript" src="{{ static_file('js/rhizo/core.js') }}"></script>
 	{% block head %}{% endblock %}
 </head>
