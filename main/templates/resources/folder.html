@@ -89,7 +89,7 @@ function createResourceTile(resource) {
 	var btnGroup = $('<div>', {class: 'btn-group resource-tile'});
 	var url = resourceUrl(resource);
 	var a = $('<a>', {href: url, class: 'btn btn-default', html: resource.name}).appendTo(btnGroup);
-	if (fileExt == 'jpg' || fileExt == 'png') {
+	if (fileExt == 'jpg' || fileExt == 'png' || fileExt == 'jpeg') {
 		var thumbnailUrl = url + '?width=120';
 		$('<br>').prependTo(a);
 		$('<img>', {src: thumbnailUrl}).prependTo(a);
