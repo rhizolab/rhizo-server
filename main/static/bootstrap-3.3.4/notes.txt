@@ -1,1 +1,0 @@
-http://getbootstrap.com/customize/remove	less		components			breadcrumbs			badges			jumbotron			wells		js components			carousel	jquery		carousel		togglable tabs		scrollspy
