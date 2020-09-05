@@ -9,7 +9,6 @@ class MessageQueueBasic(MessageQueue):
 
     def __init__(self):
         self._last_message_id = None
-        self._clean_up_running = False
         self._start_timestamp = datetime.datetime.utcnow()
 
     # add a single message to the queue
@@ -32,9 +31,6 @@ class MessageQueueBasic(MessageQueue):
     # returns a list of message objects once some are ready
     def receive(self):
         from main.messages.models import Message  # would like to do at top, but creates import loop in __init__
-        if not self._clean_up_running:
-            self._clean_up_running = True
-            gevent.spawn(self.clean_up)
         while True:
 
             # sleep for a bit; don't want to overload the database
@@ -52,15 +48,3 @@ class MessageQueueBasic(MessageQueue):
                 except:
                     pass
                 return messages
-
-    # delete old messages
-    def clean_up(self):
-        from main.messages.models import Message  # would like to do at top, but creates import loop in __init__
-        from main.app import db  # would like to do at top, but creates import loop in __init__
-        while True:
-            thresh = datetime.datetime.utcnow() - datetime.timedelta(hours = 1)
-            Message.query.filter(Message.timestamp < thresh).delete()
-            db.session.commit()
-            db.session.expunge_all()
-            db.session.close()
-            gevent.sleep(60)
