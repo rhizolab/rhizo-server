@@ -293,7 +293,8 @@ class ResourceRecord(ApiResource):
                     controller_status.attributes = json.dumps(status)
                 except NoResultFound:
                     pass
-            update_system_attributes(r, json.loads(args['system_attributes']), ['watchdog_recipients', 'watchdog_minutes'])
+            if 'system_attributes' in args:
+                update_system_attributes(r, json.loads(args['system_attributes']), ['watchdog_recipients', 'watchdog_minutes'])
         else:  # fix(soon): remove this case
             if 'system_attributes' in args:
                 r.system_attributes = args['system_attributes']  # note that this will overwrite any existing system attributes; client must preserve any that aren't modified

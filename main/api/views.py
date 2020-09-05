@@ -1,6 +1,7 @@
 # standard python imports
 import json
 import base64
+import logging
 import datetime
 
 
@@ -56,7 +57,10 @@ def old_connect_web_socket():
 # endpoint for creating a new websocket connect
 @app.route('/api/v1/websocket')
 def connect_web_socket():
-    manage_web_socket(request.environ['wsgi.websocket'])
+    if 'wsgi.websocket' in request.environ:
+        manage_web_socket(request.environ['wsgi.websocket'])
+    else:
+        logging.warning('request for websocket but websocket support not enabled; if running locally, use -s option')
     return '{}'
 
 
