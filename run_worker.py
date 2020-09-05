@@ -11,6 +11,7 @@ from main.app import message_queue
 from main.workers.util import worker_log
 from main.workers.controller_watchdog import controller_watchdog
 from main.workers.sequence_truncator import sequence_truncator
+from main.workers.message_deleter import message_deleter
 
 
 # import all models
@@ -28,6 +29,7 @@ def worker():
     # start various worker threads
     gevent.spawn(controller_watchdog)
     gevent.spawn(sequence_truncator)
+    gevent.spawn(message_deleter)
 
     # loop forever
     while True:
