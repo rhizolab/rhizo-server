@@ -567,11 +567,17 @@ class ResourceList(ApiResource):
         # for now, assume all sequences in same folder
         items = list(values.items())
         if items:
-            first_name = items[0][0]
-            folder_name = first_name.rsplit('/', 1)[0]
-            folder_resource = find_resource(folder_name)
-            if folder_resource: # and access_level(folder_resource.query_permissions()) >= ACCESS_LEVEL_WRITE:
-                for (full_name, value) in items:
+            items = sorted(items)  # sort by keys so we can re-use folder lookup and permission check between items in same folder
+            folder_resource = None
+            folder_name = None
+            for (full_name, value) in items:
+                item_folder_name = full_name.rsplit('/', 1)[0]
+                if item_folder_name != folder_name:  # if this folder doesn't match the folder resource record we have 
+                    folder_name = item_folder_name
+                    folder_resource = find_resource(folder_name)
+                    if folder_resource and access_level(folder_resource.query_permissions()) < ACCESS_LEVEL_WRITE:
+                        folder_resource = None  # don't have write access
+                if folder_resource:
                     seq_name = full_name.rsplit('/', 1)[1]
                     try:
                         resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
