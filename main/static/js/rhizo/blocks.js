@@ -366,10 +366,10 @@ function initPlot(block, blockSpec) {
 	// handle historical data from server
 	var handler = function(data) {
 		var seqName = data.name;
-		console.log(seqName);
 		var values = data.values;
 		var timestamps = data.timestamps;
 		var len = values.length;
+		console.log(seqName + ' ' + len);
 		for (var i = 0; i < len; i++) {
 			var val = values[i];
 			if (val !== null) {
@@ -380,7 +380,6 @@ function initPlot(block, blockSpec) {
 			var path = block.dataPairs[i].sequencePath;
 			var pathEnd = path.slice(path.lastIndexOf('/')+1);
 			if (pathEnd == seqName) {
-				console.log('found');
 				block.dataPairs[i].xData.data = timestamps;  // we are updating the plotter's internal data; for now we assume we haven't received any live updates
 				block.dataPairs[i].yData.data = values;
 				break;
@@ -391,9 +390,12 @@ function initPlot(block, blockSpec) {
 		}
 		block.plotHandler.plotter.autoBounds(true);
 		if ('min' in blockSpec && 'max' in blockSpec) {
-			var frame = block.plotHandler.plotter.frames[0];
-			frame.dataMinY = blockSpec.min;
-			frame.dataMaxY = blockSpec.max;
+			var frames = block.plotHandler.plotter.frames;
+			for (var i = 0; i < frames.length; i++) {
+				var frame = frames[i];
+				frame.dataMinY = blockSpec.min;
+				frame.dataMaxY = blockSpec.max;
+			}
 		}
 		block.plotHandler.drawPlot(null, null);
 	}
