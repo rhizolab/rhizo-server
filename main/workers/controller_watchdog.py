@@ -1,5 +1,6 @@
 # standard python imports
 import json
+import time
 import datetime
 
 
@@ -20,7 +21,10 @@ from main.messages.outgoing_messages import send_email, send_text_message
 def controller_watchdog():
     server_config = load_server_config()
     worker_log('controller_watchdog', 'starting')
+    last_log_time = None
     while True:
+        watchdog_check_count = 0
+        watchdog_expire_count = 0
         try:
 
             # get list of controllers
@@ -30,6 +34,7 @@ def controller_watchdog():
 
                 # if watchdog notifications are enabled
                 if system_attributes.get('watchdog_minutes', 0) > 0  and 'watchdog_recipients' in system_attributes:
+                    watchdog_check_count += 1
                     try:
 
                         # check controller status; if stale watchdog timestamp, send message (if not done already);
@@ -37,6 +42,7 @@ def controller_watchdog():
                         controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller.id).one()
                         time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes = system_attributes['watchdog_minutes'])  # fix(soon): safe int convert
                         if controller_status.last_watchdog_timestamp and controller_status.last_watchdog_timestamp < time_thresh:
+                            watchdog_expire_count += 1
                             if controller_status.watchdog_notification_sent == False:
 
                                 # send notifications
@@ -64,6 +70,11 @@ def controller_watchdog():
         except Exception as e:
             print('controller_watchdog error: %s' % str(e))
             worker_log('controller_watchdog', str(e))
+
+        # once an hour, log current status
+        if (last_log_time is None) or time.time() - last_log_time > 60 * 60:
+            worker_log('controller_watchdog', 'checked %d controllers; %d are currently expired' % (watchdog_check_count, watchdog_expire_count))
+            last_log_time = time.time()
 
         # wait one minute
         gevent.sleep(60)
