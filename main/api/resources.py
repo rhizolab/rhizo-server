@@ -44,6 +44,7 @@ class ResourceRecord(ApiResource):
             if key and key.access_as_controller_id:
                 try:
                     r = Resource.query.filter(Resource.id == key.access_as_controller_id).one()
+                    resource_path = r.path()
                 except NoResultFound:
                     abort(404)
             else:
@@ -60,8 +61,7 @@ class ResourceRecord(ApiResource):
         # if request meta-data
         if request.values.get('meta', False):
             result = r.as_dict(extended = True)
-            if request.values.get('include_path', False):
-                result['path'] = r.path()
+            result['path'] = resource_path  # fix(soon): include leading slash
 
         # if request data
         else:
@@ -143,7 +143,7 @@ class ResourceRecord(ApiResource):
                         timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
                         values = [rr.data.decode() for rr in resource_revisions]
                         units = json.loads(r.system_attributes).get('units', None)
-                        return {'name': r.name, 'units': units, 'timestamps': timestamps, 'values': values}
+                        return {'name': r.name, 'path': '/' + resource_path, 'units': units, 'timestamps': timestamps, 'values': values}
 
                 # if no filter assume just want current value
                 # fix(later): should instead provide all values and have a separate way to get more recent value?
