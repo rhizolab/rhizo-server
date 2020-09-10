@@ -365,11 +365,11 @@ function initPlot(block, blockSpec) {
 
 	// handle historical data from server
 	var handler = function(data) {
-		var seqName = data.name;
+		var seqPath = data.path;
 		var values = data.values;
 		var timestamps = data.timestamps;
 		var len = values.length;
-		console.log(seqName + ' ' + len);
+		//console.log(seqPath + ' ' + len);
 		for (var i = 0; i < len; i++) {
 			var val = values[i];
 			if (val !== null) {
@@ -377,9 +377,7 @@ function initPlot(block, blockSpec) {
 			}
 		}
 		for (i = 0; i < seqCount; i++) {
-			var path = block.dataPairs[i].sequencePath;
-			var pathEnd = path.slice(path.lastIndexOf('/')+1);
-			if (pathEnd == seqName) {
+			if (block.dataPairs[i].sequencePath == seqPath) {
 				block.dataPairs[i].xData.data = timestamps;  // we are updating the plotter's internal data; for now we assume we haven't received any live updates
 				block.dataPairs[i].yData.data = values;
 				break;
