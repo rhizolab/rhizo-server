@@ -10,10 +10,6 @@
 #menuArea button {
 	margin-left: 4px;
 }
-.resource-tile {
-	margin-right: 4px;
-	margin-bottom: 4px;
-}
 span#emptyFolder {
 	font-style: italic;
 }
@@ -22,6 +18,40 @@ div.attribCategory {
 	border-bottom: 1px solid black;
 	margin-bottom: 5px;
 }
+
+/* resource tiles */
+.resourceTile {
+	padding: 4px;
+	background-color: #888888;
+	/*background-color: #059b9a;*/
+	margin-right: 5px;
+	margin-bottom: 5px;
+	display: inline-block;
+}
+.resourceTile>a {
+	display: inline-block;
+	color: #e8e8e8;
+}
+.resourceTile>div {
+	display: inline-block;
+	vertical-align: top;
+}
+.resourceTile>a:hover {
+	color: #ffffff;
+}
+div.seqTileValue {
+	font-size: 36px;
+}
+.resourceTileMenuDiv {
+	margin-left: 5px;
+}
+.resourceTileMenu {
+	background-color: #888888;
+	border: 0px;
+	color: #e8e8e8;
+}
+
+/* message viewer */
 #messageType {
 	margin-bottom: 5px;
 }
@@ -32,14 +62,13 @@ div.attribCategory {
 button#sendMessage {
 	margin-top: 5px;
 }
+
+/* move these away */
 table.plateMap th {
 	text-align: center;
 }
 table.plateMap th.wellLetter {
 	padding-right: 5px;
-}
-div.seqTileValue {
-	font-size: 36px;
 }
 </style>
 {% endblock %}
@@ -86,22 +115,26 @@ function createResourceTile(resource) {
 	menuData.add("Delete", deleteResource, {id: resource.id});
 	
 	// create a split drop-down including a resource link and an action drop-down button
-	var btnGroup = $('<div>', {class: 'btn-group resource-tile'});
 	var url = resourceUrl(resource);
-	var a = $('<a>', {href: url, class: 'btn btn-default', html: resource.name}).appendTo(btnGroup);
+	var tile = $('<div>', {class: 'resourceTile'});
+	var linkArea = $('<a>', {href: url}).appendTo(tile);
+	$('<div>', {html: resource.name}).appendTo(linkArea);
 	if (fileExt == 'jpg' || fileExt == 'png' || fileExt == 'jpeg') {
 		var thumbnailUrl = url + '?width=120';
-		$('<br>').prependTo(a);
-		$('<img>', {src: thumbnailUrl}).prependTo(a);
+		$('<img>', {src: thumbnailUrl}).appendTo(tile);
 	} else if (resource.type === 21 && resource.name != 'log') {  // non-log sequence
-		$('<div>', {class: 'seqTileValue', html: '...', id: 'seqVal_' + resource.id}).prependTo(a);
+		$('<div>', {class: 'seqTileValue', html: '...', id: 'seqVal_' + resource.id}).appendTo(linkArea);
 	}
 {% if user_access_level >= 20 %}
-	var menuButton = $('<button>', {type: 'button', class: 'btn btn-default dropdown-toggle', 'data-toggle': 'dropdown', 'aria-expanded': 'false'}).appendTo(btnGroup);
+	var menuArea = $('<div>');
+	menuArea.appendTo(tile);
+	var menuDiv = $('<div>', {class: 'btn-group resourceTileMenuDiv'});
+	var menuButton = $('<button>', {type: 'button', class: 'btn btn-default btn-xs dropdown-toggle resourceTileMenu', 'data-toggle': 'dropdown', 'aria-expanded': 'false'}).appendTo(menuDiv);
 	$('<span>', {class: 'caret'}).appendTo(menuButton);
-	createDropDownList({id: resource.id, menuData: menuData}).appendTo(btnGroup);
+	createDropDownList({id: resource.id, menuData: menuData}).appendTo(menuDiv);
+	menuDiv.appendTo(menuArea);
 {% endif %}
-	return btnGroup;
+	return tile;
 }
 
 

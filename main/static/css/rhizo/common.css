@@ -154,31 +154,6 @@ div.blueBox {
 	border: 2px dotted #0088cc;
 }
 
-/*********** TILES/ICONS FOR APPS/FOLDERS ***********/
-
-div.tileIcon {
-	padding: 5px;
-	font-size: 22px;
-	display: inline-block;
-	width: 42px;
-	height: 42px;
-	text-align: center;
-}
-
-div.tileInnerBox {
-	background-color: #ffffff;
-	width: 150px;
-	padding: 5px;
-	color: #000000;
-	border-bottom: 1px solid #dddddd;
-	border-right: 1px solid #dddddd;
-}
-
-div.tileTitle {
-	font-weight: bold;
-	font-size: 16px;
-}
-
 /*********** OTHER PAGE ELEMENTS ***********/
 
 div.appHeading {
