@@ -608,7 +608,7 @@ def resource_list(parent_id, recursive, type, filter, extended):
         children = children.filter(Resource.name.like(filter))
     file_infos = []
     for child in children:
-        file_info = child.as_dict(extended = extended)
+        file_info = child.as_dict(extended=extended)
         if extended and child.type == Resource.CONTROLLER_FOLDER:
             try:
                 controller_status = ControllerStatus.query.filter(ControllerStatus.id == child.id).one()

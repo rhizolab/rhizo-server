@@ -21,7 +21,7 @@ div.attribCategory {
 
 /* resource tiles */
 .resourceTile {
-	padding: 4px;
+	padding: 4px 4px 4px 6px;
 	background-color: #888888;
 	/*background-color: #059b9a;*/
 	margin-right: 5px;
@@ -41,6 +41,9 @@ div.attribCategory {
 }
 div.seqTileValue {
 	font-size: 36px;
+}
+.seqTileImage {
+	padding-bottom: 2px;
 }
 .resourceTileMenuDiv {
 	margin-left: 5px;
@@ -121,9 +124,15 @@ function createResourceTile(resource) {
 	$('<div>', {html: resource.name}).appendTo(linkArea);
 	if (fileExt == 'jpg' || fileExt == 'png' || fileExt == 'jpeg') {
 		var thumbnailUrl = url + '?width=120';
-		$('<img>', {src: thumbnailUrl}).appendTo(tile);
+		$('<img>', {src: thumbnailUrl, class: 'seqTileImage'}).appendTo(linkArea);
 	} else if (resource.type === 21 && resource.name != 'log') {  // non-log sequence
-		$('<div>', {class: 'seqTileValue', html: '...', id: 'seqVal_' + resource.id}).appendTo(linkArea);
+		var value = '...';
+		if (resource.system_attributes.data_type == 1 && resource.last_value !== undefined) {  // if numeric sequence with defined last value
+			value = +resource.last_value;  // convert to numeric value
+			decimal_places = resource.system_attributes.decimal_places || 0;
+			value = value.toFixed(decimal_places);
+		}
+		$('<div>', {class: 'seqTileValue', html: value, id: 'seqVal_' + resource.id}).appendTo(linkArea);
 	}
 {% if user_access_level >= 20 %}
 	var menuArea = $('<div>');

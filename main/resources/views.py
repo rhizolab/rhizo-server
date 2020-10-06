@@ -170,7 +170,18 @@ def folder_viewer(folder, full_path, user_access_level):
 
     # resources
     resources = Resource.query.filter(Resource.parent == folder, Resource.deleted == False).order_by('name')
-    resources = [r.as_dict(extended = True) for r in resources]
+    resource_dicts = []
+    for r in resources:
+        rd = r.as_dict(extended=True)
+        if r.type == Resource.SEQUENCE and r.last_revision_id:  # if sequence type, get last value (if any)
+            data_type = rd['system_attributes']['data_type']
+            if data_type == Resource.NUMERIC_SEQUENCE or data_type == Resource.TEXT_SEQUENCE:
+                try:
+                    rr = ResourceRevision.query.filter(ResourceRevision.id == r.last_revision_id).one()
+                    rd['last_value'] = rr.data.decode()
+                except NoResultFound:
+                    pass
+        resource_dicts.append(rd)
 
     # get view preferences if any
     if current_user.is_authenticated:
@@ -190,7 +201,7 @@ def folder_viewer(folder, full_path, user_access_level):
         view_json = view,
         user_access_level = user_access_level,
         is_admin = current_user.is_authenticated and current_user.role == current_user.SYSTEM_ADMIN,  # fix(clean): remove this
-        resources_json = json.dumps(resources)
+        resources_json = json.dumps(resource_dicts)
     )
 
 
