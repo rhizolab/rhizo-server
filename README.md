@@ -158,12 +158,18 @@ Install dependencies:
     sudo apt install libpq-dev
     sudo pip install uwsgi
     sudo apt install letsencrypt
+    sudo apt install mosquitto
 
 Configure nginx:
 
     cd /etc/nginx/sites-enabled
     sudo rm default
     sudo ln -s /home/ubuntu/rhizo-server/settings/nginx.conf rhizo-server
+
+Configure mosquitto:
+
+    sudo cp /home/ubuntu/rhizo-server/sample_settings/mosquitto-rhizo.conf /etc/mosquitto/conf.d
+    sudo systemctl restart mosquitto
 
 Get SSL certificates:
 

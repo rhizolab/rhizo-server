@@ -234,3 +234,40 @@ function reconnect() {
 	console.log('attempting to reconnect');
 	g_wsh.connect();
 }
+
+
+// ======== MQTT testing ========
+
+
+function testMQTT(hostname) {
+	var clientId = 'test';
+	var client = new Paho.Client(hostname, Number(8088), clientId);
+
+	// set callback handlers
+	client.onConnectionLost = onConnectionLost;
+	client.onMessageArrived = onMessageArrived;
+
+	// connect the client
+	client.connect({onSuccess:onConnect});
+
+	// called when the client connects
+	function onConnect() {
+		console.log("onConnect");
+		client.subscribe("/test");
+		message = new Paho.Message("hi");
+		message.destinationName = "/test";
+		client.send(message);
+	}
+
+	// called when the client loses its connection
+	function onConnectionLost(responseObject) {
+		if (responseObject.errorCode !== 0) {
+			console.log("onConnectionLost:" + responseObject.errorMessage);
+		}
+	}
+
+	// called when a message arrives
+	function onMessageArrived(message) {
+		console.log("onMessageArrived:" + message.payloadString);
+	}
+}
