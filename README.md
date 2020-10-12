@@ -140,8 +140,8 @@ Coding style guidelines:
 
 ## Running in Production
 
-These are preliminary notes on running the server in a production environment with nginx and uwsgi.
-When running the server in this way, you will no longer execute 'run.py' from the command line.
+These are preliminary notes on running the server in a production environment with nginx and uwsgi and postgres.
+When running the server in this way, you will no longer execute `run.py` from the command line.
 Instead the server will be run as a set of systemd services.
 
 We have previously deployed the server on EC2 instances running Ubuntu.
@@ -166,10 +166,18 @@ Configure nginx:
     sudo rm default
     sudo ln -s /home/ubuntu/rhizo-server/settings/nginx.conf rhizo-server
 
-Configure mosquitto:
+Build and install the mosquitto plugin using the instructions provided in [mqtt_auth/README.md](mqtt_auth/README.md).
+Copy the configuration file:
 
     sudo cp /home/ubuntu/rhizo-server/sample_settings/mosquitto-rhizo.conf /etc/mosquitto/conf.d
+
+Edit `/etc/mosquitto/conf.d/mosquitto-rhizo.conf` and enter your database parameters and system salt to match your 
+`settings/config.py`. Then restart and check the mosquitto service:
+
     sudo systemctl restart mosquitto
+    sudo systemctl status mosquitto
+
+You should see a message indicating that the plugin has connected to the database.
 
 Get SSL certificates:
 
@@ -190,7 +198,7 @@ Configure systemd services:
 
 # Development under Docker
 
-A Dockerfile and a docker-compose.yml file are provided to enable development under Docker.
+A `Dockerfile` and a `docker-compose.yml` file are provided to enable development under Docker.
 This should not be used for production.
 
 ## Setup

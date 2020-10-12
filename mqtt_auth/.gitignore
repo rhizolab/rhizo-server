@@ -1,0 +1,6 @@
+conn.txt
+key.txt
+salt.txt
+*.o
+*.so
+test
