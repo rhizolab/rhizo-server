@@ -8,7 +8,7 @@ from email.mime.text import MIMEText
 
 # external imports
 try:
-    from twilio.rest import TwilioRestClient
+    from twilio.rest import Client
 except ModuleNotFoundError:
     pass
 from sqlalchemy.orm.exc import NoResultFound
@@ -150,5 +150,5 @@ def send_text_message(phone_numbers, message, server_config):
     account_sid = server_config['TWILIO_ACCOUNT_SID']
     auth_token = server_config['TWILIO_AUTH_TOKEN']
     from_number = server_config['TEXT_FROM_PHONE_NUMBER']
-    client = TwilioRestClient(account_sid, auth_token)
+    client = Client(account_sid, auth_token)
     message = client.messages.create(to = phone_numbers, from_ = from_number, body = message)
