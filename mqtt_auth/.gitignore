@@ -1,6 +1,8 @@
 conn.txt
+path.txt
 key.txt
-salt.txt
+token.txt
+*-salt.txt
 *.o
 *.so
 test

@@ -7,10 +7,80 @@
 #include "rhizo_access.h"
 
 
+typedef struct ClientInfo {
+	unsigned long hash;
+	char *password;
+	int controller_id;
+	int controller_org_id;
+	int user_id;
+} ClientInfo;
+
+
 typedef struct AuthData {
 	PGconn *db;
-	char *salt;
+	char *password_salt;
+	char *msg_token_salt;
+	int verbose;
+	ClientInfo *clients;
+	int next_client_index;
 } AuthData;
+
+
+// TODO: need to support arbitrary number of client; use LRU cache or hash table?
+#define MAX_CLIENTS 100
+
+
+// via http://www.cse.yorku.ca/~oz/hash.html
+unsigned long hash(const unsigned char *str) {
+	unsigned long hash = 5381;
+	int c = 0;
+	while ((c = *str++)) {
+		hash = ((hash << 5) + hash) + c;  // hash * 33 + c
+	}
+	return hash;
+}
+
+
+char *alloc_str_copy(const char *s) {
+	char *result = (char *) malloc(strlen(s) + 1);
+	strcpy(result, s);
+	return result;
+}
+
+
+void store_client_info(AuthData *auth_data, const char *password, int controller_id, int controller_org_id, int user_id) {
+	int h = hash((const unsigned char *) password);
+
+	// if existing entry, update it
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		ClientInfo *ci = &auth_data->clients[i];
+		if (ci->hash == h && strcmp(ci->password, password) == 0) {
+			ci->controller_id = controller_id;
+			ci->controller_org_id = controller_org_id;
+			ci->user_id = user_id;
+			if (auth_data->verbose) {
+				fprintf(stderr, "mqtt_auth_rhizo: updated client data in slot %d\n", i);
+			}
+			return;
+		}
+	}
+
+	// otherwise create a new one
+	if (auth_data->next_client_index < MAX_CLIENTS) {
+		ClientInfo *ci = &auth_data->clients[auth_data->next_client_index];
+		ci->hash = h;
+		ci->password = alloc_str_copy(password);
+		ci->controller_id = controller_id;
+		ci->controller_org_id = controller_org_id;
+		ci->user_id = user_id;
+		if (auth_data->verbose) {
+			fprintf(stderr, "mqtt_auth_rhizo: stored client data in slot %d\n", auth_data->next_client_index);
+		}
+		auth_data->next_client_index++;
+	} else {
+		fprintf(stderr, "mqtt_auth_rhizo: too many clients\n");
+	}
+}
 
 
 // ======== mosquitto plugin callbacks ========
@@ -28,7 +98,9 @@ int mosquitto_auth_plugin_init(void **user_data, struct mosquitto_opt *opts, int
 	const char *db_host = NULL;
 	const char *db_username = NULL;
 	const char *db_password = NULL;
-	const char *salt = NULL;
+	const char *password_salt = NULL;
+	const char *msg_token_salt = NULL;
+	int verbose = 0;
 	for (int i = 0; i < opt_count; i++) {
 		struct mosquitto_opt *opt = opts + i;
 		if (strcmp(opt->key, "db_name") == 0) {
@@ -39,13 +111,17 @@ int mosquitto_auth_plugin_init(void **user_data, struct mosquitto_opt *opts, int
 			db_username = opt->value;
 		} else if (strcmp(opt->key, "db_password") == 0) {
 			db_password = opt->value;
-		} else if (strcmp(opt->key, "salt") == 0) {
-			salt = opt->value;
+		} else if (strcmp(opt->key, "password_salt") == 0) {
+			password_salt = opt->value;
+		} else if (strcmp(opt->key, "msg_token_salt") == 0) {
+			msg_token_salt = opt->value;
+		} else if (strcmp(opt->key, "verbose") == 0) {
+			verbose = atoi(opt->value);
 		}
 	}
 
 	// check options
-	if (db_name == NULL || db_host == NULL || db_username == NULL || db_password == NULL || salt == NULL) {
+	if (db_name == NULL || db_host == NULL || db_username == NULL || db_password == NULL || password_salt == NULL || msg_token_salt == NULL) {
 		fprintf(stderr, "mqtt_auth_rhizo: missing option(s)\n");
 		return MOSQ_ERR_UNKNOWN;
 	}
@@ -58,13 +134,21 @@ int mosquitto_auth_plugin_init(void **user_data, struct mosquitto_opt *opts, int
 		fprintf(stderr, "mqtt_auth_rhizo: unable to connect to the database %s\n", db_name);
 		return MOSQ_ERR_AUTH;
 	}
-	fprintf(stderr, "mqtt_auth_rhizo: connected to the database %s\n", db_name);
+	if (verbose) {
+		fprintf(stderr, "mqtt_auth_rhizo: connected to the database %s\n", db_name);
+	}
 
 	// store data for future use
 	AuthData *auth_data = (AuthData *) malloc(sizeof(AuthData));
 	auth_data->db = db;
-	auth_data->salt = (char *) malloc(strlen(salt) + 1);
-	strcpy(auth_data->salt, salt);
+	auth_data->password_salt = alloc_str_copy(password_salt);
+	auth_data->msg_token_salt = alloc_str_copy(msg_token_salt);
+	auth_data->verbose = verbose;
+	auth_data->clients = (ClientInfo *) malloc(MAX_CLIENTS * sizeof(ClientInfo));
+	auth_data->next_client_index = 0;
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		auth_data->clients[i].password = NULL;
+	}
 	*user_data = auth_data;
 	return MOSQ_ERR_SUCCESS;
 }
@@ -74,9 +158,19 @@ int mosquitto_auth_plugin_cleanup(void *user_data, struct mosquitto_opt *opts, i
 
 	// disconnect from database
 	PQfinish(auth_data->db);
-	fprintf(stderr, "mqtt_auth_rhizo: disconnected from database\n");
+	if (auth_data->verbose) {
+		fprintf(stderr, "mqtt_auth_rhizo: disconnected from database\n");
+	}
 
-	free(auth_data->salt);
+	// deallocate plugin data
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		if (auth_data->clients[i].password) {
+			free(auth_data->clients[i].password);
+		}
+	}
+	free(auth_data->clients);
+	free(auth_data->password_salt);
+	free(auth_data->msg_token_salt);
 	free(auth_data);
 	return MOSQ_ERR_SUCCESS;
 }
@@ -90,6 +184,7 @@ int mosquitto_auth_security_cleanup(void *user_data, struct mosquitto_opt *opts,
 }
 
 int mosquitto_auth_acl_check(void *user_data, int access, struct mosquitto *client, const struct mosquitto_acl_msg *msg) {
+	// use msg->topic and client->password
 	return MOSQ_ERR_SUCCESS;
 }
 
@@ -98,17 +193,41 @@ int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const 
 	if (username == NULL || password == NULL) {
 		return MOSQ_ERR_AUTH;
 	}
-	fprintf(stderr, "mqtt_auth_rhizo: username: %s, password: %c...\n", username, password[0]);
+	if (auth_data->verbose) {
+		fprintf(stderr, "mqtt_auth_rhizo: username: %s, password: %c...\n", username, password[0]);
+	}
 
-	// handle controller authentication
-	if (strcmp(username, "controller") == 0) {
-		int controller_id = auth_controller(auth_data->db, password, auth_data->salt);
+	// handle key-based authentication (currently only supporting controller keys, not user keys)
+	if (strcmp(username, "key") == 0) {
+		int controller_org_id = -1;
+		int controller_id = auth_controller(auth_data->db, password, auth_data->password_salt, &controller_org_id, auth_data->verbose);
 		if (controller_id < 0) {
 			fprintf(stderr, "mqtt_auth_rhizo: controller access denied\n");
 			return MOSQ_ERR_AUTH;
+		} else {
+			if (auth_data->verbose) {
+				fprintf(stderr, "mqtt_auth_rhizo: controller %d access allowed\n", controller_id);
+			}
+			//store_client_info(auth_data, password, controller_id, controller_org_id, 0);
+			return MOSQ_ERR_SUCCESS;
 		}
-		fprintf(stderr, "mqtt_auth_rhizo: controller %d access allowed\n", controller_id);
 	}
 
-	return MOSQ_ERR_SUCCESS;
+	// handle token-based authentication (for user's accessing via browser)
+	if (strcmp(username, "token") == 0) {
+		int user_id = check_token(password, auth_data->msg_token_salt);
+		if (user_id >= 0) {
+			if (auth_data->verbose) {
+				fprintf(stderr, "mqtt_auth_rhizo: user %d access allowed\n", user_id);
+			}
+			//store_client_info(auth_data, password, 0, 0, user_id);
+			return MOSQ_ERR_SUCCESS;
+		} else {
+			fprintf(stderr, "mqtt_auth_rhizo: token access denied\n");
+			return MOSQ_ERR_AUTH;
+		}
+	}
+
+	// deny access if didn't pass above checks
+	return MOSQ_ERR_AUTH;
 }
