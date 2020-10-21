@@ -5,10 +5,11 @@ Flask-Login
 Flask-RESTful
 Flask-SQLAlchemy
 gevent
-gevent-websocket
+gevent-websocket  # remove this after switch to MQTT
 greenlet
 gunicorn  # make this optional
 Markdown
+paho-mqtt
 Pillow
 SQLAlchemy
 twilio==6.46.0  # make this optional

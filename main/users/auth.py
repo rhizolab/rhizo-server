@@ -219,3 +219,16 @@ def migrate_keys():
             key.key_hash = hash_password(secret_key)
             db.session.commit()
     print('migrated keys:', count)
+
+
+# create a token used to authenticate with the MQTT broker/server
+def message_auth_token(user_id):
+    try:
+        salt = current_app.config['MESSAGE_TOKEN_SALT']
+    except RuntimeError:  # handle case that we're running outside app (e.g. in a worker process)
+        config = load_server_config()
+        salt = config['MESSAGE_TOKEN_SALT']
+    timestamp = int(time.time())
+    hash_message = '%d;%d;%s' % (user_id, timestamp, salt)
+    b64hash = base64.standard_b64encode(hashlib.sha512(hash_message.encode()).digest()).decode()
+    return '1;%d;%d;%s' % (user_id, timestamp, b64hash)

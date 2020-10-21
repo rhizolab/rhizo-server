@@ -12,6 +12,7 @@ from main.workers.util import worker_log
 from main.workers.controller_watchdog import controller_watchdog
 from main.workers.sequence_truncator import sequence_truncator
 from main.workers.message_deleter import message_deleter
+from main.workers.message_monitor import message_monitor
 
 
 # import all models
@@ -30,6 +31,7 @@ def worker():
     gevent.spawn(controller_watchdog)
     gevent.spawn(sequence_truncator)
     gevent.spawn(message_deleter)
+    #gevent.spawn(message_monitor)
 
     # loop forever
     while True:

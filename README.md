@@ -166,24 +166,27 @@ Configure nginx:
     sudo rm default
     sudo ln -s /home/ubuntu/rhizo-server/settings/nginx.conf rhizo-server
 
-Build and install the mosquitto plugin using the instructions provided in [mqtt_auth/README.md](mqtt_auth/README.md).
-Copy the configuration file:
+Get SSL certificates:
+
+    sudo systemctl stop nginx
+    sudo letsencrypt certonly --standalone -d [domain name here]
+    sudo systemctl start nginx
+
+Copy the mosquitto configuration file:
 
     sudo cp /home/ubuntu/rhizo-server/sample_settings/mosquitto-rhizo.conf /etc/mosquitto/conf.d
 
-Edit `/etc/mosquitto/conf.d/mosquitto-rhizo.conf` and enter your database parameters and system salt to match your 
-`settings/config.py`. Then restart and check the mosquitto service:
+Build and install the mosquitto plugin using the instructions provided in [mqtt_auth/README.md](mqtt_auth/README.md).
+
+Edit `/etc/mosquitto/conf.d/mosquitto-rhizo.conf` and enter your database parameters and password/token salts to
+match your `settings/config.py`. Then restart and check the mosquitto service:
 
     sudo systemctl restart mosquitto
     sudo systemctl status mosquitto
 
 You should see a message indicating that the plugin has connected to the database.
 
-Get SSL certificates:
-
-    sudo systemctl stop nginx
-    sudo letsencrypt certonly --standalone -d [domain name here]
-    sudo systemctl start nginx
+TODO: provide instructions for running mosquitto on a separate host?
 
 Configure systemd services:
 

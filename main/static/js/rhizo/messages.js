@@ -241,6 +241,8 @@ function reconnect() {
 
 function testMQTT(hostname) {
 	var clientId = 'test';
+	var userName = 'browser';
+	var password = 'test';
 	var client = new Paho.Client(hostname, Number(8088), clientId);
 
 	// set callback handlers
@@ -248,7 +250,7 @@ function testMQTT(hostname) {
 	client.onMessageArrived = onMessageArrived;
 
 	// connect the client
-	client.connect({onSuccess:onConnect});
+	client.connect({onSuccess:onConnect, useSSL:true, userName:userName, password:password});
 
 	// called when the client connects
 	function onConnect() {

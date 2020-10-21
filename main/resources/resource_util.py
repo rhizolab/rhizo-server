@@ -213,7 +213,8 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
 
     # create a short lived update message for subscribers to the folder containing this sequence
     if emit_message:
-        message_queue.add(folder_id = resource.parent_id, type = 'sequence_update', parameters = message_params, timestamp = timestamp)
+        folder_path = resource_path.rsplit('/', 1)[0]
+        message_queue.add(folder_id = resource.parent_id, folder_path = folder_path, type = 'sequence_update', parameters = message_params, timestamp = timestamp)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);

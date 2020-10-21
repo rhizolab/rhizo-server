@@ -287,4 +287,4 @@ def process_web_socket_message(message_struct, ws_conn):
         if ws_conn.access_level(folder_id) >= ACCESS_LEVEL_WRITE:
             parameters = message_struct['parameters']
             # fix(soon): can we move this spawn above access level check (might require request context)
-            gevent.spawn(message_queue.add, folder_id, type, parameters, sender_controller_id = ws_conn.controller_id, sender_user_id = ws_conn.user_id)
+            gevent.spawn(message_queue.add, folder_id, None, type, parameters, sender_controller_id = ws_conn.controller_id, sender_user_id = ws_conn.user_id)

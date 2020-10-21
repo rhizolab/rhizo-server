@@ -7,6 +7,7 @@ from flask_login import LoginManager
 from flask_restful import Api
 from .messages.socket_sender import SocketSender, clear_web_sockets
 from .messages.message_queue_basic import MessageQueueBasic
+from .messages.message_sender import MessageSender
 
 # create and configure the application
 app = Flask(__name__)
@@ -43,6 +44,12 @@ static_manager = {}
 
 # create a message queue that will be used to handle messages to/from clients
 message_queue = MessageQueueBasic()
+
+# prepare MQTT message sender
+if 'MQTT_HOST' in app.config:
+    message_sender = MessageSender(app.config)
+else:
+    message_sender = None
 
 # create error pages
 @app.errorhandler(403)

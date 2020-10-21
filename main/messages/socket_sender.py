@@ -134,7 +134,7 @@ class SocketSender(object):
             'db_conn': db.engine.pool.checkedout(),
         }
         system_folder_id = find_resource('/system').id
-        message_queue.add(system_folder_id, 'processStatus', parameters)
+        message_queue.add(system_folder_id, '/system', 'processStatus', parameters)
 
 
 # returns True if the given message should be sent to the given client (based on its current subscriptions)
