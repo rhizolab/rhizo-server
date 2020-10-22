@@ -14,14 +14,15 @@ def message_monitor():
         worker_log('message_monitor', 'MQTT host not configured')
         return
     worker_log('message_monitor', 'starting')
-    server_name = server_config['MQTT_HOST']
+    mqtt_host = server_config['MQTT_HOST']
+    mqtt_port = server_config.get('MQTT_PORT', 443)
 
     # run this on connect/reconnect
     def on_connect(client, userdata, flags, rc):
         if rc:
-            worker_log('message_monitor', 'unable to connect to MQTT broker/server at %s' % server_name)
+            worker_log('message_monitor', 'unable to connect to MQTT broker/server at %s:%d' % (mqtt_host, mqtt_port))
         else:
-            worker_log('message_monitor', 'connected to MQTT broker/server at %s' % server_name)
+            worker_log('message_monitor', 'connected to MQTT broker/server at %s:%d' % (mqtt_host, mqtt_port))
         client.subscribe('#')  # subscribe to all messages
 
     # run this on message
@@ -34,7 +35,7 @@ def message_monitor():
     mqtt_client.on_message = on_message
     mqtt_client.username_pw_set('token', message_auth_token(0))
     mqtt_client.tls_set()  # enable SSL
-    mqtt_client.connect(server_name, 8088)  # using port 8088 for testing
+    mqtt_client.connect(mqtt_host, mqtt_port)
     mqtt_client.loop_start()
     while True:
         gevent.sleep(60)
