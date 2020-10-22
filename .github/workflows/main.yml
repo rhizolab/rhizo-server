@@ -1,0 +1,49 @@
+name: rhizo-server
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache venv contents
+      id: cache-venv
+      uses: actions/cache@v2
+      with:
+        path: .venv
+        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+
+    - name: Install dependencies into venv
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        python -m venv .venv
+        source .venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r tests/requirements.txt
+        pip install -r tests/requirements-postgres.txt
+
+    - name: Prep config
+      run: |
+        .venv/bin/python prep_config.py
+        echo "DISCLAIMER = 'This is pre-release code; the API and database structure will probably change.'" >> settings/config.py
+
+    - name: Test with pytest (PostgreSQL)
+      run: |
+        TEST_DATABASE=postgres .venv/bin/pytest
+
+    - name: Test with pytest (SQLite)
+      run: |
+        TEST_DATABASE=sqlite .venv/bin/pytest
