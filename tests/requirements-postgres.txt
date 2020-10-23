@@ -1,0 +1,5 @@
+# Running tests against PostgreSQL requires that the PostgreSQL database server
+# be installed locally.
+
+psycopg2==2.8.6
+pytest-postgresql==2.5.1

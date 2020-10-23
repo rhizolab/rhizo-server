@@ -238,3 +238,9 @@ found in the extensions folder will be automatically added - you do not need to 
 The extension loader will also check the AUTOLOAD_EXTENSIONS environment variable and when true it will try to load the
 `autoload-config.py` file in the root of the extension folder and add any configuration values found there to the app's
 config.  If the `autoload-config.py` does not exist no error will be raised.
+
+# Test suite
+
+The code base comes with automated tests in the `tests` directory. These are automatically run on GitHub when you push to a repository there and can be run locally. They use the [pytest](https://docs.pytest.org/en/stable/) framework.
+
+See [tests/README.md](tests/README.md) for more information about the test suite.
