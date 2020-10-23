@@ -33,7 +33,7 @@ def message_monitor():
     mqtt_client = mqtt.Client(transport='websockets')
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    mqtt_client.username_pw_set('token', message_auth_token(0))
+    mqtt_client.username_pw_set('token', message_auth_token(0))  # user_id 0 indicates that this is an internal connection from the server
     mqtt_client.tls_set()  # enable SSL
     mqtt_client.connect(mqtt_host, mqtt_port)
     mqtt_client.loop_start()

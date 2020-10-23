@@ -21,7 +21,7 @@ class MessageSender(object):
                 print('connected to MQTT broker/server at %s:%d' % (self.mqtt_host, self.mqtt_port))
         self.mqtt_client = mqtt.Client(transport='websockets')
         self.mqtt_client.on_connect = on_connect
-        self.mqtt_client.username_pw_set('token', message_auth_token(0))
+        self.mqtt_client.username_pw_set('token', message_auth_token(0))  # user_id 0 indicates that this is an internal connection from the server
         self.mqtt_client.tls_set()  # enable SSL
         self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
         self.mqtt_client.loop_start()

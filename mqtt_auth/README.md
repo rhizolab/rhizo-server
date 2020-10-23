@@ -12,6 +12,7 @@ according to the instructions in the main rhizo-server readme.
 *   run: `sudo apt install libssl-dev`
 *   download and uncompress the mosquitto source
 *   from the mosquitto source directory, run `make` and `sudo make install`
+*   TODO: point to the mosquitto source from Makefile instead of doing redundant install
 *   from your home directory (or another suitable location) run `git clone https://github.com/rg3/libbcrypt`
 *   edit `libbcrypt/crypt_blowfish/Makefile` to add `-fPIC` to `CFLAGS`
 *   from the `libbcrypt` directory run `make`

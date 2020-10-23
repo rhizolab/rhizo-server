@@ -21,6 +21,8 @@ You can also run it with websocket support (but no auto-reloading): `python run.
 Note: this websocket server (`-s` option) don't seem to work with gevent 1.2 (at least on Windows);
 you may need to downgrade to gevent 1.1.2.
 
+Note: we are in the process of migrating from plain websockets to MQTT over websockets.
+
 ## System Design
 
 ### Users
@@ -169,7 +171,8 @@ Configure nginx:
 Get SSL certificates:
 
     sudo systemctl stop nginx
-    sudo letsencrypt certonly --standalone -d [domain name here]
+    sudo letsencrypt certonly --standalone -d [www.example.com]
+    sudo letsencrypt certonly --standalone -d [mqtt.example.com]
     sudo systemctl start nginx
 
 Copy the mosquitto configuration file:
@@ -184,9 +187,7 @@ match your `settings/config.py`. Then restart and check the mosquitto service:
     sudo systemctl restart mosquitto
     sudo systemctl status mosquitto
 
-You should see a message indicating that the plugin has connected to the database.
-
-TODO: provide instructions for running mosquitto on a separate host?
+You should see a message indicating that the plugin has connected to the database. If not, check the steps above.
 
 Configure systemd services:
 
