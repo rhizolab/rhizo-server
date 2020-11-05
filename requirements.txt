@@ -1,5 +1,5 @@
 bcrypt
-boto
+boto3==1.16.11
 Flask
 Flask-Login
 Flask-RESTful
