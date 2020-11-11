@@ -3,7 +3,7 @@ import gevent
 from optparse import OptionParser
 from geventwebsocket.handler import WebSocketHandler
 from main.app import app, db
-from main.users.auth import create_user, migrate_keys
+from main.users.auth import create_user
 from main.users.models import User, OrganizationUser
 from main.resources.resource_util import create_system_resources, find_resource
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         db.session.commit()
         print('created system admin: %s' % email_address)
     elif options.migrate_db:
-        migrate_keys()
+        pass
 
     # start the debug server
     else:

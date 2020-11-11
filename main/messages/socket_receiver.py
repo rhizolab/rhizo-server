@@ -15,7 +15,7 @@ from flask_login import current_user
 
 # internal imports
 from main.app import db, socket_sender, app, message_queue
-from main.users.auth import find_key, find_key_by_code
+from main.users.auth import find_key
 from main.users.permissions import ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE
 from main.messages.outgoing_messages import handle_send_email, handle_send_text_message
 from main.messages.web_socket_connection import WebSocketConnection
@@ -109,45 +109,9 @@ def process_web_socket_message(message_struct, ws_conn):
     type = message_struct['type']
     message_debug = False
 
-    # handle new connection (updates controller status record)
-    if type == 'connect':  # fix(soon): remove this
-        parameters = message_struct['parameters']
-        print('connect message')
-
-        # clients/controllers should send authCode in connect message
-        if 'authCode' in parameters:
-            auth_code = parameters['authCode']
-            key = find_key_by_code(auth_code)
-            if key and key.access_as_controller_id:
-                controller_resource = Resource.query.filter(Resource.id == key.access_as_controller_id).one()
-
-                # handle child controller
-                if 'name' in parameters:
-                    key_resource = controller_resource
-                    controller_resource = None
-
-                    # look for a resource with the given name that is a child of the controller referenced by the key
-                    candidate_resources = Resource.query.filter(Resource.name == parameters['name'], Resource.deleted == False)
-                    for resource in candidate_resources:
-                        if resource.is_descendent_of(key_resource.id):
-                            controller_resource = resource
-                            break
-                    if not controller_resource:
-                        ws_conn.ws.close()
-                        print('unable to find child controller: %s' % parameters['name'])  # fix(soon): what should we do in this case?
-                        return
-                ws_conn.controller_id = controller_resource.id
-                ws_conn.auth_method = 'authCode'
-                try:
-                    controller_status = ControllerStatus.query.filter(ControllerStatus.id == ws_conn.controller_id).one()
-                    controller_status.last_connect_timestamp = datetime.datetime.utcnow()
-                    controller_status.client_version = parameters.get('version', None)
-                    db.session.commit()
-                except NoResultFound:
-                    pass
-            else:
-                ws_conn.ws.close()
-                print('invalid auth code')  # fix(soon): what should we do in this case?
+    # handle new connection; no longer used; websocket should be authenticated using HTTP basic auth
+    if type == 'connect':
+        pass
 
     # handle watchdog message (updates controller status record)
     elif type == 'watchdog':

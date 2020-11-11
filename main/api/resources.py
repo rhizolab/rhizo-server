@@ -22,7 +22,7 @@ from main.util import parse_json_datetime
 from main.resources.models import Resource, ResourceRevision, ResourceView, ControllerStatus, Thumbnail
 from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, resource_type_number, _create_folders, create_sequence
 from main.resources.file_conversion import convert_csv_to_xls, convert_xls_to_csv, convert_new_lines, compute_thumbnail
-from main.users.auth import find_key, find_key_fast, find_key_by_code  # fix(clean): remove?
+from main.users.auth import find_key, find_key_fast  # fix(clean): remove?
 
 
 class ResourceRecord(ApiResource):
@@ -35,10 +35,7 @@ class ResourceRecord(ApiResource):
 
         # handle case of controller requesting about self
         if resource_path == '/self':
-            if 'authCode' in request.values:
-                auth_code = request.values.get('authCode', '')  # fix(soon): remove auth codes
-                key = find_key_by_code(auth_code)
-            elif request.authorization:
+            if request.authorization:
                 key = find_key(request.authorization.password)
             else:
                 key = None

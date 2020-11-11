@@ -11,7 +11,6 @@ gunicorn  # make this optional
 Markdown
 paho-mqtt
 Pillow
-pycrypto==2.6.1
 SQLAlchemy
 twilio==6.46.0  # make this optional
 xlrd

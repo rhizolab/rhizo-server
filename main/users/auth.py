@@ -110,17 +110,6 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
         from main.users.permissions import generate_access_code  # import here to avoid import loop
         key_text = current_app.config['KEY_PREFIX'] + generate_access_code(50)
 
-    # encrypt the key
-    # fix(soon): remove this once no longer in use
-    if current_app.config.get('KEY_STORAGE_KEY'):  # not needed on new systems
-        from main.users.encrypt import AESCipher
-        nonce = base64.b64encode(os.urandom(32))
-        aes = AESCipher(current_app.config['KEY_STORAGE_KEY'])
-        key_enc = aes.encrypt(nonce + ';' + key_text)
-    else:
-        nonce = ''
-        key_enc = ''
-
     # create a key record
     key = Key()
     key.organization_id = organization_id
@@ -130,8 +119,8 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
     key.access_as_controller_id = access_as_controller_id
     key.key_part = key_text[:3] + key_text[-3:]
     key.key_hash = hash_password(key_text)
-    key.key_storage = key_enc
-    key.key_storage_nonce = nonce
+    key.key_storage = ''  # not used; should remove
+    key.key_storage_nonce = ''  # not used; should remove
     db.session.add(key)
     db.session.commit()
     return (key, key_text)
@@ -157,29 +146,6 @@ def find_key_fast(key_text):
     return None
 
 
-# find a key given an auth code (a hashed version of the key)
-# fix(soon): remove this
-def find_key_by_code(auth_code):
-    from main.users.encrypt import AESCipher
-    parts = auth_code.split(';')
-    if len(parts) != 3:
-        return None
-    client_key_part = parts[0]
-    client_nonce = parts[1]
-    client_key_hash = parts[2]
-    keys = Key.query.filter(Key.key_part == client_key_part, Key.revocation_timestamp == None)
-    app_config = load_server_config()
-    aes = AESCipher(app_config['KEY_STORAGE_KEY'])
-    for key in keys:
-        nonce_and_key = aes.decrypt(key.key_storage)
-        parts = nonce_and_key.split(';')
-        secret_key = parts[1]
-        key_hash = base64.b64encode(hashlib.sha512(client_nonce + ';' + secret_key).digest())
-        if key_hash == client_key_hash:
-            return key
-    return None
-
-
 # make an alphanumeric code; alternate letters and numbers so we don't get any strange words
 def make_code(length):
     letters = 'abcdefghjkmnpqrstuvwxyz'
@@ -202,23 +168,6 @@ def migrate_passwords():
         print('%d, %s' % (user.id, new_hash[:10]))
         user.password_hash = new_hash
         db.session.commit()
-
-
-# temp function to migrate key storage
-def migrate_keys():
-    keys = Key.query.order_by('id')
-    app_config = load_server_config()
-    aes = AESCipher(app_config['KEY_STORAGE_KEY'])
-    count = 0
-    for key in keys:
-        if key.key_storage and not key.key_hash:
-            count += 1
-            nonce_and_key = aes.decrypt(key.key_storage)
-            parts = nonce_and_key.split(';')
-            secret_key = parts[1]
-            key.key_hash = hash_password(secret_key)
-            db.session.commit()
-    print('migrated keys:', count)
 
 
 # create a token used to authenticate with the MQTT broker/server

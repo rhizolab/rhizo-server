@@ -5,7 +5,7 @@ from flask import request
 from flask_login import current_user
 from sqlalchemy.orm.exc import NoResultFound
 from main.users.models import OrganizationUser
-from main.users.auth import find_key, find_key_by_code
+from main.users.auth import find_key
 from main.resources.models import Resource
 
 
@@ -40,12 +40,8 @@ def access_level(permissions, controller_id = None):
     # determine current API client (if any)
     if not controller_id:
         key = None
-        if 'authCode' in request.values:  # fix(soon): remove this case
-            auth_code = request.values['authCode']
-            key = find_key_by_code(auth_code)
-        elif request.authorization:
-            auth = request.authorization
-            key = find_key(auth.password)  # key is provided as HTTP basic auth password
+        if request.authorization:
+            key = find_key(request.authorization.password)  # key is provided as HTTP basic auth password
         if key:
             if key.access_as_controller_id:
                 controller_id = key.access_as_controller_id
