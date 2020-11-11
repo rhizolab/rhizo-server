@@ -23,7 +23,6 @@ class Resource(db.Model):
     deleted             = db.Column(db.Boolean, nullable = False, default = False)
 
     # fix(soon): remove after migrate
-    file_type           = db.Column(db.String(20))
     hash                = db.Column(db.String(50))
     size                = db.Column(db.BigInteger)
 

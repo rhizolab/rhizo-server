@@ -19,7 +19,7 @@ div#editor {
 
 
 var g_editor = null;
-var g_fileType = '{{ resource.system_attributes.file_type }}';
+var g_fileName = '{{ resource.name }}';
 
 
 function checkModified() {
@@ -57,7 +57,9 @@ function save(afterSave) {
 
 
 $(function() {
-	var mode = g_fileType === 'md' ? 'markdown' : 'text';
+	var dotPos = g_fileName.lastIndexOf('.');
+	var ext = dotPos >= 0 ? g_fileName.slice(dotPos + 1) : '';
+	var mode = ext === 'md' ? 'markdown' : 'text';
 	g_editor = createEditor('editor', mode, checkModified);
 	g_editor.start();
 	g_editor.editorObj.focus();

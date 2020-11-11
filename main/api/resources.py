@@ -428,15 +428,13 @@ class ResourceList(ApiResource):
                 name = name.rsplit('.')[0] + '.csv'
                 r.name = name
             if name.endswith('csv') or name.endswith('txt'):
-                data = convert_new_lines(data).encode()
+                data = convert_new_lines(data.decode()).encode()
 
             # compute other file attributes
             system_attributes = {
                 'hash': hashlib.sha1(data).hexdigest(),
                 'size': len(data),
             }
-            if 'file_type' in args:  # fix(soon): can we remove this? current just using for markdown files
-                system_attributes['file_type'] = args['file_type']
             r.system_attributes = json.dumps(system_attributes)
         elif type == Resource.SEQUENCE:
             data_type = int(args['data_type'])  # fix(soon): safe convert to int

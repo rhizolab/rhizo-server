@@ -290,7 +290,7 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
         print('file_viewer: storage not found (resource: %d, path: %s)' % (resource.id, resource.path()))
         abort(404)
     system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
-    if system_attributes.get('file_type') == 'md' or resource.name.endswith('.md'):  # fix(soon): revisit this
+    if resource.name.endswith('.md'):  # fix(soon): revisit this
         if 'edit' in request.args:
             return render_template('resources/text-editor.html',
                 resource = resource,

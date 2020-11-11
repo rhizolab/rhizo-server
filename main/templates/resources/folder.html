@@ -972,16 +972,16 @@ function newRemoteFolder() {
 
 
 function newDocumentation() {
-	newFile(20, 'md', 'documentation');
+	newFile(20, 'documentation');
 }
 
 
 function newApp() {
-	newFile(22, 'app', 'app');
+	newFile(22, 'app');
 }
 
 
-function newFile(resourceType, fileType, fileTypeDesc) {
+function newFile(resourceType, fileTypeDesc) {
 	var capFileTypeDesc = fileTypeDesc.charAt(0).toUpperCase() + fileTypeDesc.slice(1);  // capitalize first letter
 	modalPrompt({title: 'Create ' + capFileTypeDesc + ' File', prompt: 'File name', resultFunc: function(newName) {
 		if (nameCheck(newName)) {
@@ -998,9 +998,6 @@ function newFile(resourceType, fileType, fileTypeDesc) {
 				'type': resourceType,
 				'csrf_token': g_csrfToken,
 			};
-			if (fileType == 'md') {  // fix(soon): can we remove this?
-				params.file_type = fileType;
-			}
 			$.post('/api/v1/resources', params, handler);
 		}
 	 }});
