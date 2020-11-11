@@ -31,7 +31,7 @@ def worker():
     gevent.spawn(controller_watchdog)
     gevent.spawn(sequence_truncator)
     gevent.spawn(message_deleter)
-    #gevent.spawn(message_monitor)
+    gevent.spawn(message_monitor)
 
     # loop forever
     while True:
