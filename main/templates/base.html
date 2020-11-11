@@ -62,6 +62,7 @@ if (!window.console) {
 	console = {log: function() { }};
 }
 var g_csrfToken = '{{ csrf_token() }}';
+var g_mqttInfo = {{ mqtt_info()|safe }};
 
 // create nav bar links/text
 {% if not hide_loc_nav %}
