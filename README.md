@@ -23,6 +23,20 @@ you may need to downgrade to gevent 1.1.2.
 
 Note: we are in the process of migrating from plain websockets to MQTT over websockets.
 
+### Configuration
+
+Configuration settings may be set in a configuration file or using environment variables. By
+default, the server will look for a configuration file at `settings/config.py` but if you want to
+put it somewhere else, its path can be specified with the `RHIZO_SERVER_SETTINGS` environment
+variable.
+
+Environment variable names are the same as the setting names, optionally with a `RHIZO_SERVER_`
+prefix. To allow non-string values to be configured, environment variable values are parsed as YAML
+(or as JSON, since JSON is valid YAML). That means that if a string value has a colon or starts with
+`[` or `{`, you will need to include quote marks in the environment variable.
+
+The file [`sample_settings/config.py`](sample_settings/config.py) lists the available settings.
+
 ## System Design
 
 ### Users

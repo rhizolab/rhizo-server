@@ -7,7 +7,7 @@ from botocore.errorfactory import ClientError
 class S3StorageManager():
 
     def __init__(self, app_config):
-        if 'S3_ACCESS_KEY' in app_config:
+        if 'S3_ACCESS_KEY' in app_config and app_config['S3_ACCESS_KEY']:
             self.s3 = boto3.resource(
                 's3',
                 aws_access_key_id=app_config['S3_ACCESS_KEY'],

@@ -1,9 +1,14 @@
 import datetime
 import json
 import os
+import pathlib
 
 from flask_restful import Api
 import pytest
+
+# Need to do this before importing main.app.
+os.environ['RHIZO_SERVER_DISABLE_ENVIRONMENT'] = 'True'
+os.environ['RHIZO_SERVER_SETTINGS'] = str(pathlib.Path(__file__).parent) + '/disclaimer.py'
 
 from main.api.messages import MessageList
 from main.api.resources import ResourceList, ResourceRecord
@@ -51,9 +56,7 @@ def app(request):
     else:
         uri = 'sqlite://'
 
-    config = main.app.app.config
-    config.from_object('settings.config')
-    config['SQLALCHEMY_DATABASE_URI'] = uri
+    main.app.app.config['SQLALCHEMY_DATABASE_URI'] = uri
     return main.app.app
 
 
