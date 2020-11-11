@@ -83,122 +83,206 @@ function createWebSocketHolder() {
 	wsh.pingStarted = false;
 	wsh.targetFolderPath = null;  // default target for messages
 	wsh.afterOpen = null;  // called after the websocket is opened (will be re-called if reconnect)
+	wsh.client = null;  // MQTT client
 
 	// connect to the server; this creates a websocket object
 	wsh.connect = function() {
 		wsh.connectStarted = true; // fix(soon): could have race condition
 		console.log('connecting');
 
-		// compute url
-		var protocol = 'ws://';
-		if (window.location.protocol.slice(0, 5) == 'https')
-			protocol = 'wss://';
-		var url = protocol + window.location.host + '/api/v1/websocket';
+		// if old websocket-based messaging is enabled
+		if (g_mqttInfo && g_mqttInfo.enableOld) {
 
-		// open the connection
-		if ('WebSocket' in window) {
-			this.webSocket = new WebSocket(url);
-		} else {
-			alert('This app requires a browser with WebSocket support.');
+			// compute url
+			var protocol = 'ws://';
+			if (window.location.protocol.slice(0, 5) == 'https')
+				protocol = 'wss://';
+			var url = protocol + window.location.host + '/api/v1/websocket';
+
+			// open the connection
+			if ('WebSocket' in window) {
+				this.webSocket = new WebSocket(url);
+			} else {
+				alert('This app requires a browser with WebSocket support.');
+			}
+
+			// handle message from websocket
+			this.webSocket.onmessage = function(evt) {
+				var message = JSON.parse(evt.data);
+				var type = message['type'];
+				if (type == 'error') {
+					if (message.parameters.message == 'invalid session') {
+						console.log('invalid session');
+						window.location.reload();
+					}
+				}
+				var func = wsh.handlers[type];
+				if (func) {
+					func(moment(message['timestamp']), message['parameters']);
+				}
+				for (var i = 0; i < wsh.genericHandlers.length; i++) {
+					var func = wsh.genericHandlers[i];
+					func(moment(message['timestamp']), type, message['parameters']);
+				}
+			};
+
+			// run this code after connection is opened
+			this.webSocket.onopen = function() {
+				wsh.connected = true;
+
+				// send a connect message (can be used to provide client version info)
+				// fix(later): remove this if we're not sending any info?
+				wsh.sendMessage('connect');
+
+				// send list of folders for which we want messages
+				console.log('subscriptions: ' + g_wsh.subscriptions.length);
+				wsh.sendMessage('subscribe', {'subscriptions': g_wsh.subscriptions});
+
+				// call user-provided function (if any) to run after websocket is open
+				if (wsh.afterOpen)
+					wsh.afterOpen();
+
+				// hide reconnect modal if any
+				setTimeout(function() {
+					if (wsh.errorModal && wsh.connected) {
+						console.log('hide');
+						$('#wsError').modal('hide');
+						$('#wsError').remove();
+						$('body').removeClass('modal-open'); // fix(later): these two lines shouldn't be necessary, but otherwise window stays dark
+						$('.modal-backdrop').remove(); // fix(later): these two lines shouldn't be necessary, but otherwise window stays dark
+						wsh.errorModal = null;
+					}
+				}, 1000);
+
+				// start pinging if not already started
+				if (wsh.pingStarted === false) {
+					wsh.pingStarted = true;
+					setTimeout(pingServer, 20000);
+				}
+			};
+
+			// run this code when connection is closed
+			this.webSocket.onclose = function() {
+				console.log('connection closed by server');
+				wsh.connected = false;
+				setTimeout(reconnect, 10000);
+
+				// show modal to display connection status
+				// fix(later): if this gets displayed repeatedly, each time the background gets darker
+				if (!wsh.errorModal) {
+					console.log('show');
+					wsh.errorModal = createBasicModal('wsError', 'Reconnecting to server...', {infoOnly: true});
+					wsh.errorModal.appendTo($('body'));
+					$('#wsError-body').html('Will attempt to reconnect shortly.');
+					$('#wsError').modal('show');
+				}
+			};
 		}
 
-		// handle message from websocket
-		this.webSocket.onmessage = function(evt) {
-			var message = JSON.parse(evt.data);
-			var type = message['type'];
+		// ======== MQTT code ========
+
+		// called when connected successfully to MQTT server/broker
+		function onConnect() {
+			console.log('connected to MQTT server/broker');
+			for (var i = 0; i < wsh.subscriptions.length; i++) {
+				var subscription = wsh.subscriptions[i];
+				var topic = subscription.folder;
+				if (topic[0] === '/') {
+					topic = topic.slice(1);  // our folder paths have leading slashes, but not MQTT topics
+				}
+				wsh.client.subscribe(topic);
+			}
+		}
+
+		// called when fails to connect to MQTT server/broker
+		function onConnectFailure() {
+			console.log('failed to connect to MQTT server/broker');
+		}
+
+		// called when MQTT connection is lost
+		function onConnectionLost(responseObject) {
+			if (responseObject.errorCode) {
+				console.log('onConnectionLost:' + responseObject.errorMessage);
+			}
+		}
+
+		// called when an MQTT message arrives
+		function onMessageArrived(message) {
+			// console.log('message: ' + message.payloadString);
+			var messageStruct = JSON.parse(message.payloadString);
+			var type = messageStruct['type'];
 			if (type == 'error') {
-				if (message.parameters.message == 'invalid session') {
+				if (messageStruct.parameters.message == 'invalid session') {
 					console.log('invalid session');
 					window.location.reload();
 				}
 			}
 			var func = wsh.handlers[type];
 			if (func) {
-				func(moment(message['timestamp']), message['parameters']);
+				func(moment(messageStruct['timestamp']), messageStruct['parameters']);
 			}
 			for (var i = 0; i < wsh.genericHandlers.length; i++) {
 				var func = wsh.genericHandlers[i];
-				func(moment(message['timestamp']), type, message['parameters']);
+				func(moment(messageStruct['timestamp']), type, messageStruct['parameters']);
 			}
-		};
+		}
 
-		// run this code after connection is opened
-		this.webSocket.onopen = function() {
-			wsh.connected = true;
+		if (g_mqttInfo && g_mqttInfo.host) {
+			console.log('opening MQTT connection');
+			var clientId = g_mqttInfo.clientId;
+			var userName = 'token';
+			var password = g_mqttInfo.token;
+			wsh.client = new Paho.Client(g_mqttInfo.host, Number(g_mqttInfo.port), clientId);
 
-			// send a connect message (can be used to provide client version info)
-			// fix(later): remove this if we're not sending any info?
-			wsh.sendMessage('connect');
+			// set callback handlers
+			wsh.client.onConnectionLost = onConnectionLost;
+			wsh.client.onMessageArrived = onMessageArrived;
 
-			// send list of folders for which we want messages
-			console.log('subscriptions: ' + g_wsh.subscriptions.length);
-			wsh.sendMessage('subscribe', {'subscriptions': g_wsh.subscriptions});
+			// connect the client
+			wsh.client.connect({onSuccess:onConnect, onFailure:onConnectFailure, useSSL:true, userName:userName, password:password});
 
-			// call user-provided function (if any) to run after websocket is open
-			if (wsh.afterOpen)
-				wsh.afterOpen();
-
-			// hide reconnect modal if any
-			setTimeout(function() {
-				if (wsh.errorModal && wsh.connected) {
-					console.log('hide');
-					$('#wsError').modal('hide');
-					$('#wsError').remove();
-					$('body').removeClass('modal-open'); // fix(later): these two lines shouldn't be necessary, but otherwise window stays dark
-					$('.modal-backdrop').remove(); // fix(later): these two lines shouldn't be necessary, but otherwise window stays dark
-					wsh.errorModal = null;
-				}
-			}, 1000);
-
-			// start pinging if not already started
-			if (wsh.pingStarted === false) {
-				wsh.pingStarted = true;
-				setTimeout(pingServer, 20000);
-			}
-		};
-
-		// run this code when connection is closed
-		this.webSocket.onclose = function() {
-			console.log('connection closed by server');
-			wsh.connected = false;
-			setTimeout(reconnect, 10000);
-
-			// show modal to display connection status
-			// fix(later): if this gets displayed repeatedly, each time the background gets darker
-			if (!wsh.errorModal) {
-				console.log('show');
-				wsh.errorModal = createBasicModal('wsError', 'Reconnecting to server...', {infoOnly: true});
-				wsh.errorModal.appendTo($('body'));
-				$('#wsError-body').html('Will attempt to reconnect shortly.');
-				$('#wsError').modal('show');
-			}
-		};
+		} else {
+			wsh.client = null;
+		}
 	};
 
 	// send a message to the server;
 	// messages should be addressed to a particular folder
 	wsh.sendMessage = function(type, parameters, folderPath) {
-		if (this.connected === false) {// fix(soon): queue message to send after reconnect?
-			return;
+
+		// send message using old websocket method
+		if (this.connected) {
+			if (!parameters)
+				parameters = {};
+			var message = {
+				'type': type,
+				'parameters': parameters,
+				'folder': folderPath || this.targetFolderPath,
+			};
+			var messageStr = JSON.stringify(message);
+			try {
+				this.webSocket.send(messageStr);
+			} catch (e) {
+				console.log('error sending ' + type + '; try to reconnect in 10 seconds');
+				this.connected = true; // fix(soon): should this be false?
+				setTimeout(reconnect, 10000);
+			}
 		}
 
-		// construct a message string
-		if (!parameters)
-			parameters = {};
-		var message = {
-			'type': type,
-			'parameters': parameters,
-			'folder': folderPath || this.targetFolderPath,
-		};
-		var messageStr = JSON.stringify(message);
-
-		// send the message to the server
-		try {
-			this.webSocket.send(messageStr);
-		} catch (e) {
-			console.log('error sending ' + type + '; try to reconnect in 10 seconds');
-			this.connected = true; // fix(soon): should this be false?
-			setTimeout(reconnect, 10000);
+		// send MQTT message
+		if (this.client) {
+			var message = {
+				'type': type,
+				'parameters': parameters,
+			};
+			var messageStr = JSON.stringify(message);
+			var m = new Paho.Message(messageStr);
+			var topic = folderPath || this.targetFolderPath;
+			if (topic[0] === '/') {
+				topic = topic.slice(1);  // our folder paths have leading slashes, but not MQTT topics
+			}
+			m.destinationName = topic;
+			this.client.send(m);
 		}
 	};
 
@@ -243,7 +327,7 @@ function testMQTT(hostname) {
 	var clientId = 'test';
 	var userName = 'browser';
 	var password = 'test';
-	var client = new Paho.Client(hostname, Number(8088), clientId);
+	var client = new Paho.Client(hostname, Number(443), clientId);
 
 	// set callback handlers
 	client.onConnectionLost = onConnectionLost;

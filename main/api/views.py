@@ -1,6 +1,7 @@
 # standard python imports
 import json
 import base64
+import random
 import logging
 import datetime
 
@@ -15,6 +16,7 @@ from flask_login import current_user
 from main.app import db, app, api_
 from main.util import ssl_required
 from main.users.permissions import generate_access_code
+from main.users.auth import message_auth_token
 from main.messages.socket_receiver import manage_web_socket
 from main.resources.models import Resource
 
@@ -90,5 +92,20 @@ def generate_csrf_token():
     return session['csrf_token']
 
 
-# add CSRF token function that can be used in templates
+# provide MQTT host and authentication information
+def generate_mqtt_info():
+    if current_user.is_authenticated and 'MQTT_HOST' in app.config:
+        return {
+            'host': app.config['MQTT_HOST'],
+            'port': app.config.get('MQTT_PORT', 443),
+            'token': message_auth_token(current_user.id),
+            'clientId': '%d-%d' % (current_user.id, random.randint(0, 10000000)),  # fix: reconsider client IDs
+            'enableOld': int(app.config.get('ENABLE_OLD_MESSAGING', False)),
+        }
+    else:
+        return {}
+
+
+# add functions that can be used in templates
 app.jinja_env.globals['csrf_token'] = generate_csrf_token
+app.jinja_env.globals['mqtt_info'] = generate_mqtt_info
