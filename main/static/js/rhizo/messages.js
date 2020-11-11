@@ -84,6 +84,7 @@ function createWebSocketHolder() {
 	wsh.targetFolderPath = null;  // default target for messages
 	wsh.afterOpen = null;  // called after the websocket is opened (will be re-called if reconnect)
 	wsh.client = null;  // MQTT client
+	wsh.clientConnected = false;  // true if connected to MQTT server
 
 	// connect to the server; this creates a websocket object
 	wsh.connect = function() {
@@ -183,6 +184,7 @@ function createWebSocketHolder() {
 
 		// called when connected successfully to MQTT server/broker
 		function onConnect() {
+			wsh.clientConnected = true;
 			console.log('connected to MQTT server/broker');
 			for (var i = 0; i < wsh.subscriptions.length; i++) {
 				var subscription = wsh.subscriptions[i];
@@ -196,11 +198,13 @@ function createWebSocketHolder() {
 
 		// called when fails to connect to MQTT server/broker
 		function onConnectFailure() {
+			wsh.clientConnected = false;
 			console.log('failed to connect to MQTT server/broker');
 		}
 
 		// called when MQTT connection is lost
 		function onConnectionLost(responseObject) {
+			wsh.clientConnected = false;
 			if (responseObject.errorCode) {
 				console.log('onConnectionLost:' + responseObject.errorMessage);
 			}
@@ -270,7 +274,7 @@ function createWebSocketHolder() {
 		}
 
 		// send MQTT message
-		if (this.client) {
+		if (this.client && this.clientConnected) {
 			var message = {
 				'type': type,
 				'parameters': parameters,
