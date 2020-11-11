@@ -1,17 +1,27 @@
 import os
+import pathlib
 import random
 import importlib
 from flask import Flask, render_template, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_restful import Api
+from . import config
 from .messages.socket_sender import SocketSender, clear_web_sockets
 from .messages.message_queue_basic import MessageQueueBasic
 from .messages.message_sender import MessageSender
 
-# create and configure the application
+# Create and configure the application. Default config values may be overridden by a config file,
+# and then overridden by environment variables.
 app = Flask(__name__)
-app.config.from_object('settings.config')
+app.config.update(config.defaults())
+app.config.from_pyfile(
+    os.environ.get(
+        'RHIZO_SERVER_SETTINGS',
+        str(pathlib.Path(__file__).parent.parent) + '/settings/config.py'),
+    silent=True)
+app.config.update(config.environment())
+
 
 # check disclaimer
 assert app.config['DISCLAIMER'] == 'This is pre-release code; the API and database structure will probably change.'
@@ -77,7 +87,7 @@ socket_sender.start()
 
 # load server extensions
 extensions = []
-auto_load_config = os.environ.get('AUTOLOAD_EXTENSIONS') in ['True', 'true']
+auto_load_config = app.config.get('AUTOLOAD_EXTENSIONS', False)
 for extension_name in app.config.get('EXTENSIONS', []):
     print('loading extension: %s' % extension_name)
     extension_module = importlib.import_module('extensions.' + extension_name + '.ext')
