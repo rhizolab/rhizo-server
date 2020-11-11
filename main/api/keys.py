@@ -86,7 +86,10 @@ class KeyList(ApiResource):
 
         # create a key for a controller
         if 'access_as_controller_id' in request.values:
-            access_as_controller_id = request.values['access_as_controller_id']
+            try:
+                access_as_controller_id = int(request.values['access_as_controller_id'])
+            except:
+                abort(400)
             try:
                 r = Resource.query.filter(Resource.id == access_as_controller_id, Resource.deleted == False).one()
             except NoResultFound:

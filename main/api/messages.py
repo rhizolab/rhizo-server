@@ -25,6 +25,8 @@ class MessageList(ApiResource):
         folder_path = request.values.get('folderPath', request.values.get('folder_path', ''))
         if not folder_path:
             abort(400)
+        if not folder_path.startswith('/'):
+            abort(400)
         folder = find_resource(folder_path)
         if not folder:
             abort(404)

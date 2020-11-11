@@ -38,7 +38,7 @@ def resource_type_number(type_name):
 
 # fix(soon): remove this
 def _create_folders(path):
-    parts = path.split('/')
+    parts = path.strip('/').split('/')
     parent = None
     for part in parts:
         try:
@@ -63,6 +63,7 @@ def _create_folders(path):
 
 
 # create a file-type resource with the given file data and other attributes; file data should be binary
+# file name should include leading slash
 # returns the newly created resource record object (or existing resource if already exists)
 # fix(soon): remove this
 def _create_file(file_name, creation_timestamp, modification_timestamp, file_data):
@@ -123,7 +124,10 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, file_dat
 # fix(soon): make leading slash required
 # find a resource given it's full name with path
 def find_resource(file_name):
-    file_name = file_name.strip('/')
+    if not file_name.startswith('/'):
+        logging.warning('find_resource should be called with a path starting with a slash')
+        assert False
+    file_name = file_name.strip('/')  # at some point can just strip off first character (since we'll assume there's exactly one leading slash)
     parts = file_name.split('/')
     parent = None
     for part in parts:

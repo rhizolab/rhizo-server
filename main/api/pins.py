@@ -60,6 +60,8 @@ class PinRecord(ApiResource):
 
         # get controller
         controller_path = request.values['controller']
+        if not controller_path or not controller_path.startswith('/'):
+            abort(400)
         controller = find_resource(controller_path)
         if not controller:
             abort(400)

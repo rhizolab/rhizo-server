@@ -29,11 +29,12 @@ class ResourceRecord(ApiResource):
 
     # get the current value or meta data of a resource
     def get(self, resource_path):
+        resource_path = '/' + resource_path  # we always want resource paths to start with leading slash
         args = request.values
         result = {}
 
         # handle case of controller requesting about self
-        if resource_path == 'self':
+        if resource_path == '/self':
             if 'authCode' in request.values:
                 auth_code = request.values.get('authCode', '')  # fix(soon): remove auth codes
                 key = find_key_by_code(auth_code)
@@ -52,7 +53,7 @@ class ResourceRecord(ApiResource):
 
         # look up the resource record
         else:
-            r = find_resource('/' + resource_path)
+            r = find_resource(resource_path)
             if not r:
                 abort(404)  # fix(later): revisit to avoid leaking file existance
             if access_level(r.query_permissions()) < ACCESS_LEVEL_READ:
@@ -61,7 +62,7 @@ class ResourceRecord(ApiResource):
         # if request meta-data
         if request.values.get('meta', False):
             result = r.as_dict(extended = True)
-            result['path'] = resource_path  # fix(soon): include leading slash
+            result['path'] = resource_path
 
         # if request data
         else:
@@ -143,7 +144,7 @@ class ResourceRecord(ApiResource):
                         timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
                         values = [rr.data.decode() for rr in resource_revisions]
                         units = json.loads(r.system_attributes).get('units', None)
-                        return {'name': r.name, 'path': '/' + resource_path, 'units': units, 'timestamps': timestamps, 'values': values}
+                        return {'name': r.name, 'path': resource_path, 'units': units, 'timestamps': timestamps, 'values': values}
 
                 # if no filter assume just want current value
                 # fix(later): should instead provide all values and have a separate way to get more recent value?
@@ -191,9 +192,10 @@ class ResourceRecord(ApiResource):
     # create new resource
     # fix(soon): remove this after update client installations; should use ResourceList POST not this endpoint
     def post(self, resource_path):
+        resource_path = '/' + resource_path  # we always want resource paths to start with leading slash
 
         # note: should check parent permissions, not org permissions, but no need to fix since we'll delete this code
-        org_name = resource_path.split('/')[0]
+        org_name = resource_path.split('/')[1]
         org_resource = find_resource('/' + org_name)
         if not org_resource:
             abort(403)
@@ -221,7 +223,8 @@ class ResourceRecord(ApiResource):
 
     # update existing resource
     def put(self, resource_path):
-        r = find_resource('/' + resource_path)
+        resource_path = '/' + resource_path  # we always want resource paths to start with leading slash
+        r = find_resource(resource_path)
         if not r:
             abort(404)  # fix(later): revisit to avoid leaking file existance
         if access_level(r.query_permissions()) < ACCESS_LEVEL_WRITE:
@@ -349,7 +352,7 @@ class ResourceList(ApiResource):
 
         # get parent
         path = args.get('path', args.get('parent'))  # fix(soon): decide whether to use path or parent
-        if not path:
+        if not path or not path.startswith('/'):
             abort(400)
         parent_resource = find_resource(path)  # expects leading slash
         if not parent_resource:
@@ -360,7 +363,7 @@ class ResourceList(ApiResource):
                     abort(403)
             except NoResultFound:
                 abort(403)
-            _create_folders(path.strip('/'))
+            _create_folders(path)
             parent_resource = find_resource(path)
             if not parent_resource:
                 abort(400)
