@@ -1,4 +1,5 @@
-import sys
+import signal
+
 import gevent
 from optparse import OptionParser
 from geventwebsocket.handler import WebSocketHandler
@@ -19,8 +20,15 @@ from main.resources import models
 
 
 # run a local server with websocket support
-def run_with_web_sockets():
-    server = gevent.pywsgi.WSGIServer(('127.0.0.1', 5000), app, handler_class=WebSocketHandler)
+def run_with_web_sockets(listen_address, port):
+    server = gevent.pywsgi.WSGIServer((listen_address, port), app, handler_class=WebSocketHandler)
+
+    # Shut down gracefully if running in a container that gets stopped.
+    def shutdown(signum, frame):
+        print('Shutting down on signal', signum)
+        server.stop()
+    signal.signal(signal.SIGTERM, shutdown)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -37,6 +45,8 @@ if __name__ == '__main__':
     parser.add_option('-d', '--init-db', dest='init_db', action='store_true', default=False)
     parser.add_option('-a', '--create-admin', dest='create_admin', default='')
     parser.add_option('-m', '--migrate-db', dest='migrate_db', action='store_true', default=False)
+    parser.add_option('-p', '--port', dest='port', type=int, default=5000)
+    parser.add_option('-l', '--listen-address', dest='listen_address', default='127.0.0.1')
     (options, args) = parser.parse_args()
 
     # DB operations
@@ -64,6 +74,6 @@ if __name__ == '__main__':
     else:
         if options.enable_web_sockets:
             print('running with websockets')
-            run_with_web_sockets()
+            run_with_web_sockets(options.listen_address, options.port)
         else:
-            app.run(debug = True)
+            app.run(host=options.listen_address, port=options.port, debug=True)
