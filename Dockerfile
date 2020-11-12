@@ -1,3 +1,7 @@
+# Install dependencies using a separate container. For regular Docker builds, this doesn't
+# really make much difference, but for Balena builds, our Makefile replaces the  base image
+# with one that includes compilers and header files that aren't included in the minimal
+# Python image that gets deployed to devices.
 FROM python:3.8.5-buster AS build
 
 WORKDIR /rhizo-server
@@ -22,6 +26,8 @@ COPY prep_config.py ./
 RUN python prep_config.py \
     && echo "DISCLAIMER = 'This is pre-release code; the API and database structure will probably change.'" >> settings/config.py
 
+# For Balena, our Makefile replaces this with a Balena base image that does not include
+# build tools such as compilers.
 FROM python:3.8.5-buster
 
 WORKDIR /rhizo-server
