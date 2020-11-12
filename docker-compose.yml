@@ -1,25 +1,33 @@
 # NOTE: this is only meant to be used in development, not production
 
-version: '3'
+version: '2'
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
     # run python unbuffered so debug print commands are visible immediately in docker log
-    command: python -u run.py -s
+    command: python -u run.py -s -l 0.0.0.0
     ports:
-      - 80:5000
+      - 5000:5000
+    depends_on:
+      - postgres
     environment:
       SQLALCHEMY_DATABASE_URI: postgres://rhizo:rhizo@postgres
       AUTOLOAD_EXTENSIONS: 'true'
+    #
+    # If you want to use the local settings/config.py in the container, you
+    # could bind-mount it
+    #
+    # volumes:
+    #   - ./settings:/rhizo-server/settings
+    #
     # example of linking to an extension that is in a sibling folder
-    #volumes:
-    #  - ../flow-server:/rhizo-server/extensions/flow-server
-    depends_on:
-      - postgres
+    #
+    # volumes:
+    #   - ../flow-server:/rhizo-server/extensions/flow-server
+
   postgres:
-    image: postgres:9.3
+    image: postgres:13
     environment:
       POSTGRES_PASSWORD: rhizo
       POSTGRES_USER:     rhizo
