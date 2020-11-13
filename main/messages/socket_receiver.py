@@ -27,7 +27,7 @@ from main.resources.resource_util import find_resource, update_sequence_value
 class MessageSubscription(object):
 
     # create a message subscription
-    def __init__(self, folder_id, message_type, include_children = False):
+    def __init__(self, folder_id, message_type, include_children=False):
         self.folder_ids = [folder_id]  # fix(later): change back to single ID
         self.message_type = message_type  # None means match any
         self.include_children = include_children
@@ -251,4 +251,4 @@ def process_web_socket_message(message_struct, ws_conn):
         if ws_conn.access_level(folder_id) >= ACCESS_LEVEL_WRITE:
             parameters = message_struct['parameters']
             # fix(soon): can we move this spawn above access level check (might require request context)
-            gevent.spawn(message_queue.add, folder_id, None, type, parameters, sender_controller_id = ws_conn.controller_id, sender_user_id = ws_conn.user_id)
+            gevent.spawn(message_queue.add, folder_id, None, type, parameters, sender_controller_id=ws_conn.controller_id, sender_user_id=ws_conn.user_id)

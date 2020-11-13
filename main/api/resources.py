@@ -58,7 +58,7 @@ class ResourceRecord(ApiResource):
 
         # if request meta-data
         if request.values.get('meta', False):
-            result = r.as_dict(extended = True)
+            result = r.as_dict(extended=True)
             result['path'] = resource_path
 
         # if request data
@@ -138,7 +138,7 @@ class ResourceRecord(ApiResource):
                         return result
                     else:
                         epoch = datetime.datetime.utcfromtimestamp(0)  # fix(clean): merge with similar code for sequence viewer
-                        timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
+                        timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
                         values = [rr.data.decode() for rr in resource_revisions]
                         units = json.loads(r.system_attributes).get('units', None)
                         return {'name': r.name, 'path': resource_path, 'units': units, 'timestamps': timestamps, 'values': values}
@@ -149,7 +149,7 @@ class ResourceRecord(ApiResource):
                     rev = request.values.get('rev')
                     if rev:
                         rev = int(rev)  # fix(soon): save int conversion
-                    result = make_response(read_resource(r, revision_id = rev))
+                    result = make_response(read_resource(r, revision_id=rev))
                     data_type = json.loads(r.system_attributes)['data_type']
                     if data_type == Resource.IMAGE_SEQUENCE:
                         result.headers['Content-Type'] = 'image/jpeg'
@@ -331,7 +331,7 @@ class ResourceList(ApiResource):
         resources = Resource.query.filter(Resource.type == type, Resource.deleted == False)
         result = {}
         for r in resources:
-            d = r.as_dict(extended = extended)
+            d = r.as_dict(extended=extended)
             if r.type == Resource.CONTROLLER_FOLDER:
                 try:
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == r.id).one()
@@ -497,7 +497,7 @@ class ResourceList(ApiResource):
             db.session.commit()
 
             # create log sequence
-            create_sequence(r, 'log', Resource.TEXT_SEQUENCE, max_history = 10000)
+            create_sequence(r, 'log', Resource.TEXT_SEQUENCE, max_history=10000)
 
             # create a folder for status sequences
             status_folder = Resource()
@@ -511,11 +511,11 @@ class ResourceList(ApiResource):
             db.session.commit()
 
             # create status sequences
-            create_sequence(status_folder, 'free_disk_space', Resource.NUMERIC_SEQUENCE, max_history = 10000, units = 'bytes')
-            create_sequence(status_folder, 'processor_usage', Resource.NUMERIC_SEQUENCE, max_history = 10000, units = 'percent')
-            create_sequence(status_folder, 'messages_sent', Resource.NUMERIC_SEQUENCE, max_history = 10000)
-            create_sequence(status_folder, 'messages_received', Resource.NUMERIC_SEQUENCE, max_history = 10000)
-            create_sequence(status_folder, 'serial_errors', Resource.NUMERIC_SEQUENCE, max_history = 10000)
+            create_sequence(status_folder, 'free_disk_space', Resource.NUMERIC_SEQUENCE, max_history=10000, units='bytes')
+            create_sequence(status_folder, 'processor_usage', Resource.NUMERIC_SEQUENCE, max_history=10000, units='percent')
+            create_sequence(status_folder, 'messages_sent', Resource.NUMERIC_SEQUENCE, max_history=10000)
+            create_sequence(status_folder, 'messages_received', Resource.NUMERIC_SEQUENCE, max_history=10000)
+            create_sequence(status_folder, 'serial_errors', Resource.NUMERIC_SEQUENCE, max_history=10000)
 
         return {'status': 'ok', 'id': r.id}
 
@@ -653,7 +653,7 @@ def sequence_value_summary(resource_id):
 
     # sort by counts
     counts = [(count, lcp) for (lcp, count) in value_groups.itervalues()]
-    counts.sort(reverse = True)
+    counts.sort(reverse=True)
     return [(lcp, count) for (count, lcp) in counts]
 
 
