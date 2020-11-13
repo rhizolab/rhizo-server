@@ -97,7 +97,8 @@ class KeyList(ApiResource):
             if access_level(r.query_permissions()) < ACCESS_LEVEL_WRITE:  # require write access to the controller to create a key for it
                 abort(403)
             organization_id = r.root().id
-            if current_user.is_anonymous:  # handle special case of creating a key using a user-associated key (controllers aren't allowed to create keys)
+            if current_user.is_anonymous:
+                # handle special case of creating a key using a user-associated key (controllers aren't allowed to create keys)
                 key = find_key(request.authorization.password)
                 if key.access_as_user_id:
                     creation_user_id = key.access_as_user_id
@@ -117,7 +118,9 @@ class KeyList(ApiResource):
             except NoResultFound:
                 abort(400)
             organization_id = request.values['organization_id']
-            if current_user.is_anonymous or current_user.role != current_user.SYSTEM_ADMIN:  # fix(soon): instead check that (1) access_as_user_id is a member of org and (2) current user has admin access to org; current check is too strict
+            # fix(soon): instead check that (1) access_as_user_id is a member of org and (2) current user has admin access to org;
+            # current check is too strict
+            if current_user.is_anonymous or current_user.role != current_user.SYSTEM_ADMIN:
                 abort(403)
             (k, key_text) = create_key(current_user.id, organization_id, access_as_user_id, None)
             return {'status': 'ok', 'id': k.id, 'secret_key': key_text}

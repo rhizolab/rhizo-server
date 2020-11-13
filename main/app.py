@@ -73,7 +73,8 @@ def not_found(error):
 # fix(clean): remove elsewhere?
 @app.before_request
 def force_secure():
-    if app.config.get('FORCE_SSL', False) and request.headers.get('X-Forwarded-Proto', 'http') != 'https':  # fix(later): use request.startswith('https') for non-heroku installations
+    # fix(later): use request.startswith('https') for non-heroku installations
+    if app.config.get('FORCE_SSL', False) and request.headers.get('X-Forwarded-Proto', 'http') != 'https':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 

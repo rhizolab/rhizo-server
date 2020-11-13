@@ -117,7 +117,11 @@ class OrganizationUserList(ApiResource):
         # check that user is an org admin or system admin
         if current_user.role != current_user.SYSTEM_ADMIN:
             try:
-                current_org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == current_user.id).one()
+                current_org_user = (
+                    OrganizationUser.query
+                        .filter(OrganizationUser.organization_id == org_id, OrganizationUser.user_id == current_user.id)
+                        .one()
+                )
                 if not current_org_user.is_admin:
                     abort(403)
                 current_org_user = None

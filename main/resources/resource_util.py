@@ -109,7 +109,8 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, file_dat
     # compute thumbnail for images
     if file_name.endswith('.png') or file_name.endswith('.jpg'):  # fix(soon): handle more types, capitalizations
         for width in [120]:  # fix(soon): what will be our standard sizes?
-            (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(file_data, width)  # fix(later): if this returns something other than requested width, we'll keep missing the cache
+            # fix(later): if this returns something other than requested width, we'll keep missing the cache
+            (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(file_data, width)
             thumbnail = Thumbnail()
             thumbnail.resource_id = resource.id
             thumbnail.width = thumbnail_width
@@ -218,7 +219,8 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
     # create a short lived update message for subscribers to the folder containing this sequence
     if emit_message:
         folder_path = resource_path.rsplit('/', 1)[0]
-        message_queue.add(folder_id=resource.parent_id, folder_path=folder_path, type='sequence_update', parameters=message_params, timestamp=timestamp)
+        message_queue.add(
+            folder_id=resource.parent_id, folder_path=folder_path, type='sequence_update', parameters=message_params, timestamp=timestamp)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
@@ -257,7 +259,8 @@ def read_resource(resource, revision_id=None, check_timing=False):
             data = resource_revision.data
         except NoResultFound:
             pass
-        if data is None and storage_manager:  # fix(later): move this inside try statement; we should always have a resource revision if we have data in storage
+        # fix(later): move this inside try statement; we should always have a resource revision if we have data in storage
+        if data is None and storage_manager:
             if check_timing:
                 start_time = time.time()
             data = storage_manager.read(resource.storage_path(revision_id))

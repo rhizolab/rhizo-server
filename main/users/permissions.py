@@ -74,7 +74,8 @@ def access_level(permissions, controller_id=None):
             if controller_id:
                 try:
                     controller = Resource.query.filter(Resource.id == controller_id, Resource.deleted == False).one()
-                    controller_org_id = controller.organization_id if controller.organization_id else controller.root().id  # fix(soon): remove this after all resources have org ids
+                    # fix(soon): remove this after all resources have org ids
+                    controller_org_id = controller.organization_id if controller.organization_id else controller.root().id
                     if controller_org_id == id:
                         client_access_level = max(client_access_level, level)
                     break

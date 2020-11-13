@@ -119,7 +119,11 @@ def view_item(item_path):
             except NoResultFound:
                 path_part = path_part.replace('_', ' ')  # fix(soon): how else should we handle spaces in resource names?
                 try:
-                    resource = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, Resource.deleted == False).one()
+                    resource = (
+                        Resource.query
+                            .filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, Resource.deleted == False)
+                            .one()
+                    )
                 except NoResultFound:
                     abort(404)
 
@@ -210,8 +214,17 @@ def folder_viewer(folder, full_path, user_access_level):
 def folder_tree_info(prefix, folder):
     infos = []
     name = prefix + '/' + folder.name if prefix else folder.name
-    file_count = db.session.query(func.count(Resource.id)).filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type != Resource.BASIC_FOLDER).scalar()
-    child_folders = Resource.query.filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type == Resource.BASIC_FOLDER).order_by('name')
+    file_count = (
+        db.session
+            .query(func.count(Resource.id))
+            .filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type != Resource.BASIC_FOLDER)
+            .scalar()
+    )
+    child_folders = (
+        Resource.query
+            .filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type == Resource.BASIC_FOLDER)
+            .order_by('name')
+    )
     for child in child_folders:
         infos += folder_tree_info(name, child)
     infos.append({'name': name, 'fileCount': file_count})
@@ -253,9 +266,14 @@ def sequence_viewer(resource):
         history_count = 200
 
     # get recent resource revisions (with ascending timestamps)
-    resource_revisions = list(ResourceRevision.query.filter(ResourceRevision.resource_id == resource.id).order_by(ResourceRevision.timestamp.desc())[:history_count])
+    resource_revisions = list(
+        ResourceRevision.query
+            .filter(ResourceRevision.resource_id == resource.id)
+            .order_by(ResourceRevision.timestamp.desc())[:history_count]
+    )
     epoch = datetime.datetime.utcfromtimestamp(0)
-    timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
+    # fix(clean): use some sort of unzip function
+    timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]
     values = [rr.data.decode() for rr in resource_revisions]
     thumbnail_revs = []
     full_image_revs = []
@@ -268,7 +286,11 @@ def sequence_viewer(resource):
         if thumbnail_resources.count():
             thumbnail_resource = thumbnail_resources[0]  # fix(later): deal with multiple thumbnail sizes?
             thumbnail_resource_path = resource_path + '/' + thumbnail_resource.name
-            thumbnail_revisions = ResourceRevision.query.filter(ResourceRevision.resource_id == thumbnail_resource.id).order_by(ResourceRevision.timestamp.desc())[:history_count]
+            thumbnail_revisions = (
+                ResourceRevision.query
+                    .filter(ResourceRevision.resource_id == thumbnail_resource.id)
+                    .order_by(ResourceRevision.timestamp.desc())[:history_count]
+            )
             thumb_map = {rr.timestamp: rr.id for rr in thumbnail_revisions}
             thumbnail_revs = [thumb_map.get(rr.timestamp) for rr in resource_revisions]  # get thumbnail rev for each sequence rev
         full_image_revs = [rr.id for rr in resource_revisions]
@@ -305,7 +327,14 @@ def file_viewer(resource, check_timing=False, is_home_page=False):
             file_html = process_doc_page(contents.decode())
             allow_edit = access_level(resource.query_permissions()) >= ACCESS_LEVEL_WRITE
             title = current_app.config['SYSTEM_NAME'] if is_home_page else resource.name  # fix(later): allow specify title for doc page?
-            return render_template('resources/doc-viewer.html', resource=resource, allow_edit=allow_edit, file_html=file_html, hide_loc_nav=is_home_page, title=title)
+            return render_template(
+                'resources/doc-viewer.html',
+                resource=resource,
+                allow_edit=allow_edit,
+                file_html=file_html,
+                hide_loc_nav=is_home_page,
+                title=title,
+            )
     else:
         file_ext = resource.name.rsplit('.', 1)[-1]
         edit = request.args.get('edit', False)
@@ -328,7 +357,8 @@ def thumbnail_viewer(resource):
         thumbnail_contents = thumbnail.data
     else:
         contents = read_resource(resource)
-        (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(contents, width)  # fix(later): if this returns something other than requested width, we'll keep missing the cache
+        # fix(later): if this returns something other than requested width, we'll keep missing the cache
+        (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(contents, width)
         thumbnail = Thumbnail()
         thumbnail.resource_id = resource.id
         thumbnail.width = thumbnail_width
