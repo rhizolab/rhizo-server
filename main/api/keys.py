@@ -104,10 +104,11 @@ class KeyList(ApiResource):
                 if key.access_as_user_id:
                     creation_user_id = key.access_as_user_id
                 else:
+                    creation_user_id = None
                     abort(403)
             else:
                 creation_user_id = current_user.id
-            (k, key_text) = create_key(current_user.id, organization_id, None, access_as_controller_id, key_text=request.values.get('key'))
+            (k, key_text) = create_key(creation_user_id, organization_id, None, access_as_controller_id, key_text=request.values.get('key'))
             return {'status': 'ok', 'id': k.id, 'secret_key': key_text}
 
         # create a key for a users
@@ -115,7 +116,7 @@ class KeyList(ApiResource):
         elif 'access_as_user_id' in request.values:
             access_as_user_id = request.values['access_as_user_id']
             try:
-                u = User.query.filter(User.id == access_as_user_id, not_(User.deleted)).one()
+                User.query.filter(User.id == access_as_user_id, not_(User.deleted)).one()
             except NoResultFound:
                 abort(400)
             organization_id = request.values['organization_id']

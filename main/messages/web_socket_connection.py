@@ -1,9 +1,7 @@
-from flask_login import current_user
 from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 from main.app import db
 from main.users.permissions import access_level, ACCESS_LEVEL_NONE
-from main.users.models import User
 from main.resources.models import Resource, ControllerStatus
 
 

@@ -1,6 +1,5 @@
 import random
 import string
-import json
 from flask import request
 from flask_login import current_user
 from sqlalchemy import not_
@@ -64,7 +63,7 @@ def access_level(permissions, controller_id=None):
         elif type == ACCESS_TYPE_ORG_USERS:
             if user_id:
                 try:
-                    org_user = OrganizationUser.query.filter(OrganizationUser.user_id == user_id, OrganizationUser.organization_id == id).one()
+                    OrganizationUser.query.filter(OrganizationUser.user_id == user_id, OrganizationUser.organization_id == id).one()
                     client_access_level = max(client_access_level, level)
                     break
                 except NoResultFound:

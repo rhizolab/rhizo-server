@@ -1,5 +1,4 @@
 import json
-import time  # fix(clean): remove?
 import base64
 import hashlib  # fix(clean): remove?
 import zipfile
@@ -313,8 +312,8 @@ class ResourceRecord(ApiResource):
                 data = str(args['data'])  # convert unicode to regular string / fix(soon): revisit this
             timestamp = datetime.datetime.utcnow()
             if r.type == Resource.SEQUENCE:  # fix(later): collapse these two cases?
-                resource_path = resource.path()  # fix(faster): don't need to use this if were given path as arg
-                update_sequence_value(resource, resource_path, timestamp, data)
+                resource_path = r.path()  # fix(faster): don't need to use this if were given path as arg
+                update_sequence_value(r, resource_path, timestamp, data)
             else:
                 add_resource_revision(r, timestamp, data.encode())
                 r.modification_timestamp = timestamp
@@ -396,7 +395,7 @@ class ResourceList(ApiResource):
 
         # check for existing resource
         try:
-            resource = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, not_(Resource.deleted)).one()
+            Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, not_(Resource.deleted)).one()
             return {'message': 'Resource already exists.', 'status': 'error'}  # fix(soon): return 400 status code
         except NoResultFound:
             pass
@@ -531,7 +530,6 @@ class ResourceList(ApiResource):
     # values should be a dictionary mapping resource paths (starting with slash) to values
     # if timestamp is specified, it will be applied used for the updates
     def put(self):
-        start_time = time.time()
         values = json.loads(request.values['values'])
         if 'timestamp' in request.values:
             timestamp = parse_json_datetime(request.values['timestamp'])
@@ -545,10 +543,7 @@ class ResourceList(ApiResource):
                 # get current controller correction
                 # fix(later): support user updates as well?
                 auth = request.authorization
-                start_key_time = time.time()
                 key = find_key_fast(auth.password)  # key is provided as HTTP basic auth password
-                end_key_time = time.time()
-                # print '---- key: %.2f' % (end_key_time - start_key_time)
                 if key and key.access_as_controller_id:
                     controller_id = key.access_as_controller_id
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
@@ -594,8 +589,6 @@ class ResourceList(ApiResource):
                     except NoResultFound:
                         pass
             db.session.commit()
-            # end_time = time.time()
-            # print '==== %.2f' % (end_time - start_time)
 
 
 # update resource record system attributes using a dictionary of new system attributes (send via REST API)

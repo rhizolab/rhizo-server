@@ -7,15 +7,14 @@ import datetime
 
 # external imports
 import gevent
-from flask.sessions import SecureCookieSessionInterface, total_seconds
-from itsdangerous import BadSignature
 from flask import request
 from flask_login import current_user
 from sqlalchemy import not_
+from sqlalchemy.orm.exc import NoResultFound
 
 
 # internal imports
-from main.app import db, socket_sender, app, message_queue
+from main.app import db, socket_sender, message_queue
 from main.users.auth import find_key
 from main.users.permissions import ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE
 from main.messages.outgoing_messages import handle_send_email, handle_send_text_message

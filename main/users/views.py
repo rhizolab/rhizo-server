@@ -5,7 +5,7 @@ from smtplib import SMTPException
 
 
 # external imports
-from flask import render_template, request, flash, redirect, g, abort, Response, current_app
+from flask import render_template, request, redirect, g, abort, Response, current_app
 from sqlalchemy.orm.exc import NoResultFound
 from flask_login import login_required, login_user, logout_user, current_user
 
@@ -157,7 +157,7 @@ def create_account(access_code):
 
         # verify user doesn't already exist with this email address
         try:
-            user = User.query.filter(User.email_address == email_address).one()
+            User.query.filter(User.email_address == email_address).one()
             return Response('An account with that email address already exists.')
         except NoResultFound:
             pass
@@ -165,7 +165,7 @@ def create_account(access_code):
         # verify user doesn't already exist with this user name
         if user_name:
             try:
-                user = User.query.filter(User.user_name == user_name).one()
+                User.query.filter(User.user_name == user_name).one()
                 return Response('User name already in use.')
             except NoResultFound:
                 pass

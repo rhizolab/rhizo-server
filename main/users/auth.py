@@ -1,5 +1,4 @@
 # standard python imports
-import os
 import time  # fix(clean): remove
 import random
 import base64
@@ -141,7 +140,7 @@ def find_key(key_text):
 # a temporary/fast version that doesn't actually check for a full key match
 def find_key_fast(key_text):
     key_part = key_text[:3] + key_text[-3:]
-    iph = inner_password_hash(key_text)
+    inner_password_hash(key_text)
     for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp.is_(None)):
         return key
     return None

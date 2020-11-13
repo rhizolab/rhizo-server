@@ -1,24 +1,18 @@
 # standard python imports
-import json
-import base64
 import random
 import logging
-import datetime
 
 
 # external imports
-import gevent  # fix(clean): remove?
 from flask import request, abort, session
 from flask_login import current_user
 
 
 # internal imports from outside API directory
-from main.app import db, app, api_
-from main.util import ssl_required
+from main.app import app, api_
 from main.users.permissions import generate_access_code
 from main.users.auth import message_auth_token
 from main.messages.socket_receiver import manage_web_socket
-from main.resources.models import Resource
 
 
 # internal local (API) imports
