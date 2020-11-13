@@ -5,26 +5,26 @@ from main.app import db
 # The Resource model provides a hierarchy of folders and files.
 # It is the primary table for organization data stored on the server.
 class Resource(db.Model):
-    __tablename__       = 'resources'
-    id                  = db.Column(db.Integer, primary_key=True)
-    last_revision_id    = db.Column(db.Integer)                     # can be null for folder resources or empty files/sequences
-    organization_id     = db.Column(db.ForeignKey('resources.id'))  # would like this to be non-null, but how else do we create first organization?
-    creation_timestamp  = db.Column(db.DateTime)
-    modification_timestamp = db.Column(db.DateTime)                 # fix(later): remove this and use revision timestamp? what about folders? should we track modification timestamps for this?
+    __tablename__ = 'resources'
+    id = db.Column(db.Integer, primary_key=True)
+    last_revision_id = db.Column(db.Integer, comment='can be null for folder resources or empty files/sequences')
+    organization_id = db.Column(db.ForeignKey('resources.id'))  # would like this to be non-null, but how else do we create first organization?
+    creation_timestamp = db.Column(db.DateTime)
+    modification_timestamp = db.Column(db.DateTime)  # fix(later): remove this and use revision timestamp? what about folders? should we track modification timestamps for this?
 
     # meta-data that could eventually have change tracking (probably best to move into a separate table e.g. resource_meta_revisions)
-    parent_id           = db.Column(db.ForeignKey('resources.id'), index=True)
-    parent              = db.relationship('Resource', remote_side=[id], foreign_keys=[parent_id])
-    name                = db.Column(db.String, nullable=False)
-    type                = db.Column(db.Integer, nullable=False)                 # fix(later): add index for this?
-    permissions         = db.Column(db.String)                                    # JSON; NULL -> inherit from parent
-    system_attributes   = db.Column(db.String, nullable=False, default='{}')  # JSON dictionary; additional attributes of the resource (system-defined)
-    user_attributes     = db.Column(db.String)                                    # JSON dictionary; additional attributes of the resource (user-defined)
-    deleted             = db.Column(db.Boolean, nullable=False, default=False)
+    parent_id = db.Column(db.ForeignKey('resources.id'), index=True)
+    parent = db.relationship('Resource', remote_side=[id], foreign_keys=[parent_id])
+    name = db.Column(db.String, nullable=False)
+    type = db.Column(db.Integer, nullable=False)  # fix(later): add index for this?
+    permissions = db.Column(db.String, comment='JSON; NULL -> inherit from parent')
+    system_attributes = db.Column(db.String, nullable=False, default='{}', comment='JSON dictionary; additional attributes of the resource (system-defined)')
+    user_attributes = db.Column(db.String, comment='JSON dictionary; additional attributes of the resource (user-defined)')
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     # fix(soon): remove after migrate
-    hash                = db.Column(db.String(50))
-    size                = db.Column(db.BigInteger)
+    hash = db.Column(db.String(50))
+    size = db.Column(db.BigInteger)
 
     # resource types
     BASIC_FOLDER = 10
@@ -136,20 +136,20 @@ class Resource(db.Model):
 
 # The ResourceRevision model holds a revision history or time series history of a resource.
 class ResourceRevision(db.Model):
-    __tablename__       = 'resource_revisions'
-    id                  = db.Column(db.Integer, primary_key=True)  # upgrade to 64-bit at some point?
-    resource_id         = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
-    timestamp           = db.Column(db.DateTime, nullable=False, index=True)
-    data                = db.Column(db.LargeBinary, nullable=True)
+    __tablename__ = 'resource_revisions'
+    id = db.Column(db.Integer, primary_key=True)  # upgrade to 64-bit at some point?
+    resource_id = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
+    timestamp = db.Column(db.DateTime, nullable=False, index=True)
+    data = db.Column(db.LargeBinary, nullable=True)
 
 
 # The ResourceView model holds per-used preferences for viewing a resource (e.g. folder sorting).
 class ResourceView(db.Model):
-    __tablename__       = 'resource_views'
-    id                  = db.Column(db.Integer, primary_key=True)
-    resource_id         = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
-    user_id             = db.Column(db.ForeignKey('users.id'), nullable=False, index=True)
-    view                = db.Column(db.String, nullable=False)  # JSON string
+    __tablename__ = 'resource_views'
+    id = db.Column(db.Integer, primary_key=True)
+    resource_id = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
+    user_id = db.Column(db.ForeignKey('users.id'), nullable=False, index=True)
+    view = db.Column(db.String, nullable=False, comment='JSON string')
 
 
 # ======== other resource-related tables ========
@@ -158,40 +158,40 @@ class ResourceView(db.Model):
 # The Pin model is used for provisioning new controllers. The controller requests a PIN, displays it,
 # and the user enters it. This associates the controller hardware with a controller resource on the server.
 class Pin(db.Model):
-    __tablename__       = 'pins'
-    id                  = db.Column(db.Integer, primary_key=True)
-    pin                 = db.Column(db.Integer, nullable=False)
-    code                = db.Column(db.String(80), nullable=False)  # a key used to make sure only the original controller can check this PIN
-    creation_timestamp  = db.Column(db.DateTime, nullable=False)
-    enter_timestamp     = db.Column(db.DateTime)
-    user_id             = db.Column(db.ForeignKey('users.id'))        # null if not yet entered
-    controller_id       = db.Column(db.ForeignKey('resources.id'))    # null if not yet entered
-    key_created         = db.Column(db.Boolean)
-    attributes          = db.Column(db.String, nullable=False)      # JSON field containing extra attributes
+    __tablename__ = 'pins'
+    id = db.Column(db.Integer, primary_key=True)
+    pin = db.Column(db.Integer, nullable=False)
+    code = db.Column(db.String(80), nullable=False, comment='a key used to make sure only the original controller can check this PIN')
+    creation_timestamp = db.Column(db.DateTime, nullable=False)
+    enter_timestamp = db.Column(db.DateTime)
+    user_id = db.Column(db.ForeignKey('users.id'), comment='null if not yet entered')
+    controller_id = db.Column(db.ForeignKey('resources.id'), comment='null if not yet entered')
+    key_created = db.Column(db.Boolean)
+    attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra attributes')
 
 
 # The Usage model stores data and message usage by organization
 class Usage(db.Model):
-    __tablename__       = 'usage'
-    id                  = db.Column(db.Integer, primary_key=True)
-    organization_id     = db.Column(db.ForeignKey('resources.id'), nullable=False)
-    period              = db.Column(db.String(10), nullable=False)
-    message_count       = db.Column(db.BigInteger, nullable=False)
-    data_bytes          = db.Column(db.BigInteger, nullable=False)
-    attributes          = db.Column(db.String, nullable=False)      # JSON field containing extra attributes
+    __tablename__ = 'usage'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.ForeignKey('resources.id'), nullable=False)
+    period = db.Column(db.String(10), nullable=False)
+    message_count = db.Column(db.BigInteger, nullable=False)
+    data_bytes = db.Column(db.BigInteger, nullable=False)
+    attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra attributes')
 
 
 # The ControllerStatus model stores real-time status information about a controller
 # (external hardware that sends messages using to the server).
 class ControllerStatus(db.Model):
-    __tablename__               = 'controller_status'
-    id                          = db.Column(db.ForeignKey('resources.id'), primary_key=True)
-    client_version              = db.Column(db.String(80), nullable=False)
-    web_socket_connected        = db.Column(db.Boolean, nullable=False)  # not used currently (may be too brittle); remove?
-    last_connect_timestamp      = db.Column(db.DateTime)                   # last time the controler connected
-    last_watchdog_timestamp     = db.Column(db.DateTime)                   # last time the controller sent good watchdog message
-    watchdog_notification_sent  = db.Column(db.Boolean, nullable=False)
-    attributes                  = db.Column(db.String, nullable=False)   # JSON field containing extra controller status information
+    __tablename__ = 'controller_status'
+    id = db.Column(db.ForeignKey('resources.id'), primary_key=True)
+    client_version = db.Column(db.String(80), nullable=False)
+    web_socket_connected = db.Column(db.Boolean, nullable=False)  # not used currently (may be too brittle); remove?
+    last_connect_timestamp = db.Column(db.DateTime, comment='last time the controler connected')
+    last_watchdog_timestamp = db.Column(db.DateTime, comment='last time the controller sent good watchdog message')
+    watchdog_notification_sent = db.Column(db.Boolean, nullable=False)
+    attributes = db.Column(db.String, nullable=False, comment='JSON field containing extra controller status information')
 
     def as_dict(self, extended=False):
         d = {
@@ -207,13 +207,13 @@ class ControllerStatus(db.Model):
 
 # the Thumbnail model stores versions of image resources at multiple scales
 class Thumbnail(db.Model):
-    __tablename__       = 'thumbnails'
-    id                  = db.Column(db.Integer, primary_key=True)
-    resource_id         = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
-    width               = db.Column(db.Integer, nullable=False)
-    height              = db.Column(db.Integer, nullable=False)
-    format              = db.Column(db.String(4), nullable=False)
-    data                = db.Column(db.LargeBinary, nullable=False)
+    __tablename__ = 'thumbnails'
+    id = db.Column(db.Integer, primary_key=True)
+    resource_id = db.Column(db.ForeignKey('resources.id'), nullable=False, index=True)
+    width = db.Column(db.Integer, nullable=False)
+    height = db.Column(db.Integer, nullable=False)
+    format = db.Column(db.String(4), nullable=False)
+    data = db.Column(db.LargeBinary, nullable=False)
 
 
 # unit (for use in sequence attributes)
