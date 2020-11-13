@@ -128,7 +128,7 @@ class ResourceRecord(ApiResource):
 
                     # return data
                     if download:
-                        #timezone = r.root().system_attributes['timezone']  # fix(soon): use this instead of UTC
+                        # timezone = r.root().system_attributes['timezone']  # fix(soon): use this instead of UTC
                         lines = ['utc_timestamp,value\n']
                         for rr in resource_revisions:
                             lines.append('%s,%s\n' % (rr.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f'), rr.data))
@@ -532,7 +532,7 @@ class ResourceList(ApiResource):
             # check for drift
             delta = datetime.datetime.utcnow() - timestamp
             drift = delta.total_seconds()
-            #print 'drift', drift
+            # print 'drift', drift
             if abs(drift) > 30:
 
                 # get current controller correction
@@ -541,7 +541,7 @@ class ResourceList(ApiResource):
                 start_key_time = time.time()
                 key = find_key_fast(auth.password)  # key is provided as HTTP basic auth password
                 end_key_time = time.time()
-                #print '---- key: %.2f' % (end_key_time - start_key_time)
+                # print '---- key: %.2f' % (end_key_time - start_key_time)
                 if key and key.access_as_controller_id:
                     controller_id = key.access_as_controller_id
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
@@ -554,10 +554,10 @@ class ResourceList(ApiResource):
                         attributes['timestamp_correction'] = drift
                         controller_status.attributes = json.dumps(attributes)
                         db.session.commit()
-                        #print 'storing new correction (%.2f)' % correction
+                        # print 'storing new correction (%.2f)' % correction
                     else:
                         pass
-                        #print 'applying previous correction (%.2f)' % correction
+                        # print 'applying previous correction (%.2f)' % correction
                     timestamp += datetime.timedelta(seconds=correction)
         else:
             timestamp = datetime.datetime.utcnow()
@@ -583,8 +583,8 @@ class ResourceList(ApiResource):
                     except NoResultFound:
                         pass
             db.session.commit()
-            #end_time = time.time()
-            #print '==== %.2f' % (end_time - start_time)
+            # end_time = time.time()
+            # print '==== %.2f' % (end_time - start_time)
 
 
 # update resource record system attributes using a dictionary of new system attributes (send via REST API)

@@ -83,7 +83,7 @@ socket_sender.start()
 
 # clear existing websocket connections in database
 # fix(later): revisit this
-#clear_web_sockets()
+# clear_web_sockets()
 
 # load server extensions
 extensions = []

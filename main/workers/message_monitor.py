@@ -39,7 +39,7 @@ def message_monitor():
 
     # run this on message
     def on_message(client, userdata, msg):
-        #print('MQTT: %s %s' % (msg.topic, msg.payload.decode()))
+        # print('MQTT: %s %s' % (msg.topic, msg.payload.decode()))
         message_struct = json.loads(msg.payload.decode())
         message_type = message_struct['type']
         if message_type == 'update_sequence':
