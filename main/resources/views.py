@@ -194,7 +194,8 @@ def folder_viewer(folder, full_path, user_access_level):
         view = '{}'
 
     # fix(clean): remove number of parameters passed to this template
-    return render_template('resources/folder.html',
+    return render_template(
+        'resources/folder.html',
         folder_type=folder.type,
         folder_resource_json=json.dumps(folder.as_dict(extended=True)),
         full_path=full_path,
@@ -223,7 +224,8 @@ def folder_tree_viewer(folder):
     start_time = time.time()
     infos = folder_tree_info('', folder)
     print('time: %.2f' % (time.time() - start_time))
-    return render_template('resources/folder-tree.html',
+    return render_template(
+        'resources/folder-tree.html',
         folder_tree=json.dumps(infos),
     )
 
@@ -272,7 +274,8 @@ def sequence_viewer(resource):
         full_image_revs = [rr.id for rr in resource_revisions]
 
     # generate HTML response
-    return render_template('resources/sequence.html',
+    return render_template(
+        'resources/sequence.html',
         resource=json.dumps(resource.as_dict(extended=True)),
         resource_path=resource_path,
         thumbnail_resource_path=thumbnail_resource_path,
@@ -292,7 +295,8 @@ def file_viewer(resource, check_timing=False, is_home_page=False):
     system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
     if resource.name.endswith('.md'):  # fix(soon): revisit this
         if 'edit' in request.args:
-            return render_template('resources/text-editor.html',
+            return render_template(
+                'resources/text-editor.html',
                 resource=resource,
                 contents=contents.decode(),
                 show_view_button=True,

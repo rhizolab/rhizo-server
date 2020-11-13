@@ -191,14 +191,16 @@ def create_account(access_code):
     # handle GET case
     else:
         if ar.organization_id:
-            return render_template('users/user-invitation.html',
+            return render_template(
+                'users/user-invitation.html',
                 organization_full_name=json.loads(ar.organization.system_attributes)['full_name'],
                 email_address=ar.email_address,
                 access_code=access_code,
                 hide_loc_nav=True,
             )
         else:
-            return render_template('users/account-creation.html',
+            return render_template(
+                'users/account-creation.html',
                 organization_name=ar.organization_name,
                 email_address=ar.email_address,
                 access_code=access_code,
@@ -241,7 +243,8 @@ def organization_settings(org_folder_name):
         users = []
 
     # display the page
-    return render_template('users/organization-settings.html',
+    return render_template(
+            'users/organization-settings.html',
             org_resource=resource,
             org_full_name=json.loads(resource.system_attributes)['full_name'],
             org_users=json.dumps(org_user_dicts),
