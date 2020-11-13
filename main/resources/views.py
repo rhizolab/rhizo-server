@@ -30,7 +30,7 @@ def view_home():
     resource = find_resource('/system/home.md')
     if not resource:
         resource = find_resource('/system/home')  # fix(soon): remove this
-    return file_viewer(resource, is_home_page = True)
+    return file_viewer(resource, is_home_page=True)
 
 
 # provide a favicon
@@ -195,13 +195,13 @@ def folder_viewer(folder, full_path, user_access_level):
 
     # fix(clean): remove number of parameters passed to this template
     return render_template('resources/folder.html',
-        folder_type = folder.type,
-        folder_resource_json = json.dumps(folder.as_dict(extended = True)),
-        full_path = full_path,
-        view_json = view,
-        user_access_level = user_access_level,
-        is_admin = current_user.is_authenticated and current_user.role == current_user.SYSTEM_ADMIN,  # fix(clean): remove this
-        resources_json = json.dumps(resource_dicts)
+        folder_type=folder.type,
+        folder_resource_json=json.dumps(folder.as_dict(extended=True)),
+        full_path=full_path,
+        view_json=view,
+        user_access_level=user_access_level,
+        is_admin=current_user.is_authenticated and current_user.role == current_user.SYSTEM_ADMIN,  # fix(clean): remove this
+        resources_json=json.dumps(resource_dicts)
     )
 
 
@@ -224,7 +224,7 @@ def folder_tree_viewer(folder):
     infos = folder_tree_info('', folder)
     print('time: %.2f' % (time.time() - start_time))
     return render_template('resources/folder-tree.html',
-        folder_tree = json.dumps(infos),
+        folder_tree=json.dumps(infos),
     )
 
 
@@ -253,7 +253,7 @@ def sequence_viewer(resource):
     # get recent resource revisions (with ascending timestamps)
     resource_revisions = list(ResourceRevision.query.filter(ResourceRevision.resource_id == resource.id).order_by(ResourceRevision.timestamp.desc())[:history_count])
     epoch = datetime.datetime.utcfromtimestamp(0)
-    timestamps = [(rr.timestamp.replace(tzinfo = None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
+    timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
     values = [rr.data.decode() for rr in resource_revisions]
     thumbnail_revs = []
     full_image_revs = []
@@ -273,18 +273,18 @@ def sequence_viewer(resource):
 
     # generate HTML response
     return render_template('resources/sequence.html',
-        resource = json.dumps(resource.as_dict(extended = True)),
-        resource_path = resource_path,
-        thumbnail_resource_path = thumbnail_resource_path,
-        timestamps = json.dumps(timestamps),
-        values = json.dumps(values),
-        thumbnail_revs = json.dumps(thumbnail_revs),
-        full_image_revs = json.dumps(full_image_revs),
+        resource=json.dumps(resource.as_dict(extended=True)),
+        resource_path=resource_path,
+        thumbnail_resource_path=thumbnail_resource_path,
+        timestamps=json.dumps(timestamps),
+        values=json.dumps(values),
+        thumbnail_revs=json.dumps(thumbnail_revs),
+        full_image_revs=json.dumps(full_image_revs),
     )
 
 
 # a viewer for a data file
-def file_viewer(resource, check_timing = False, is_home_page = False):
+def file_viewer(resource, check_timing=False, is_home_page=False):
     contents = read_resource(resource, check_timing=check_timing)  # returns binary data; must decode if expecting a string
     if contents is None:
         print('file_viewer: storage not found (resource: %d, path: %s)' % (resource.id, resource.path()))
@@ -293,24 +293,24 @@ def file_viewer(resource, check_timing = False, is_home_page = False):
     if resource.name.endswith('.md'):  # fix(soon): revisit this
         if 'edit' in request.args:
             return render_template('resources/text-editor.html',
-                resource = resource,
-                contents = contents.decode(),
-                show_view_button = True,
+                resource=resource,
+                contents=contents.decode(),
+                show_view_button=True,
             )
         else:
             file_html = process_doc_page(contents.decode())
             allow_edit = access_level(resource.query_permissions()) >= ACCESS_LEVEL_WRITE
             title = current_app.config['SYSTEM_NAME'] if is_home_page else resource.name  # fix(later): allow specify title for doc page?
-            return render_template('resources/doc-viewer.html', resource = resource, allow_edit = allow_edit, file_html = file_html, hide_loc_nav = is_home_page, title = title)
+            return render_template('resources/doc-viewer.html', resource=resource, allow_edit=allow_edit, file_html=file_html, hide_loc_nav=is_home_page, title=title)
     else:
         file_ext = resource.name.rsplit('.', 1)[-1]
         edit = request.args.get('edit', False)
         if file_ext == 'csv' and edit == False:
             reader = csv.reader(StringIO(contents.decode()))
             data = list(reader)
-            return render_template('resources/table-editor.html', resource = resource, data_json = json.dumps(data))
+            return render_template('resources/table-editor.html', resource=resource, data_json=json.dumps(data))
         elif file_ext == 'txt' or file_ext == 'csv':
-            return render_template('resources/text-editor.html', resource = resource, contents = contents.decode())
+            return render_template('resources/text-editor.html', resource=resource, contents=contents.decode())
         return Response(response=contents, status=200, mimetype=mime_type_from_ext(resource.name))
 
 

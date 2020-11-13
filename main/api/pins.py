@@ -31,7 +31,7 @@ class PinRecord(ApiResource):
             abort(404)
 
         # make sure it hasn't expired
-        if pin_record.creation_timestamp < datetime.datetime.utcnow() - datetime.timedelta(minutes = 30):
+        if pin_record.creation_timestamp < datetime.datetime.utcnow() - datetime.timedelta(minutes=30):
             return {'status': 'error', 'message': 'PIN has expired.'}
 
         # if we haven't yet created a key, create one now and return it
@@ -76,7 +76,7 @@ class PinRecord(ApiResource):
             abort(404)
 
         # make sure it hasn't expired
-        if pin_record.creation_timestamp < datetime.datetime.utcnow() - datetime.timedelta(minutes = 30):
+        if pin_record.creation_timestamp < datetime.datetime.utcnow() - datetime.timedelta(minutes=30):
             return {'status': 'error', 'message': 'PIN has expired.'}
 
         # assocate pin with controller (and update other fields)

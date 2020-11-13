@@ -10,3 +10,4 @@ settings
 extensions
 main/rhizo.db
 main/static/css/system.css
+Dockerfile.template

@@ -26,7 +26,7 @@ ACCESS_TYPE_CONTROLLER = 140
 # provides the maximum access level of the current (or given) user to an object with the given permission string;
 # returns one of [ACCESS_LEVEL_NONE, ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE]
 # (currently admin access is handled by separate org user records)
-def access_level(permissions, controller_id = None):
+def access_level(permissions, controller_id=None):
 
     # determine current user (if any)
     # fix(soon): handle API auth with key as user if not handled elsewhere

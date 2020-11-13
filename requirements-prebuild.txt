@@ -1,0 +1,6 @@
+# This file should have requirements that are especially expensive to build. They will be
+# installed in a separate step in the Docker build so that they're cached as a separate
+# layer. That way when we add ordinary plain-Python packages to requirements.txt, it won't
+# force a time-consuming rebuild of the expensive stuff.
+
+gevent==20.9.0

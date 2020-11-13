@@ -40,7 +40,7 @@ def controller_watchdog():
                         # check controller status; if stale watchdog timestamp, send message (if not done already);
                         # if no watchdog timestamp, don't send message (assume user is just setting on the controller for the first time)
                         controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller.id).one()
-                        time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes = system_attributes['watchdog_minutes'])  # fix(soon): safe int convert
+                        time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes=system_attributes['watchdog_minutes'])  # fix(soon): safe int convert
                         if controller_status.last_watchdog_timestamp and controller_status.last_watchdog_timestamp < time_thresh:
                             watchdog_expire_count += 1
                             if controller_status.watchdog_notification_sent == False:

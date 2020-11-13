@@ -52,11 +52,11 @@ def sign_in():
         user = login_validate(email_address, password)
         if not user:
             message = 'Invalid email address or user name or password.'
-            return render_template('users/sign-in.html', message = message, hide_loc_nav = True)  # display login form again
-        login_user(user, remember = remember_me)
+            return render_template('users/sign-in.html', message=message, hide_loc_nav=True)  # display login form again
+        login_user(user, remember=remember_me)
         return redirect('/')
         # return redirect(request.args.get("next") or "/") # need to use next_is_valid(next) - https://flask-login.readthedocs.org/en/latest/
-    return render_template('users/sign-in.html', hide_loc_nav = True)
+    return render_template('users/sign-in.html', hide_loc_nav=True)
 
 
 # sign out the current user
@@ -78,7 +78,7 @@ def settings():
         org_user_dict['organization_full_name'] = json.loads(org_user.organization.system_attributes)['full_name']
         org_user_dict['organization_name'] = org_user.organization.name
         org_user_dicts.append(org_user_dict)
-    return render_template('users/settings.html', user_json = json.dumps(current_user.as_dict()), org_users = org_user_dicts)
+    return render_template('users/settings.html', user_json=json.dumps(current_user.as_dict()), org_users=org_user_dicts)
 
 
 # page for changing current user's password
@@ -107,7 +107,7 @@ def sign_up():
     if current_user.role != current_user.SYSTEM_ADMIN:
         abort(403)
     if request.method == 'GET':
-        return render_template('users/sign-up.html', hide_loc_nav = True)
+        return render_template('users/sign-up.html', hide_loc_nav=True)
     else:
         ar = AccountRequest()
         ar.organization_name = request.form['orgName']
@@ -130,7 +130,7 @@ def sign_up():
             return Response('Error sending email.')
         db.session.add(ar)
         db.session.commit()
-        return render_template('users/account-request-complete.html', hide_loc_nav = True)
+        return render_template('users/account-request-complete.html', hide_loc_nav=True)
 
 
 # page to create a new account given an approved request
@@ -142,7 +142,7 @@ def create_account(access_code):
         return Response('Sign-up code not found.')
     if ar.redeemed_timestamp:
         return Response('Sign-up code already redeemed.')
-    if datetime.datetime.utcnow() - ar.creation_timestamp > datetime.timedelta(days = 7):
+    if datetime.datetime.utcnow() - ar.creation_timestamp > datetime.timedelta(days=7):
         return Response('Sign-up code has expired (must be used within one week).')
 
     # handle form post case
@@ -186,23 +186,23 @@ def create_account(access_code):
         org_user.is_admin = new_org
         db.session.add(org_user)
         db.session.commit()
-        return render_template('users/account-creation-complete.html', hide_loc_nav = True)
+        return render_template('users/account-creation-complete.html', hide_loc_nav=True)
 
     # handle GET case
     else:
         if ar.organization_id:
             return render_template('users/user-invitation.html',
-                organization_full_name = json.loads(ar.organization.system_attributes)['full_name'],
-                email_address = ar.email_address,
-                access_code = access_code,
-                hide_loc_nav = True,
+                organization_full_name=json.loads(ar.organization.system_attributes)['full_name'],
+                email_address=ar.email_address,
+                access_code=access_code,
+                hide_loc_nav=True,
             )
         else:
             return render_template('users/account-creation.html',
-                organization_name = ar.organization_name,
-                email_address = ar.email_address,
-                access_code = access_code,
-                hide_loc_nav = True,
+                organization_name=ar.organization_name,
+                email_address=ar.email_address,
+                access_code=access_code,
+                hide_loc_nav=True,
             )
 
 
@@ -242,9 +242,9 @@ def organization_settings(org_folder_name):
 
     # display the page
     return render_template('users/organization-settings.html',
-            org_resource = resource,
-            org_full_name = json.loads(resource.system_attributes)['full_name'],
-            org_users = json.dumps(org_user_dicts),
-            users = json.dumps(users),
-            is_system_admin = (current_user.role == User.SYSTEM_ADMIN)
+            org_resource=resource,
+            org_full_name=json.loads(resource.system_attributes)['full_name'],
+            org_users=json.dumps(org_user_dicts),
+            users=json.dumps(users),
+            is_system_admin=(current_user.role == User.SYSTEM_ADMIN)
         )

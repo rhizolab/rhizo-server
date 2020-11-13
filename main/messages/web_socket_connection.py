@@ -34,7 +34,7 @@ class WebSocketConnection(object):
             folder = Resource.query.filter(Resource.id == folder_id, Resource.deleted == False).one()
 
             # if this is a browser websocket, controller_id will be None and access_level will use current_user
-            client_access_level = access_level(folder.query_permissions(), controller_id = self.controller_id)
+            client_access_level = access_level(folder.query_permissions(), controller_id=self.controller_id)
         except NoResultFound:
             pass
         return client_access_level
