@@ -3,6 +3,7 @@ import string
 import json
 from flask import request
 from flask_login import current_user
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 from main.users.models import OrganizationUser
 from main.users.auth import find_key
@@ -73,7 +74,7 @@ def access_level(permissions, controller_id=None):
         elif type == ACCESS_TYPE_ORG_CONTROLLERS:
             if controller_id:
                 try:
-                    controller = Resource.query.filter(Resource.id == controller_id, Resource.deleted == False).one()
+                    controller = Resource.query.filter(Resource.id == controller_id, not_(Resource.deleted)).one()
                     # fix(soon): remove this after all resources have org ids
                     controller_org_id = controller.organization_id if controller.organization_id else controller.root().id
                     if controller_org_id == id:

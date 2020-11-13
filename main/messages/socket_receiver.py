@@ -11,6 +11,7 @@ from flask.sessions import SecureCookieSessionInterface, total_seconds
 from itsdangerous import BadSignature
 from flask import request
 from flask_login import current_user
+from sqlalchemy import not_
 
 
 # internal imports
@@ -32,7 +33,7 @@ class MessageSubscription(object):
         self.message_type = message_type  # None means match any
         self.include_children = include_children
         if self.include_children:  # fix(later): limit this to a certain number and return warning if too many
-            resource = Resource.query.filter(Resource.id == folder_id, Resource.deleted == False).one()
+            resource = Resource.query.filter(Resource.id == folder_id, not_(Resource.deleted)).one()
             self.folder_ids += resource.descendent_folder_ids()
             if False:  # check verbosity level
                 print('subscribe folder IDs: %s' % self.folder_ids)
@@ -40,7 +41,7 @@ class MessageSubscription(object):
     # returns true if a given message record matches this subscription
     def matches(self, message):
         folder_matches = message.folder_id in self.folder_ids
-        type_matches = (self.message_type == None or self.message_type == message.type)
+        type_matches = (self.message_type is None or self.message_type == message.type)
         if False:  # check verbosity level
             print('        folderMatches: %d, typeMatches: %d' % (folder_matches, type_matches))
         return folder_matches and type_matches

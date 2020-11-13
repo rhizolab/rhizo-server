@@ -7,6 +7,7 @@ import datetime
 
 
 # external imports
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 
@@ -43,9 +44,9 @@ def _create_folders(path):
     for part in parts:
         try:
             if parent:
-                resource = Resource.query.filter(Resource.parent_id == parent.id, Resource.name == part, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id == parent.id, Resource.name == part, not_(Resource.deleted)).one()
             else:
-                resource = Resource.query.filter(Resource.parent_id == None, Resource.name == part, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id.is_(None), Resource.name == part, not_(Resource.deleted)).one()
         except NoResultFound:
             resource = Resource()
             resource.parent_id = parent.id
@@ -74,7 +75,7 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, file_dat
 
     # check for existing resource with same name
     try:
-        resource = Resource.query.filter(Resource.parent_id == folder.id, Resource.name == short_file_name, Resource.deleted == False).one()
+        resource = Resource.query.filter(Resource.parent_id == folder.id, Resource.name == short_file_name, not_(Resource.deleted)).one()
         new_resource = False
     except NoResultFound:
 
@@ -134,9 +135,9 @@ def find_resource(file_name):
     for part in parts:
         try:
             if parent:
-                resource = Resource.query.filter(Resource.parent_id == parent.id, Resource.name == part, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id == parent.id, Resource.name == part, not_(Resource.deleted)).one()
             else:
-                resource = Resource.query.filter(Resource.parent_id == None, Resource.name == part, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id.is_(None), Resource.name == part, not_(Resource.deleted)).one()
         except NoResultFound:
             return None
         except MultipleResultsFound:
@@ -208,7 +209,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
             name = 'thumbnail-%d-x' % max_width
             (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(value, max_width)
             try:
-                thumbnail_resource = Resource.query.filter(Resource.parent_id == resource.id, Resource.name == name, Resource.deleted == False).one()
+                thumbnail_resource = Resource.query.filter(Resource.parent_id == resource.id, Resource.name == name, not_(Resource.deleted)).one()
             except NoResultFound:
                 thumbnail_resource = create_sequence(resource, name, Resource.IMAGE_SEQUENCE)
             thumbnail_revision = add_resource_revision(thumbnail_resource, timestamp, thumbnail_contents)
@@ -347,7 +348,7 @@ If you are logged in as a system admin, you can [edit this page](/system/home.md
             app_name = file_name.rsplit('.', 1)[0]
             app_title = split_camel_case(app_name).title().replace('_', ' ')
             try:
-                resource = Resource.query.filter(Resource.parent_id == system_folder.id, Resource.name == app_title, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id == system_folder.id, Resource.name == app_title, not_(Resource.deleted)).one()
             except NoResultFound:
                 print('creating: %s, %s' % (app_name, app_title))
                 resource = Resource()

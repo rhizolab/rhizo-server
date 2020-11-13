@@ -10,6 +10,7 @@ import datetime
 # external imports
 import bcrypt
 from flask import current_app
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 
 
@@ -24,7 +25,7 @@ from main.util import load_server_config  # fix(clean): remove?
 @login_manager.user_loader
 def load_user(user_id):
     try:
-        user = User.query.filter(User.id == int(user_id), User.deleted == False).one()
+        user = User.query.filter(User.id == int(user_id), not_(User.deleted)).one()
     except NoResultFound:
         user = None
     return user
@@ -36,10 +37,10 @@ def login_validate(user_name_or_email, password):
     if not user_name_or_email or not password:
         return None
     try:  # fix(faster): combine into a single query
-        user = User.query.filter(User.email_address == user_name_or_email, User.deleted == False).one()
+        user = User.query.filter(User.email_address == user_name_or_email, not_(User.deleted)).one()
     except NoResultFound:
         try:
-            user = User.query.filter(User.user_name == user_name_or_email, User.deleted == False).one()
+            user = User.query.filter(User.user_name == user_name_or_email, not_(User.deleted)).one()
         except NoResultFound:
             user = None
     if user and not bcrypt.checkpw(inner_password_hash(password).encode(), user.password_hash.encode()):
@@ -130,7 +131,7 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
 def find_key(key_text):
     key_part = key_text[:3] + key_text[-3:]
     iph = inner_password_hash(key_text)
-    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp == None):
+    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp.is_(None)):
         if bcrypt.checkpw(iph.encode(), key.key_hash.encode()):
             return key
     return None
@@ -141,7 +142,7 @@ def find_key(key_text):
 def find_key_fast(key_text):
     key_part = key_text[:3] + key_text[-3:]
     iph = inner_password_hash(key_text)
-    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp == None):
+    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp.is_(None)):
         return key
     return None
 
