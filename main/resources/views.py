@@ -8,7 +8,7 @@ from io import StringIO
 
 # external imports
 from flask import render_template, request, abort, Response, send_from_directory, current_app
-from flask_login import login_required, current_user
+from flask_login import current_user
 from jinja2.exceptions import TemplateNotFound
 from sqlalchemy import func, not_
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -314,7 +314,6 @@ def file_viewer(resource, check_timing=False, is_home_page=False):
     if contents is None:
         print('file_viewer: storage not found (resource: %d, path: %s)' % (resource.id, resource.path()))
         abort(404)
-    system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
     if resource.name.endswith('.md'):  # fix(soon): revisit this
         if 'edit' in request.args:
             return render_template(

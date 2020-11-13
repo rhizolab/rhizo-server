@@ -79,7 +79,7 @@ def convert_xls_to_csv(data):
     writer = csv.writer(out_stream)
 
     # read rows
-    for i in xrange(ws.nrows):
+    for i in range(ws.nrows):
         row = ws.row_values(i)
         writer.writerow(row)
 

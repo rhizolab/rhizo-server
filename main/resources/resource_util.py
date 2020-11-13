@@ -4,6 +4,7 @@ import time
 import json
 import hashlib
 import datetime
+import logging
 
 
 # external imports

@@ -1,5 +1,3 @@
-import io
-
 import boto3
 from botocore.errorfactory import ClientError
 
