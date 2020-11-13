@@ -6,19 +6,19 @@ import pathlib
 from flask_restful import Api
 import pytest
 
-# Need to do this before importing main.app.
+# Need to do this before importing main.app, which causes PEP8 E402 violations on the subsequent imports
 os.environ['RHIZO_SERVER_DISABLE_ENVIRONMENT'] = 'True'
 os.environ['RHIZO_SERVER_SETTINGS'] = str(pathlib.Path(__file__).parent) + '/disclaimer.py'
 
-from main.api.messages import MessageList
-from main.api.resources import ResourceList, ResourceRecord
-import main.app
-import main.messages.models
-from main.resources.models import ControllerStatus, Resource
-from main.resources.resource_util import create_system_resources
-from main.users.auth import create_key
-from main.users.models import User
-from main.users.permissions import ACCESS_TYPE_PUBLIC, ACCESS_LEVEL_WRITE
+from main.api.messages import MessageList  # noqa E402
+from main.api.resources import ResourceList, ResourceRecord  # noqa E402
+import main.app  # noqa E402
+import main.messages.models  # noqa E402
+from main.resources.models import ControllerStatus, Resource  # noqa E402
+from main.resources.resource_util import create_system_resources  # noqa E402
+from main.users.auth import create_key  # noqa E402
+from main.users.models import User  # noqa E402
+from main.users.permissions import ACCESS_TYPE_PUBLIC, ACCESS_LEVEL_WRITE  # noqa E402
 
 
 # noinspection PyUnresolvedReferences

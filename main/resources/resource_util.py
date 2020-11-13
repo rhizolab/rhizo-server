@@ -18,7 +18,6 @@ from main.resources.file_conversion import compute_thumbnail
 from main.users.permissions import ACCESS_LEVEL_WRITE, ACCESS_TYPE_ORG_USERS, ACCESS_TYPE_ORG_CONTROLLERS
 
 
-
 # get the number corresponding to a resource type (given by a string name)
 def resource_type_number(type_name):
     if type_name == 'basic_folder' or type_name == 'basicFolder':

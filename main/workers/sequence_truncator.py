@@ -32,9 +32,9 @@ def sequence_truncator():
                 # this could be made faster if we assumed that revisions are created sequentially
                 revisions = (
                     ResourceRevision.query
-                        .with_entities(ResourceRevision.timestamp)
-                        .filter(ResourceRevision.resource_id == resource.id)
-                        .order_by('timestamp')
+                    .with_entities(ResourceRevision.timestamp)
+                    .filter(ResourceRevision.resource_id == resource.id)
+                    .order_by('timestamp')
                 )
                 boundary_timestamp = revisions[-max_history].timestamp
 

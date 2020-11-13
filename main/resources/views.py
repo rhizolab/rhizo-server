@@ -121,8 +121,8 @@ def view_item(item_path):
                 try:
                     resource = (
                         Resource.query
-                            .filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, not_(Resource.deleted))
-                            .one()
+                        .filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, not_(Resource.deleted))
+                        .one()
                     )
                 except NoResultFound:
                     abort(404)
@@ -216,14 +216,14 @@ def folder_tree_info(prefix, folder):
     name = prefix + '/' + folder.name if prefix else folder.name
     file_count = (
         db.session
-            .query(func.count(Resource.id))
-            .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type != Resource.BASIC_FOLDER)
-            .scalar()
+        .query(func.count(Resource.id))
+        .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type != Resource.BASIC_FOLDER)
+        .scalar()
     )
     child_folders = (
         Resource.query
-            .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type == Resource.BASIC_FOLDER)
-            .order_by('name')
+        .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type == Resource.BASIC_FOLDER)
+        .order_by('name')
     )
     for child in child_folders:
         infos += folder_tree_info(name, child)
@@ -268,8 +268,8 @@ def sequence_viewer(resource):
     # get recent resource revisions (with ascending timestamps)
     resource_revisions = list(
         ResourceRevision.query
-            .filter(ResourceRevision.resource_id == resource.id)
-            .order_by(ResourceRevision.timestamp.desc())[:history_count]
+        .filter(ResourceRevision.resource_id == resource.id)
+        .order_by(ResourceRevision.timestamp.desc())[:history_count]
     )
     epoch = datetime.datetime.utcfromtimestamp(0)
     # fix(clean): use some sort of unzip function
@@ -288,8 +288,8 @@ def sequence_viewer(resource):
             thumbnail_resource_path = resource_path + '/' + thumbnail_resource.name
             thumbnail_revisions = (
                 ResourceRevision.query
-                    .filter(ResourceRevision.resource_id == thumbnail_resource.id)
-                    .order_by(ResourceRevision.timestamp.desc())[:history_count]
+                .filter(ResourceRevision.resource_id == thumbnail_resource.id)
+                .order_by(ResourceRevision.timestamp.desc())[:history_count]
             )
             thumb_map = {rr.timestamp: rr.id for rr in thumbnail_revisions}
             thumbnail_revs = [thumb_map.get(rr.timestamp) for rr in resource_revisions]  # get thumbnail rev for each sequence rev

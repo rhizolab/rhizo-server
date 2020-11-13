@@ -11,7 +11,7 @@ def ssl_required(fn):
     @wraps(fn)
     def decorated_view(*args, **kwargs):
         if current_app.config.get('SSL'):
-            if request.headers.get('X-Forwarded-Proto', 'http') == 'https':  #request.is_secure:
+            if request.headers.get('X-Forwarded-Proto', 'http') == 'https':  # request.is_secure:
                 return fn(*args, **kwargs)
             else:
                 return redirect(request.url.replace('http://', 'https://'))

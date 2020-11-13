@@ -62,21 +62,28 @@ else:
     message_sender = None
 
 # create error pages
+
+
 @app.errorhandler(403)
-def forbidden(error) :
+def forbidden(error):
     return render_template('403.html'), 403
+
+
 @app.errorhandler(404)
 def not_found(error):
     return render_template('404.html'), 404
 
 # require SSL for all pages; based on code from http://stackoverflow.com/questions/32237379/python-flask-redirect-to-https-from-http
 # fix(clean): remove elsewhere?
+
+
 @app.before_request
 def force_secure():
     # fix(later): use request.startswith('https') for non-heroku installations
     if app.config.get('FORCE_SSL', False) and request.headers.get('X-Forwarded-Proto', 'http') != 'https':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
+
 
 # start the socket sender
 socket_sender = SocketSender()
@@ -102,6 +109,8 @@ for extension_name in app.config.get('EXTENSIONS', []):
         app.config.from_pyfile(extension.path + '/autoload-config.py', True)
 
 # a static file function for templates that uses content-based hashes to avoid cache problems
+
+
 def static_file(path):
     if path not in static_manager:
         static_manager[path] = file_hash(os.getcwd() + '/main/static/' + path)

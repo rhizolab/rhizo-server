@@ -34,7 +34,7 @@ def controller_watchdog():
                 system_attributes = json.loads(controller.system_attributes) if controller.system_attributes else {}
 
                 # if watchdog notifications are enabled
-                if system_attributes.get('watchdog_minutes', 0) > 0  and 'watchdog_recipients' in system_attributes:
+                if system_attributes.get('watchdog_minutes', 0) > 0 and 'watchdog_recipients' in system_attributes:
                     watchdog_check_count += 1
                     try:
 

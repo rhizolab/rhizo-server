@@ -13,6 +13,7 @@ class Message(db.Model):
     type = db.Column(db.String(40), nullable=False)
     parameters = db.Column(db.String, nullable=False, comment='JSON dictionary')
     attributes = db.Column(db.String, comment='JSON field containing extra message attributes')
+
     def __repr__(self):
         return '%d: %s, %s' % (self.id, self.timestamp, self.type)
 
