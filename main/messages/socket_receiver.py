@@ -92,7 +92,7 @@ def manage_web_socket(ws):
         if message:
             try:
                 message_struct = json.loads(message)
-            except:
+            except json.JSONDecodeError:
                 break  # if client sends bad message; close this connection
             process_web_socket_message(message_struct, ws_conn)
         gevent.sleep(0.05)  # sleep to let other stuff run

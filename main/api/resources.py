@@ -97,12 +97,12 @@ class ResourceRecord(ApiResource):
                 if start_timestamp:
                     try:
                         start_timestamp = parse_json_datetime(start_timestamp)
-                    except:
+                    except ValueError:
                         abort(400, 'Invalid date/time.')
                 if end_timestamp:
                     try:
                         end_timestamp = parse_json_datetime(end_timestamp)
-                    except:
+                    except ValueError:
                         abort(400, 'Invalid date/time.')
 
                 # if filters specified, assume we want a sequence of values

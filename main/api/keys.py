@@ -88,7 +88,7 @@ class KeyList(ApiResource):
         if 'access_as_controller_id' in request.values:
             try:
                 access_as_controller_id = int(request.values['access_as_controller_id'])
-            except:
+            except ValueError:
                 abort(400)
             try:
                 r = Resource.query.filter(Resource.id == access_as_controller_id, Resource.deleted == False).one()
