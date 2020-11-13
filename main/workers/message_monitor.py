@@ -22,7 +22,7 @@ from main.resources.resource_util import find_resource, update_sequence_value
 # this worker monitors MQTT messages for ones that need to be acted upon by the server
 def message_monitor():
     server_config = load_server_config()
-    if not 'MQTT_HOST' in server_config:
+    if 'MQTT_HOST' not in server_config:
         worker_log('message_monitor', 'MQTT host not configured')
         return
     worker_log('message_monitor', 'starting')
@@ -49,7 +49,8 @@ def message_monitor():
                 seq_name = parameters['sequence']
                 if not seq_name.startswith('/'):  # handle relative sequence names
                     resource = Resource.query.filter(Resource.id == controller.id).one()
-                    seq_name = resource.path() + '/' + seq_name  # this is ok for now since .. doesn't have special meaning in resource path (no way to escape controller folder)
+                    # this is ok for now since .. doesn't have special meaning in resource path (no way to escape controller folder)
+                    seq_name = resource.path() + '/' + seq_name
                 timestamp = parameters.get('timestamp', '')  # fix(soon): need to convert to datetime
                 if not timestamp:
                     timestamp = datetime.datetime.utcnow()
@@ -67,7 +68,8 @@ def message_monitor():
                 else:
                     value = str(value)
 
-                update_sequence_value(resource, seq_name, timestamp, value, emit_message=False)  # don't emit message since the message is already in the system
+                # don't emit message since the message is already in the system
+                update_sequence_value(resource, seq_name, timestamp, value, emit_message=False)
                 db.session.commit()
 
         # update controller watchdog status

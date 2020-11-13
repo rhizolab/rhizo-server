@@ -131,7 +131,8 @@ def process_web_socket_message(message_struct, ws_conn):
         parameters = message_struct['parameters']
         subscriptions = parameters.get('subscriptions', [])
         for subscription in subscriptions:
-            folder_path = subscription.get('folder', subscription.get('folderId', None))  # fix(clean): remove support for folder IDs and old message args
+            # fix(clean): remove support for folder IDs and old message args
+            folder_path = subscription.get('folder', subscription.get('folderId', None))
             message_type = subscription.get('message_type', subscription.get('messageType', None))
             include_children = subscription.get('include_children', subscription.get('includeChildren', False))
 
@@ -164,7 +165,8 @@ def process_web_socket_message(message_struct, ws_conn):
                 seq_name = parameters['sequence']
             if not seq_name.startswith('/'):  # handle relative sequence names
                 resource = Resource.query.filter(Resource.id == ws_conn.controller_id).one()
-                seq_name = resource.path() + '/' + seq_name  # this is ok for now since .. doesn't have special meaning in resource path (no way to escape controller folder)
+                # this is ok for now since .. doesn't have special meaning in resource path (no way to escape controller folder)
+                seq_name = resource.path() + '/' + seq_name
             timestamp = parameters.get('timestamp', '')  # fix(soon): need to convert to datetime
             if not timestamp:
                 timestamp = datetime.datetime.utcnow()
@@ -251,4 +253,5 @@ def process_web_socket_message(message_struct, ws_conn):
         if ws_conn.access_level(folder_id) >= ACCESS_LEVEL_WRITE:
             parameters = message_struct['parameters']
             # fix(soon): can we move this spawn above access level check (might require request context)
-            gevent.spawn(message_queue.add, folder_id, None, type, parameters, sender_controller_id=ws_conn.controller_id, sender_user_id=ws_conn.user_id)
+            gevent.spawn(
+                message_queue.add, folder_id, None, type, parameters, sender_controller_id=ws_conn.controller_id, sender_user_id=ws_conn.user_id)

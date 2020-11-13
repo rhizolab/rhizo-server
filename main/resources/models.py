@@ -8,9 +8,11 @@ class Resource(db.Model):
     __tablename__ = 'resources'
     id = db.Column(db.Integer, primary_key=True)
     last_revision_id = db.Column(db.Integer, comment='can be null for folder resources or empty files/sequences')
-    organization_id = db.Column(db.ForeignKey('resources.id'))  # would like this to be non-null, but how else do we create first organization?
+    # would like this to be non-null, but how else do we create first organization?
+    organization_id = db.Column(db.ForeignKey('resources.id'))
     creation_timestamp = db.Column(db.DateTime)
-    modification_timestamp = db.Column(db.DateTime)  # fix(later): remove this and use revision timestamp? what about folders? should we track modification timestamps for this?
+    # fix(later): remove this and use revision timestamp? what about folders? should we track modification timestamps for this?
+    modification_timestamp = db.Column(db.DateTime)
 
     # meta-data that could eventually have change tracking (probably best to move into a separate table e.g. resource_meta_revisions)
     parent_id = db.Column(db.ForeignKey('resources.id'), index=True)
@@ -18,7 +20,8 @@ class Resource(db.Model):
     name = db.Column(db.String, nullable=False)
     type = db.Column(db.Integer, nullable=False)  # fix(later): add index for this?
     permissions = db.Column(db.String, comment='JSON; NULL -> inherit from parent')
-    system_attributes = db.Column(db.String, nullable=False, default='{}', comment='JSON dictionary; additional attributes of the resource (system-defined)')
+    system_attributes = db.Column(
+        db.String, nullable=False, default='{}', comment='JSON dictionary; additional attributes of the resource (system-defined)')
     user_attributes = db.Column(db.String, comment='JSON dictionary; additional attributes of the resource (user-defined)')
     deleted = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -65,7 +68,8 @@ class Resource(db.Model):
             d['last_revision_id'] = self.last_revision_id
             if self.last_revision_id:
                 d['storage_path'] = self.storage_path(self.last_revision_id)
-            if self.type == self.FILE:  # fix(later): remove this case after migrate DB and update client sync code (and browser display code) to use direct system_attributes
+            # fix(later): remove this case after migrate DB and update client sync code (and browser display code) to use direct system_attributes
+            if self.type == self.FILE:
                 d['hash'] = d['system_attributes'].get('hash') or self.hash
                 d['size'] = d['system_attributes'].get('size') or self.size
         return d

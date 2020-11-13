@@ -30,7 +30,12 @@ def sequence_truncator():
 
                 # determine timestamp of revision max_history records ago;
                 # this could be made faster if we assumed that revisions are created sequentially
-                revisions = ResourceRevision.query.with_entities(ResourceRevision.timestamp).filter(ResourceRevision.resource_id == resource.id).order_by('timestamp')
+                revisions = (
+                    ResourceRevision.query
+                        .with_entities(ResourceRevision.timestamp)
+                        .filter(ResourceRevision.resource_id == resource.id)
+                        .order_by('timestamp')
+                )
                 boundary_timestamp = revisions[-max_history].timestamp
 
                 # diagnostics

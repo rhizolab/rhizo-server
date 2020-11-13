@@ -40,7 +40,8 @@ def controller_watchdog():
                         # check controller status; if stale watchdog timestamp, send message (if not done already);
                         # if no watchdog timestamp, don't send message (assume user is just setting on the controller for the first time)
                         controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller.id).one()
-                        time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes=system_attributes['watchdog_minutes'])  # fix(soon): safe int convert
+                        # fix(soon): safe int convert
+                        time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes=system_attributes['watchdog_minutes'])
                         if controller_status.last_watchdog_timestamp and controller_status.last_watchdog_timestamp < time_thresh:
                             watchdog_expire_count += 1
                             if controller_status.watchdog_notification_sent == False:
@@ -66,7 +67,8 @@ def controller_watchdog():
                     except NoResultFound:
                         worker_log('controller_watchdog', 'controller status not found (%d)' % controller.id)
 
-        # handle all exceptions because we don't want an error in this code (e.g. sending email or bad status/controller data) stopping all notifications
+        # handle all exceptions because we don't want an error in this code (e.g. sending email or bad status/controller data) stopping all
+        # notifications
         except Exception as e:
             print('controller_watchdog error: %s' % str(e))
             worker_log('controller_watchdog', str(e))

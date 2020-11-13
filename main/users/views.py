@@ -223,7 +223,11 @@ def organization_settings(org_folder_name):
     # check that current user has admin access to this organization
     if current_user.role != User.SYSTEM_ADMIN:
         try:
-            org_user = OrganizationUser.query.filter(OrganizationUser.organization_id == resource.id, OrganizationUser.user_id == current_user.id).one()
+            org_user = (
+                OrganizationUser.query
+                    .filter(OrganizationUser.organization_id == resource.id, OrganizationUser.user_id == current_user.id)
+                    .one()
+            )
         except NoResultFound:
             abort(403)
         if not org_user.is_admin:

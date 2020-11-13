@@ -20,7 +20,8 @@ from main.users.models import User
 from main.users.permissions import access_level, ACCESS_LEVEL_READ, ACCESS_LEVEL_WRITE
 from main.util import parse_json_datetime
 from main.resources.models import Resource, ResourceRevision, ResourceView, ControllerStatus, Thumbnail
-from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, resource_type_number, _create_folders, create_sequence
+from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, \
+    resource_type_number, _create_folders, create_sequence
 from main.resources.file_conversion import convert_csv_to_xls, convert_xls_to_csv, convert_new_lines, compute_thumbnail
 from main.users.auth import find_key, find_key_fast  # fix(clean): remove?
 
@@ -138,7 +139,8 @@ class ResourceRecord(ApiResource):
                         return result
                     else:
                         epoch = datetime.datetime.utcfromtimestamp(0)  # fix(clean): merge with similar code for sequence viewer
-                        timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]  # fix(clean): use some sort of unzip function
+                        # fix(clean): use some sort of unzip function
+                        timestamps = [(rr.timestamp.replace(tzinfo=None) - epoch).total_seconds() for rr in resource_revisions]
                         values = [rr.data.decode() for rr in resource_revisions]
                         units = json.loads(r.system_attributes).get('units', None)
                         return {'name': r.name, 'path': resource_path, 'units': units, 'timestamps': timestamps, 'values': values}
@@ -281,7 +283,8 @@ class ResourceRecord(ApiResource):
                     system_attributes['min_storage_interval'] = int(args['min_storage_interval'])  # fix(later): safe convert
                 r.system_attributes = json.dumps(system_attributes)
         elif r.type == Resource.REMOTE_FOLDER:
-            update_system_attributes(r, args, ['remote_path', 'controller_id'])  # fix(soon): should use args['system_attributes'] instead of just args
+            # fix(soon): should use args['system_attributes'] instead of just args
+            update_system_attributes(r, args, ['remote_path', 'controller_id'])
         elif r.type == Resource.ORGANIZATION_FOLDER:
             update_system_attributes(r, args, ['full_name'])  # fix(soon): should use args['system_attributes'] instead of just args
         elif r.type == Resource.CONTROLLER_FOLDER:
@@ -289,7 +292,8 @@ class ResourceRecord(ApiResource):
                 try:
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == r.id).one()
                     status = json.loads(controller_status.attributes)
-                    status.update(json.loads(args['status']))  # add/update status (don't provide way to remove status fields; maybe should overwrite instead)
+                    # add/update status (don't provide way to remove status fields; maybe should overwrite instead)
+                    status.update(json.loads(args['status']))
                     controller_status.attributes = json.dumps(status)
                 except NoResultFound:
                     pass
@@ -297,7 +301,8 @@ class ResourceRecord(ApiResource):
                 update_system_attributes(r, json.loads(args['system_attributes']), ['watchdog_recipients', 'watchdog_minutes'])
         else:  # fix(soon): remove this case
             if 'system_attributes' in args:
-                r.system_attributes = args['system_attributes']  # note that this will overwrite any existing system attributes; client must preserve any that aren't modified
+                # note that this will overwrite any existing system attributes; client must preserve any that aren't modified
+                r.system_attributes = args['system_attributes']
 
         # update resource contents/value
         if 'contents' in args or 'data' in args:  # fix(later): remove contents option
@@ -474,7 +479,8 @@ class ResourceList(ApiResource):
             # fix(soon): recompute thumbnail on resource update
             if name.endswith('.png') or name.endswith('.jpg'):  # fix(later): handle more types, capitalizations
                 for width in [120]:  # fix(later): what will be our standard sizes?
-                    (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(data, width)  # fix(later): if this returns something other than requested width, we'll keep missing the cache
+                    # fix(later): if this returns something other than requested width, we'll keep missing the cache
+                    (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(data, width)
                     thumbnail = Thumbnail()
                     thumbnail.resource_id = r.id
                     thumbnail.width = thumbnail_width
@@ -578,7 +584,11 @@ class ResourceList(ApiResource):
                 if folder_resource:
                     seq_name = full_name.rsplit('/', 1)[1]
                     try:
-                        resource = Resource.query.filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False).one()
+                        resource = (
+                            Resource.query
+                                .filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False)
+                                .one()
+                        )
                         update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
                     except NoResultFound:
                         pass

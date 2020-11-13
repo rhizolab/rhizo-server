@@ -145,8 +145,8 @@ You can customize the server behavior with settings and extensions. We use the f
 
 Coding style guidelines:
 
-*   Python code should be mostly PEP8 compliant. We currently ignore some PEP8 errors:
-    E501, E712, E713
+*   Maximum line length is 150 characters.
+*   Python code should be mostly PEP8 compliant. We currently ignore PEP8 error E712.
 *   Aim to use single quotes around strings.
 *   Template variables should have spaces just inside brackes: `{{ template_var }}`
 *   Use underscores for database fields, API parameters, message types, and message parameters.

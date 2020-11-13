@@ -20,7 +20,8 @@ class MessageQueueBasic(MessageQueue):
             timestamp = datetime.datetime.utcnow()
         message_record = Message()
         message_record.timestamp = timestamp
-        message_record.sender_controller_id = sender_controller_id  # the ID of the controller that created the message (if it was not created by a human/browser)
+        # the ID of the controller that created the message (if it was not created by a human/browser)
+        message_record.sender_controller_id = sender_controller_id
         message_record.sender_user_id = sender_user_id
         message_record.folder_id = folder_id
         message_record.type = type
@@ -40,8 +41,8 @@ class MessageQueueBasic(MessageQueue):
             # sleep for a bit; don't want to overload the database
             gevent.sleep(0.5)
 
-            # fix(soon): is there a good way to avoid losing messages while server is restarting? could go back 5 minutes, but then we'd get duplicates
-            # it would be nice if each web/worker process could remember where it was across restarts
+            # fix(soon): is there a good way to avoid losing messages while server is restarting? could go back 5 minutes, but then we'd get
+            # duplicates. it would be nice if each web/worker process could remember where it was across restarts
             if self._last_message_id:
                 messages = Message.query.filter(Message.id > self._last_message_id).order_by('id')
             else:
