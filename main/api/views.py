@@ -55,7 +55,6 @@ def old_connect_web_socket():
     return '{}'
 
 
-
 # endpoint for creating a new websocket connect
 @app.route('/api/v1/websocket')
 def connect_web_socket():

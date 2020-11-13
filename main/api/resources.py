@@ -577,7 +577,7 @@ class ResourceList(ApiResource):
             folder_name = None
             for (full_name, value) in items:
                 item_folder_name = full_name.rsplit('/', 1)[0]
-                if item_folder_name != folder_name:  # if this folder doesn't match the folder resource record we have 
+                if item_folder_name != folder_name:  # if this folder doesn't match the folder resource record we have
                     folder_name = item_folder_name
                     folder_resource = find_resource(folder_name)
                     if folder_resource and access_level(folder_resource.query_permissions()) < ACCESS_LEVEL_WRITE:
@@ -587,8 +587,8 @@ class ResourceList(ApiResource):
                     try:
                         resource = (
                             Resource.query
-                                .filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, not_(Resource.deleted))
-                                .one()
+                            .filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, not_(Resource.deleted))
+                            .one()
                         )
                         update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
                     except NoResultFound:

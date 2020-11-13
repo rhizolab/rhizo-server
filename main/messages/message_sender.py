@@ -14,6 +14,7 @@ class MessageSender(object):
 
     def connect(self):
         from main.users.auth import message_auth_token
+
         def on_connect(client, userdata, flags, rc):
             if rc:
                 print('unable to connect to MQTT broker/server at %s:%d' % (self.mqtt_host, self.mqtt_port))

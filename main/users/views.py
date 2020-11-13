@@ -225,8 +225,8 @@ def organization_settings(org_folder_name):
         try:
             org_user = (
                 OrganizationUser.query
-                    .filter(OrganizationUser.organization_id == resource.id, OrganizationUser.user_id == current_user.id)
-                    .one()
+                .filter(OrganizationUser.organization_id == resource.id, OrganizationUser.user_id == current_user.id)
+                .one()
             )
         except NoResultFound:
             abort(403)

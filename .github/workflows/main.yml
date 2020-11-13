@@ -35,6 +35,10 @@ jobs:
         pip install -r tests/requirements.txt
         pip install -r tests/requirements-postgres.txt
 
+    - name: Check PEP8 compliance (pycodestyle)
+      run: |
+        .venv/bin/pycodestyle --max-line-length=150 main tests
+
     - name: Prep config
       run: |
         .venv/bin/python prep_config.py

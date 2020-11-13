@@ -1,6 +1,8 @@
 from flask import render_template_string
 
 # a super-class to be sub-classes by server extension packages
+
+
 class Extension(object):
 
     # create a new extension object
