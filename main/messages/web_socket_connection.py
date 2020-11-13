@@ -51,5 +51,5 @@ class WebSocketConnection(object):
                 controller_status = ControllerStatus.query.filter(ControllerStatus.id == self.controller_id).one()
                 controller_status.web_socket_connected = False
                 db.session.commit()
-            except:
+            except NoResultFound:
                 print('unable to find controller')

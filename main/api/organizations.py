@@ -1,6 +1,7 @@
 # standard python imports
 import json
 import datetime
+from smtplib import SMTPException
 
 
 # external imports
@@ -152,7 +153,7 @@ Follow this link to create an account:
 ''' % (org_full_name, sys_name, request.url_root, ar.access_code)
             try:
                 send_email(email_address, subject, message_body, current_app.config)
-            except:
+            except SMTPException:
                 return {'status': 'error'}
             return {'status': 'ok'}
 

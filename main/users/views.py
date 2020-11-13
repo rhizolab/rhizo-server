@@ -1,6 +1,7 @@
 # standard python imports
 import datetime
 import json
+from smtplib import SMTPException
 
 
 # external imports
@@ -126,7 +127,7 @@ def sign_up():
 ''' % (sys_name, request.url_root, ar.access_code)
         try:
             send_email(ar.email_address, subject, message_body, current_app.config)
-        except:
+        except SMTPException:
             return Response('Error sending email.')
         db.session.add(ar)
         db.session.commit()

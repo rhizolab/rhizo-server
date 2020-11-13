@@ -56,7 +56,7 @@ class SocketSender(object):
         if not ws_conn.ws.closed:  # if it was recently closed, it may still be in the list of connections; it should be removed as soon as the manage_web_socket function terminates
             try:
                 ws_conn.ws.send(message)
-            except:  # WebSocketError:
+            except WebSocketError:
                 print('unable to send to websocket (%s)' % ws_conn)
 
     # send a message structure to a specific client

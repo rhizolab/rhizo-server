@@ -49,6 +49,6 @@ class MessageQueueBasic(MessageQueue):
             if messages.count():
                 try:
                     self._last_message_id = messages[-1].id  # fix(soon): check that this works
-                except:
+                except IndexError:
                     pass
                 return messages
