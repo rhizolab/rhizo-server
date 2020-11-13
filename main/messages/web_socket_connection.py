@@ -1,4 +1,5 @@
 from flask_login import current_user
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 from main.app import db
 from main.users.permissions import access_level, ACCESS_LEVEL_NONE
@@ -31,7 +32,7 @@ class WebSocketConnection(object):
     def access_level(self, folder_id):
         client_access_level = ACCESS_LEVEL_NONE
         try:
-            folder = Resource.query.filter(Resource.id == folder_id, Resource.deleted == False).one()
+            folder = Resource.query.filter(Resource.id == folder_id, not_(Resource.deleted)).one()
 
             # if this is a browser websocket, controller_id will be None and access_level will use current_user
             client_access_level = access_level(folder.query_permissions(), controller_id=self.controller_id)

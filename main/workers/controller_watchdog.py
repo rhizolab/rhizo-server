@@ -6,6 +6,7 @@ import datetime
 
 # external imports
 import gevent
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 
 
@@ -28,7 +29,7 @@ def controller_watchdog():
         try:
 
             # get list of controllers
-            controllers = Resource.query.filter(Resource.type == Resource.CONTROLLER_FOLDER, Resource.deleted == False)
+            controllers = Resource.query.filter(Resource.type == Resource.CONTROLLER_FOLDER, not_(Resource.deleted))
             for controller in controllers:
                 system_attributes = json.loads(controller.system_attributes) if controller.system_attributes else {}
 
@@ -44,7 +45,7 @@ def controller_watchdog():
                         time_thresh = datetime.datetime.utcnow() - datetime.timedelta(minutes=system_attributes['watchdog_minutes'])
                         if controller_status.last_watchdog_timestamp and controller_status.last_watchdog_timestamp < time_thresh:
                             watchdog_expire_count += 1
-                            if controller_status.watchdog_notification_sent == False:
+                            if controller_status.watchdog_notification_sent is False:
 
                                 # send notifications
                                 recipients = system_attributes['watchdog_recipients']

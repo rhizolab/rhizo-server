@@ -4,6 +4,7 @@ import datetime
 
 # external imports
 from flask import request, abort
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 from flask_restful import Resource as ApiResource
 from flask_login import current_user  # fix(later): remove
@@ -35,7 +36,7 @@ class KeyRecord(ApiResource):
         # get the resource for the key
         # fix(soon): handle user keys
         try:
-            r = Resource.query.filter(Resource.id == key.access_as_controller_id, Resource.deleted == False).one()
+            r = Resource.query.filter(Resource.id == key.access_as_controller_id, not_(Resource.deleted)).one()
         except NoResultFound:
             abort(400)
 
@@ -66,7 +67,7 @@ class KeyList(ApiResource):
         if 'access_as_controller_id' in request.values:
             access_as_controller_id = int(request.values['access_as_controller_id'])
             try:
-                r = Resource.query.filter(Resource.id == access_as_controller_id, Resource.deleted == False).one()
+                r = Resource.query.filter(Resource.id == access_as_controller_id, not_(Resource.deleted)).one()
             except NoResultFound:
                 abort(400)
 
@@ -91,7 +92,7 @@ class KeyList(ApiResource):
             except ValueError:
                 abort(400)
             try:
-                r = Resource.query.filter(Resource.id == access_as_controller_id, Resource.deleted == False).one()
+                r = Resource.query.filter(Resource.id == access_as_controller_id, not_(Resource.deleted)).one()
             except NoResultFound:
                 abort(400)
             if access_level(r.query_permissions()) < ACCESS_LEVEL_WRITE:  # require write access to the controller to create a key for it
@@ -114,7 +115,7 @@ class KeyList(ApiResource):
         elif 'access_as_user_id' in request.values:
             access_as_user_id = request.values['access_as_user_id']
             try:
-                u = User.query.filter(User.id == access_as_user_id, User.deleted == False).one()
+                u = User.query.filter(User.id == access_as_user_id, not_(User.deleted)).one()
             except NoResultFound:
                 abort(400)
             organization_id = request.values['organization_id']

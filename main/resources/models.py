@@ -1,4 +1,5 @@
 import json
+from sqlalchemy import not_
 from main.app import db
 
 
@@ -96,7 +97,7 @@ class Resource(db.Model):
     # fix(clean): maybe this is too specialized; move elsewhere?
     def descendent_folder_ids(self):
         ids = []
-        children = Resource.query.filter(Resource.parent_id == self.id, Resource.deleted == False)
+        children = Resource.query.filter(Resource.parent_id == self.id, not_(Resource.deleted))
         for child in children:
             if child.type >= 10 and child.type < 20:
                 ids.append(child.id)

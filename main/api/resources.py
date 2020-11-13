@@ -9,6 +9,7 @@ from io import BytesIO
 
 # external imports
 from flask import request, abort, make_response
+from sqlalchemy import not_
 from sqlalchemy.orm.exc import NoResultFound
 from flask_restful import Resource as ApiResource
 from flask_login import current_user
@@ -235,7 +236,7 @@ class ResourceRecord(ApiResource):
             new_name = args['name']
             if new_name != r.name:
                 try:
-                    Resource.query.filter(Resource.parent_id == r.parent_id, Resource.name == new_name, Resource.deleted == False).one()
+                    Resource.query.filter(Resource.parent_id == r.parent_id, Resource.name == new_name, not_(Resource.deleted)).one()
                     abort(400)  # a resource already exists with this name
                 except NoResultFound:
                     pass
@@ -247,7 +248,7 @@ class ResourceRecord(ApiResource):
             if access_level(parent_resource.query_permissions()) < ACCESS_LEVEL_WRITE:
                 abort(403)
             try:
-                Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == r.name, Resource.deleted == False).one()
+                Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == r.name, not_(Resource.deleted)).one()
                 abort(400)  # a resource already exists with this name
             except NoResultFound:
                 pass
@@ -333,7 +334,7 @@ class ResourceList(ApiResource):
         type = int(args['type'])
         extended = int(args.get('extended', '0'))
         include_path = args.get('folder_info', args.get('folderInfo', False))  # fix(soon): change folderInfo to include_path?
-        resources = Resource.query.filter(Resource.type == type, Resource.deleted == False)
+        resources = Resource.query.filter(Resource.type == type, not_(Resource.deleted))
         result = {}
         for r in resources:
             d = r.as_dict(extended=extended)
@@ -360,7 +361,7 @@ class ResourceList(ApiResource):
         if not parent_resource:
             try:  # fix(soon): need to traverse up tree to check permissions, not just check org permissions
                 org_name = path.split('/')[1]
-                org_resource = Resource.query.filter(Resource.name == org_name, Resource.parent_id == None, Resource.deleted == False).one()
+                org_resource = Resource.query.filter(Resource.name == org_name, Resource.parent_id.is_(None), not_(Resource.deleted)).one()
                 if access_level(org_resource.query_permissions()) < ACCESS_LEVEL_WRITE:
                     abort(403)
             except NoResultFound:
@@ -395,7 +396,7 @@ class ResourceList(ApiResource):
 
         # check for existing resource
         try:
-            resource = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, Resource.deleted == False).one()
+            resource = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, not_(Resource.deleted)).one()
             return {'message': 'Resource already exists.', 'status': 'error'}  # fix(soon): return 400 status code
         except NoResultFound:
             pass
@@ -586,7 +587,7 @@ class ResourceList(ApiResource):
                     try:
                         resource = (
                             Resource.query
-                                .filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, Resource.deleted == False)
+                                .filter(Resource.parent_id == folder_resource.id, Resource.name == seq_name, not_(Resource.deleted))
                                 .one()
                         )
                         update_sequence_value(resource, full_name, timestamp, str(value), emit_message=True)  # fix(later): revisit emit_message
@@ -608,7 +609,7 @@ def update_system_attributes(resource, new_system_attribs, allowed_attribs):
 
 # get a list of all resources contained with a folder (specified by parent_id)
 def resource_list(parent_id, recursive, type, filter, extended):
-    children = Resource.query.filter(Resource.parent_id == parent_id, Resource.deleted == False).order_by('name')
+    children = Resource.query.filter(Resource.parent_id == parent_id, not_(Resource.deleted)).order_by('name')
     if type:
         children = children.filter(Resource.type == type)
     if filter:
@@ -628,7 +629,7 @@ def resource_list(parent_id, recursive, type, filter, extended):
             file_info['fullPath'] = child.path()  # fix(soon): remove this
         file_infos.append(file_info)
     if recursive:
-        child_folders = Resource.query.filter(Resource.parent_id == parent_id, Resource.type >= 10, Resource.type < 20, Resource.deleted == False)
+        child_folders = Resource.query.filter(Resource.parent_id == parent_id, Resource.type >= 10, Resource.type < 20, not_(Resource.deleted))
         for child_folder in child_folders:
             file_infos += resource_list(child_folder.id, recursive, type, filter, extended)
     return file_infos
@@ -687,7 +688,7 @@ def add_to_zip(zip, resource, path_prefix, uncompressed_size):
 
     # add folder contents
     elif resource.type == Resource.BASIC_FOLDER:
-        resources = Resource.query.filter(Resource.parent_id == resource.id, Resource.deleted == False)
+        resources = Resource.query.filter(Resource.parent_id == resource.id, not_(Resource.deleted))
         for r in resources:
             add_to_zip(zip, r, name, uncompressed_size)  # fix(soon): should we check permissions on each resource?
 
@@ -706,7 +707,7 @@ def batch_download(parent_folder, ids):
 
         # get resource
         try:
-            r = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.id == id, Resource.deleted == False).one()
+            r = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.id == id, not_(Resource.deleted)).one()
         except NoResultFound:
             abort(404)
 

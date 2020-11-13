@@ -10,7 +10,7 @@ from io import StringIO
 from flask import render_template, request, abort, Response, send_from_directory, current_app
 from flask_login import login_required, current_user
 from jinja2.exceptions import TemplateNotFound
-from sqlalchemy import func
+from sqlalchemy import func, not_
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 
@@ -76,7 +76,7 @@ def view_item(item_path):
         folder = None
         if parent_folder:
             try:
-                folder = Resource.query.filter(Resource.parent == parent_folder, Resource.name == path_part, Resource.deleted == False).one()
+                folder = Resource.query.filter(Resource.parent == parent_folder, Resource.name == path_part, not_(Resource.deleted)).one()
             except NoResultFound:
                 pass
             except MultipleResultsFound:
@@ -84,7 +84,7 @@ def view_item(item_path):
                 abort(404)
         else:
             try:
-                folder = Resource.query.filter(Resource.parent == None, Resource.name == path_part, Resource.deleted == False).one()
+                folder = Resource.query.filter(Resource.parent.is_(None), Resource.name == path_part, not_(Resource.deleted)).one()
             except NoResultFound:
                 pass
 
@@ -115,13 +115,13 @@ def view_item(item_path):
             # look up resource record
             # fix(faster): we just looked this up above
             try:
-                resource = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, Resource.deleted == False).one()
+                resource = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, not_(Resource.deleted)).one()
             except NoResultFound:
                 path_part = path_part.replace('_', ' ')  # fix(soon): how else should we handle spaces in resource names?
                 try:
                     resource = (
                         Resource.query
-                            .filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, Resource.deleted == False)
+                            .filter(Resource.parent_id == parent_folder.id, Resource.name == path_part, not_(Resource.deleted))
                             .one()
                     )
                 except NoResultFound:
@@ -173,7 +173,7 @@ def folder_viewer(folder, full_path, user_access_level):
         return folder_tree_viewer(folder)
 
     # resources
-    resources = Resource.query.filter(Resource.parent == folder, Resource.deleted == False).order_by('name')
+    resources = Resource.query.filter(Resource.parent == folder, not_(Resource.deleted)).order_by('name')
     resource_dicts = []
     for r in resources:
         rd = r.as_dict(extended=True)
@@ -217,12 +217,12 @@ def folder_tree_info(prefix, folder):
     file_count = (
         db.session
             .query(func.count(Resource.id))
-            .filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type != Resource.BASIC_FOLDER)
+            .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type != Resource.BASIC_FOLDER)
             .scalar()
     )
     child_folders = (
         Resource.query
-            .filter(Resource.parent_id == folder.id, Resource.deleted == False, Resource.type == Resource.BASIC_FOLDER)
+            .filter(Resource.parent_id == folder.id, not_(Resource.deleted), Resource.type == Resource.BASIC_FOLDER)
             .order_by('name')
     )
     for child in child_folders:
@@ -282,7 +282,7 @@ def sequence_viewer(resource):
 
     # if image sequence get thumbnails and full image IDs
     if data_type == Resource.IMAGE_SEQUENCE:
-        thumbnail_resources = Resource.query.filter(Resource.parent_id == resource.id, Resource.name.like('thumbnail%'), Resource.deleted == False)
+        thumbnail_resources = Resource.query.filter(Resource.parent_id == resource.id, Resource.name.like('thumbnail%'), not_(Resource.deleted))
         if thumbnail_resources.count():
             thumbnail_resource = thumbnail_resources[0]  # fix(later): deal with multiple thumbnail sizes?
             thumbnail_resource_path = resource_path + '/' + thumbnail_resource.name
@@ -338,7 +338,7 @@ def file_viewer(resource, check_timing=False, is_home_page=False):
     else:
         file_ext = resource.name.rsplit('.', 1)[-1]
         edit = request.args.get('edit', False)
-        if file_ext == 'csv' and edit == False:
+        if file_ext == 'csv' and edit is False:
             reader = csv.reader(StringIO(contents.decode()))
             data = list(reader)
             return render_template('resources/table-editor.html', resource=resource, data_json=json.dumps(data))
