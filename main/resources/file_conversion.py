@@ -113,8 +113,8 @@ def test():
     print(csv_gen_data)
     print(str(csv_gen_data).strip() == str(csv_data).strip())  # fix(later): probably doens't match due to newlines
 
-    #csvData = convert_xls_to_csv(open('test.xlsx', 'rb').read())
-    #print(csvData)
+    # csvData = convert_xls_to_csv(open('test.xlsx', 'rb').read())
+    # print(csvData)
 
 
 if __name__ == '__main__':
