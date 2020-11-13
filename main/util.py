@@ -23,16 +23,16 @@ def ssl_required(fn):
 # note: this function is also defined in client code
 def parse_json_datetime(json_timestamp):
     assert json_timestamp.endswith('Z')
-    format = ''
+    format_str = ''
     if '.' in json_timestamp:
-        format = '%Y-%m-%dT%H:%M:%S.%f'
+        format_str = '%Y-%m-%dT%H:%M:%S.%f'
     else:
-        format = '%Y-%m-%dT%H:%M:%S'
+        format_str = '%Y-%m-%dT%H:%M:%S'
     if json_timestamp.endswith(' Z'):
-        format += ' Z'
+        format_str += ' Z'
     else:
-        format += 'Z'
-    return datetime.datetime.strptime(json_timestamp, format)
+        format_str += 'Z'
+    return datetime.datetime.strptime(json_timestamp, format_str)
 
 
 # get the current server configuration module (for use when current_app isn't available)

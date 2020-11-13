@@ -100,5 +100,5 @@ def generate_mqtt_info():
 
 
 # add functions that can be used in templates
-app.jinja_env.globals['csrf_token'] = generate_csrf_token
-app.jinja_env.globals['mqtt_info'] = generate_mqtt_info
+app.add_template_global(name='csrf_token', f=generate_csrf_token)
+app.add_template_global(name='mqtt_info', f=generate_mqtt_info)

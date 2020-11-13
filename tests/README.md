@@ -34,6 +34,8 @@ The tests make heavy use of [pytest fixtures](https://docs.pytest.org/en/stable/
 
 For example, if a test needs a `Key` resource, it implicitly needs a `User` to own the key, and the `User` implicitly needs an `Organization` to belong to. The test function just needs to declare the `Key` as a parameter and the other tables will be initialized as well.
 
+If the test method is only declaring a fixture dependency for its side effects and is never actually using the fixture object, it should use a `@pytest.mark.usefixtures` decorator instead of a parameter.
+
 As a pleasant side effect, this reduces the amount of module importing that needs to happen in test functions, since they can just ask for the model objects (by declaring the fixtures as parameters).
 
 ### Classes
@@ -41,6 +43,8 @@ As a pleasant side effect, this reduces the amount of module importing that need
 The test suite uses a mix of top-level functions and classes.
 
 Classes are used in part to reduce repetitive fixture declaration. That is, if you have 10 semantically-related test functions that all need the same set of fixtures, it's cleaner to put them in a class that has a setup method that takes the fixtures as arguments and stores them in `self`.
+
+If the class only needs a fixture for its side effects and will never use the fixture object, add a `@pytest.mark.usefixtures` decorator to the class and list the fixture there.
 
 If you do that, just decorate the setup function with `@pytest.fixture(autouse=True)` and pytest will call it automatically.
 

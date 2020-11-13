@@ -119,11 +119,11 @@ class Resource(db.Model):
 
             # if we have permissions at this level, we need to merge in the parent permissions
             if self.permissions:
-                permission_dict = {(type, id): level for (type, id, level) in self.permissions}
+                permission_dict = {(permission_type, principal_id): level for (permission_type, principal_id, level) in self.permissions}
                 for permission_record in parent_permissions:
-                    (type, id, level) = permission_record
-                    if not (type, id) in permission_dict:
-                        permissions.append((type, id, level))
+                    (permission_type, principal_id, level) = permission_record
+                    if not (permission_type, principal_id) in permission_dict:
+                        permissions.append((permission_type, principal_id, level))
 
             # otherwise, just use the parent permissions (the common case)
             else:
@@ -135,8 +135,8 @@ class Resource(db.Model):
         org_id = self.organization_id
         if not org_id:  # fix(clean): remove this
             org_id = self.root().id
-        id_str = '%09d' % self.id
-        return '%d/%s/%s/%s/%d_%d' % (org_id, id_str[-9:-6], id_str[-6:-3], id_str[-3:], self.id, revision_id)
+        id_str = '%09d' % int(self.id)
+        return '%d/%s/%s/%s/%d_%d' % (org_id, id_str[-9:-6], id_str[-6:-3], id_str[-3:], int(self.id), revision_id)
 
 
 # The ResourceRevision model holds a revision history or time series history of a resource.

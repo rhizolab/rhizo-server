@@ -141,7 +141,7 @@ def view_item(item_path):
 
             # use a built-in resource viewer based on resource type
             if resource.type == Resource.APP and resource.path().startswith('/system/'):
-                return system_app_viewer(resource, parent_folder)
+                return system_app_viewer(resource)
             elif resource.type == Resource.SEQUENCE:
                 return sequence_viewer(resource)
             elif resource.type == Resource.FILE:
@@ -244,7 +244,7 @@ def folder_tree_viewer(folder):
 
 
 # view a system app
-def system_app_viewer(resource, parent):
+def system_app_viewer(resource):
     template_name = 'system/%s.html' % resource.name.replace(' ', '_').lower()
     try:
         return render_template(template_name)

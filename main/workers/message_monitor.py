@@ -31,6 +31,7 @@ def message_monitor():
 
     # run this on connect/reconnect
     def on_connect(client, userdata, flags, rc):
+        # pylint: disable=unused-argument
         if rc:
             worker_log('message_monitor', 'unable to connect to MQTT broker/server at %s:%d' % (mqtt_host, mqtt_port))
         else:
@@ -39,6 +40,7 @@ def message_monitor():
 
     # run this on message
     def on_message(client, userdata, msg):
+        # pylint: disable=unused-argument
         # print('MQTT: %s %s' % (msg.topic, msg.payload.decode()))
         message_struct = json.loads(msg.payload.decode())
         message_type = message_struct['type']

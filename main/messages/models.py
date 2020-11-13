@@ -15,7 +15,7 @@ class Message(db.Model):
     attributes = db.Column(db.String, comment='JSON field containing extra message attributes')
 
     def __repr__(self):
-        return '%d: %s, %s' % (self.id, self.timestamp, self.type)
+        return '%d: %s, %s' % (int(self.id), self.timestamp, self.type)
 
 
 # The ActionThrottle model is used to rate-limit certain client-requested activities like sending emails/texts.

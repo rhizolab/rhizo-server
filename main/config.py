@@ -63,7 +63,7 @@ def environment():
 
     settings = {}
 
-    for setting, default in defaults().items():
+    for setting in defaults().keys():
         from_environ = os.environ.get('RHIZO_SERVER_' + setting, os.environ.get(setting, None))
         if from_environ:
             settings[setting] = yaml.load(from_environ, yaml.Loader)

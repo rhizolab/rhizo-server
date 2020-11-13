@@ -66,7 +66,7 @@ class ResourceRecord(ApiResource):
         else:
 
             # if folder, return contents list or zip of collection of files
-            if r.type >= 10 and r.type < 20:
+            if 10 <= r.type < 20:
 
                 # multi-file download
                 if 'ids' in args and args.get('download', False):
@@ -78,12 +78,12 @@ class ResourceRecord(ApiResource):
                     recursive = request.values.get('recursive', False)
                     type_name = request.values.get('type', None)
                     if type_name:
-                        type = resource_type_number(type_name)
+                        type_number = resource_type_number(type_name)
                     else:
-                        type = None
-                    filter = request.values.get('filter', None)
+                        type_number = None
+                    name_filter = request.values.get('filter', None)
                     extended = request.values.get('extended', False)
-                    result = resource_list(r.id, recursive, type, filter, extended)
+                    result = resource_list(r.id, recursive, type_number, name_filter, extended)
 
             # if sequence, return value(s)
             # fix(later): merge with file case?
@@ -330,10 +330,10 @@ class ResourceList(ApiResource):
         args = request.values
         if current_user.is_anonymous or current_user.role != User.SYSTEM_ADMIN:
             abort(403)
-        type = int(args['type'])
+        resource_type = int(args['type'])
         extended = int(args.get('extended', '0'))
         include_path = args.get('folder_info', args.get('folderInfo', False))  # fix(soon): change folderInfo to include_path?
-        resources = Resource.query.filter(Resource.type == type, not_(Resource.deleted))
+        resources = Resource.query.filter(Resource.type == resource_type, not_(Resource.deleted))
         result = {}
         for r in resources:
             d = r.as_dict(extended=extended)
@@ -377,7 +377,7 @@ class ResourceList(ApiResource):
         # get main parameters
         file = request.files.get('file', None)
         name = file.filename if file else args['name']
-        type = int(args['type'])  # fix(soon): safe int conversion
+        resource_type = int(args['type'])  # fix(soon): safe int conversion
 
         # get timestamps
         if 'creation_timestamp' in args:
@@ -405,10 +405,10 @@ class ResourceList(ApiResource):
         r.parent_id = parent_resource.id
         r.organization_id = parent_resource.organization_id
         r.name = name
-        r.type = type
+        r.type = resource_type
         r.creation_timestamp = creation_timestamp
         r.modification_timestamp = modification_timestamp
-        if type == Resource.FILE:  # temporarily mark resource as deleted in case we fail to create resource revision record
+        if resource_type == Resource.FILE:  # temporarily mark resource as deleted in case we fail to create resource revision record
             r.deleted = True
         else:
             r.deleted = False
@@ -416,7 +416,7 @@ class ResourceList(ApiResource):
             r.user_attributes = args['user_attributes']  # we assume that the attributes are already a JSON string
 
         # handle sub-types
-        if type == Resource.FILE:
+        if resource_type == Resource.FILE:
 
             # get file contents (if any) from request
             if file:
@@ -441,7 +441,7 @@ class ResourceList(ApiResource):
                 'size': len(data),
             }
             r.system_attributes = json.dumps(system_attributes)
-        elif type == Resource.SEQUENCE:
+        elif resource_type == Resource.SEQUENCE:
             data_type = int(args['data_type'])  # fix(soon): safe convert to int
             system_attributes = {
                 'max_history': 10000,
@@ -460,7 +460,7 @@ class ResourceList(ApiResource):
                 system_attributes['units'] = args['units']
             system_attributes['min_storage_interval'] = min_storage_interval
             r.system_attributes = json.dumps(system_attributes)
-        elif type == Resource.REMOTE_FOLDER:
+        elif resource_type == Resource.REMOTE_FOLDER:
             r.system_attributes = json.dumps({
                 'remote_path': args['remote_path'],
             })
@@ -470,7 +470,7 @@ class ResourceList(ApiResource):
         db.session.commit()
 
         # save file contents (after we have resource ID) and compute thumbnail if needed
-        if type == Resource.FILE:
+        if resource_type == Resource.FILE:
             add_resource_revision(r, r.creation_timestamp, data)  # we assume data is already binary/encoded
             r.deleted = False  # now that have sucessfully created revision, we can make the resource live
             db.session.commit()
@@ -490,7 +490,7 @@ class ResourceList(ApiResource):
                     db.session.add(thumbnail)
 
         # handle the case of creating a controller; requires creating some additional records
-        elif type == Resource.CONTROLLER_FOLDER:
+        elif resource_type == Resource.CONTROLLER_FOLDER:
 
             # create controller status record
             controller_status = ControllerStatus()
@@ -600,14 +600,17 @@ def update_system_attributes(resource, new_system_attribs, allowed_attribs):
     resource.system_attributes = json.dumps(system_attributes)
 
 
-# get a list of all resources contained with a folder (specified by parent_id)
-def resource_list(parent_id, recursive, type, filter, extended):
+def resource_list(parent_id, recursive, resource_type, name_filter, extended):
+    """Get a list of all resources contained with a folder (specified by parent_id)
+
+    name_filter may contain "*" wildcards.
+    """
     children = Resource.query.filter(Resource.parent_id == parent_id, not_(Resource.deleted)).order_by('name')
-    if type:
-        children = children.filter(Resource.type == type)
-    if filter:
-        filter = filter.replace('*', '%')
-        children = children.filter(Resource.name.like(filter))
+    if resource_type:
+        children = children.filter(Resource.type == resource_type)
+    if name_filter:
+        name_filter = name_filter.replace('*', '%')
+        children = children.filter(Resource.name.like(name_filter))
     file_infos = []
     for child in children:
         file_info = child.as_dict(extended=extended)
@@ -624,7 +627,7 @@ def resource_list(parent_id, recursive, type, filter, extended):
     if recursive:
         child_folders = Resource.query.filter(Resource.parent_id == parent_id, Resource.type >= 10, Resource.type < 20, not_(Resource.deleted))
         for child_folder in child_folders:
-            file_infos += resource_list(child_folder.id, recursive, type, filter, extended)
+            file_infos += resource_list(child_folder.id, recursive, resource_type, name_filter, extended)
     return file_infos
 
 
@@ -656,13 +659,13 @@ def sequence_value_summary(resource_id):
         value_groups[prefix] = (lcp, count)
 
     # sort by counts
-    counts = [(count, lcp) for (lcp, count) in value_groups.itervalues()]
+    counts = [(count, lcp) for (lcp, count) in value_groups.values()]
     counts.sort(reverse=True)
     return [(lcp, count) for (count, lcp) in counts]
 
 
 # add a file or folder (recursively) to the zip file; uncompressed_size is a single-element list to allow modification inside function
-def add_to_zip(zip, resource, path_prefix, uncompressed_size):
+def add_to_zip(zip_file, resource, path_prefix, uncompressed_size):
     name = (path_prefix + '/' + resource.name) if path_prefix else resource.name
 
     # add file contents
@@ -677,13 +680,13 @@ def add_to_zip(zip, resource, path_prefix, uncompressed_size):
             abort(400, 'Batch download only supported if total file size is less than 500MB.')  # fix(later): friendlier error handling
 
         # add to zip file
-        zip.writestr(name, data)
+        zip_file.writestr(name, data)
 
     # add folder contents
     elif resource.type == Resource.BASIC_FOLDER:
         resources = Resource.query.filter(Resource.parent_id == resource.id, not_(Resource.deleted))
         for r in resources:
-            add_to_zip(zip, r, name, uncompressed_size)  # fix(soon): should we check permissions on each resource?
+            add_to_zip(zip_file, r, name, uncompressed_size)  # fix(soon): should we check permissions on each resource?
 
 
 # download the a set of resources (from within a single folder) as a zip file
@@ -691,16 +694,16 @@ def add_to_zip(zip, resource, path_prefix, uncompressed_size):
 def batch_download(parent_folder, ids):
 
     # create zip file
-    zip_file = BytesIO()
-    zip = zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED, False)
+    zip_buffer = BytesIO()
+    zip_file = zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED, False)
     uncompressed_size = [0]
 
     # loop over IDs
-    for id in ids:
+    for resource_id in ids:
 
         # get resource
         try:
-            r = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.id == id, not_(Resource.deleted)).one()
+            r = Resource.query.filter(Resource.parent_id == parent_folder.id, Resource.id == resource_id, not_(Resource.deleted)).one()
         except NoResultFound:
             abort(404)
 
@@ -710,16 +713,16 @@ def batch_download(parent_folder, ids):
 
         # only process files and folders (for now)
         if r.type == Resource.FILE or r.type == Resource.BASIC_FOLDER:
-            add_to_zip(zip, r, '', uncompressed_size)
+            add_to_zip(zip_file, r, '', uncompressed_size)
 
     # make sure permissions are ok in Linux
-    for zf in zip.filelist:
+    for zf in zip_file.filelist:
         zf.create_system = 0
 
     # return zip file contents
-    zip.close()
-    zip_file.seek(0)
-    data = zip_file.read()
+    zip_file.close()
+    zip_buffer.seek(0)
+    data = zip_buffer.read()
     result = make_response(data)
     result.headers['Content-Type'] = 'application/octet-stream'
     result.headers['Content-Disposition'] = 'attachment; filename=' + parent_folder.name + '_files.zip'

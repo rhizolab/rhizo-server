@@ -15,6 +15,7 @@ class MessageSender(object):
         from main.users.auth import message_auth_token
 
         def on_connect(client, userdata, flags, rc):
+            # pylint: disable=unused-argument
             if rc:
                 print('unable to connect to MQTT broker/server at %s:%d' % (self.mqtt_host, self.mqtt_port))
             else:
@@ -26,11 +27,11 @@ class MessageSender(object):
         self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
         self.mqtt_client.loop_start()
 
-    def send_message(self, path, type, parameters, timestamp=None):
+    def send_message(self, path, message_type, parameters, timestamp=None):
         if not self.mqtt_client:
             self.connect()
         message_struct = {
-            'type': type,
+            'type': message_type,
             'parameters': parameters
         }
         if timestamp:

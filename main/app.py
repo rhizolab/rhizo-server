@@ -64,12 +64,12 @@ else:
 
 
 @app.errorhandler(403)
-def forbidden(error):
+def forbidden(error):  # pylint: disable=unused-argument
     return render_template('403.html'), 403
 
 
 @app.errorhandler(404)
-def not_found(error):
+def not_found(error):  # pylint: disable=unused-argument
     return render_template('404.html'), 404
 
 # require SSL for all pages; based on code from http://stackoverflow.com/questions/32237379/python-flask-redirect-to-https-from-http
@@ -133,5 +133,5 @@ def file_hash(local_file_name):
 
 
 # add static file function for templates
-app.jinja_env.globals['static_file'] = static_file
-app.jinja_env.globals['ext_static_file'] = ext_static_file
+app.add_template_global(name='static_file', f=static_file)
+app.add_template_global(name='ext_static_file', f=ext_static_file)

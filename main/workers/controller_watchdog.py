@@ -70,6 +70,7 @@ def controller_watchdog():
 
         # handle all exceptions because we don't want an error in this code (e.g. sending email or bad status/controller data) stopping all
         # notifications
+        # pylint: disable=broad-except
         except Exception as e:
             print('controller_watchdog error: %s' % str(e))
             worker_log('controller_watchdog', str(e))

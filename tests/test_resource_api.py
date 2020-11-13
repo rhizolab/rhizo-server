@@ -9,12 +9,16 @@ import pytest
 from main.resources.models import Resource
 
 
+@pytest.mark.usefixtures('api', 'folder_resource')
 class TestResourceOperations:
     @pytest.fixture(autouse=True)
-    def setup(self, client, api, folder_resource):
+    def setup(self, client):
+        # pylint: disable=attribute-defined-outside-init
         self.client = client
 
     def _write_then_read(self, content: Union[bytes, str]):
+        # https://github.com/PyCQA/pylint/issues/3882
+        # pylint: disable=unsubscriptable-object
         """Write a file and then read it again to make sure the content matches."""
         url_prefix = '/api/v1/resources'
         folder = '/folder'
@@ -132,7 +136,9 @@ class TestResourceOperations:
 
 class TestSendMessage:
     @pytest.fixture(autouse=True)
-    def setup(self, client, folder_resource, user_resource, controller_key_resource):
+    @pytest.mark.usefixtures('folder_resource')
+    def setup(self, client, user_resource, controller_key_resource):
+        # pylint: disable=attribute-defined-outside-init
         auth = base64.b64encode(
             f'{user_resource.user_name}:{controller_key_resource.text}'.encode()).decode()
         self.headers = {'Authorization': f'Basic {auth}'}

@@ -53,43 +53,43 @@ def access_level(permissions, controller_id=None):
 
     # take max level of all applicable permissions
     for permission_record in permissions:
-        (type, id, level) = permission_record
+        (permission_type, principal_id, level) = permission_record
 
         # applies to everyone
-        if type == ACCESS_TYPE_PUBLIC:
+        if permission_type == ACCESS_TYPE_PUBLIC:
             client_access_level = max(client_access_level, level)
 
         # applies if current user is contained within the organization given by the permission ID
-        elif type == ACCESS_TYPE_ORG_USERS:
+        elif permission_type == ACCESS_TYPE_ORG_USERS:
             if user_id:
                 try:
-                    OrganizationUser.query.filter(OrganizationUser.user_id == user_id, OrganizationUser.organization_id == id).one()
+                    OrganizationUser.query.filter(OrganizationUser.user_id == user_id, OrganizationUser.organization_id == principal_id).one()
                     client_access_level = max(client_access_level, level)
                     break
                 except NoResultFound:
                     pass
 
         # applies if current controller is contained within the organization given by the permission ID
-        elif type == ACCESS_TYPE_ORG_CONTROLLERS:
+        elif permission_type == ACCESS_TYPE_ORG_CONTROLLERS:
             if controller_id:
                 try:
                     controller = Resource.query.filter(Resource.id == controller_id, not_(Resource.deleted)).one()
                     # fix(soon): remove this after all resources have org ids
                     controller_org_id = controller.organization_id if controller.organization_id else controller.root().id
-                    if controller_org_id == id:
+                    if controller_org_id == principal_id:
                         client_access_level = max(client_access_level, level)
                     break
                 except NoResultFound:
                     pass
 
         # applies if permission ID is the same as current user ID
-        elif type == ACCESS_TYPE_USER:
-            if user_id and user_id == id:
+        elif permission_type == ACCESS_TYPE_USER:
+            if user_id and user_id == principal_id:
                 client_access_level = max(client_access_level, level)
 
         # applies if permission ID is the same as current controller ID
-        elif type == ACCESS_TYPE_CONTROLLER:
-            if controller_id and controller_id == id:
+        elif permission_type == ACCESS_TYPE_CONTROLLER:
+            if controller_id and controller_id == principal_id:
                 client_access_level = max(client_access_level, level)
 
     return client_access_level

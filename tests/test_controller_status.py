@@ -1,6 +1,8 @@
 import datetime
 import json
 
+import pytest
+
 from main.resources.models import ControllerStatus
 from main.messages.socket_receiver import process_web_socket_message
 from main.messages.web_socket_connection import WebSocketConnection
@@ -19,7 +21,8 @@ def test_controller_watchdog(db_session, controller_resource):
     assert delta.total_seconds() < 60
 
 
-def test_controller_status(db_session, controller_resource, client, app, api):
+@pytest.mark.usefixtures('app', 'api')
+def test_controller_status(db_session, controller_resource, client):
     assert client.put("/api/v1/resources/folder/controller",
                       content_type="application/x-www-form-urlencoded",
                       data={"status": """{"foo":"bar"}"""}).status_code == 200

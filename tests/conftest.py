@@ -10,6 +10,7 @@ import pytest
 os.environ['RHIZO_SERVER_DISABLE_ENVIRONMENT'] = 'True'
 os.environ['RHIZO_SERVER_SETTINGS'] = str(pathlib.Path(__file__).parent) + '/disclaimer.py'
 
+# pylint: disable=wrong-import-position
 from main.api.messages import MessageList  # noqa E402
 from main.api.resources import ResourceList, ResourceRecord  # noqa E402
 import main.app  # noqa E402
@@ -19,9 +20,12 @@ from main.resources.resource_util import create_system_resources  # noqa E402
 from main.users.auth import create_key  # noqa E402
 from main.users.models import User  # noqa E402
 from main.users.permissions import ACCESS_TYPE_PUBLIC, ACCESS_LEVEL_WRITE  # noqa E402
+# pylint: enable=wrong-import-position
+
+# The function names in this module are used as arguments so pytest can build the fixture dependency graph.
+# pylint: disable=redefined-outer-name
 
 
-# noinspection PyUnresolvedReferences
 @pytest.fixture(scope='session')
 def _db(app):
     """A clean database initialized with system resources.
@@ -51,8 +55,8 @@ def app(request):
         try:
             psql = request.getfixturevalue('postgresql_proc')
             uri = f'postgresql+psycopg2://{psql.user}:@{psql.host}:{psql.port}/'
-        except pytest.FixtureLookupError:
-            raise Exception('TEST_POSTGRESQL was set but pytest-postgresql was not installed')
+        except pytest.FixtureLookupError as error:
+            raise Exception('TEST_POSTGRESQL was set but pytest-postgresql was not installed') from error
     else:
         uri = 'sqlite://'
 
@@ -128,7 +132,8 @@ def user_resource(db_session):
 
 
 @pytest.fixture(scope='function')
-def controller_key_resource(db_session, user_resource, organization_resource, controller_resource):
+@pytest.mark.usefixtures('db_session')
+def controller_key_resource(user_resource, organization_resource, controller_resource):
     """A Key that accesses data as a controller. This can be used to make authenticated requests.
 
     This generates a random secret key. The secret key in plaintext form is added to the object

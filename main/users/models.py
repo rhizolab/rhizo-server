@@ -17,7 +17,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
-        return '%d: %s' % (self.id, self.email_address)
+        return '%d: %s' % (int(self.id), self.email_address)
 
     def as_dict(self):
         return {
