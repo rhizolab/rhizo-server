@@ -103,7 +103,7 @@ def hash_password(password):
 
 
 # create a new access key associated with a user or controller
-def create_key(creation_user_id, organization_id, access_as_user_id, access_as_controller_id, key_text = None):
+def create_key(creation_user_id, organization_id, access_as_user_id, access_as_controller_id, key_text=None):
 
     # compute the key text
     if not key_text:

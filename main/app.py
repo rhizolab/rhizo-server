@@ -75,7 +75,7 @@ def not_found(error):
 def force_secure():
     if app.config.get('FORCE_SSL', False) and request.headers.get('X-Forwarded-Proto', 'http') != 'https':  # fix(later): use request.startswith('https') for non-heroku installations
         url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code = 301)
+        return redirect(url, code=301)
 
 # start the socket sender
 socket_sender = SocketSender()

@@ -41,5 +41,5 @@ class MessageList(ApiResource):
         parameters = json.loads(request.values['parameters'])
         sender_controller_id = key.access_as_controller_id  # None if access as user
         sender_user_id = key.access_as_user_id  # None if access as controller
-        message_queue.add(folder.id, None, type, parameters, sender_controller_id = sender_controller_id, sender_user_id = sender_user_id)
+        message_queue.add(folder.id, None, type, parameters, sender_controller_id=sender_controller_id, sender_user_id=sender_user_id)
         return {'status': 'ok'}

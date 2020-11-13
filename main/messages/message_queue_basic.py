@@ -12,7 +12,7 @@ class MessageQueueBasic(MessageQueue):
         self._start_timestamp = datetime.datetime.utcnow()
 
     # add a single message to the queue
-    def add(self, folder_id, folder_path, type, parameters = None, sender_controller_id = None, sender_user_id = None, timestamp = None):
+    def add(self, folder_id, folder_path, type, parameters=None, sender_controller_id=None, sender_user_id=None, timestamp=None):
         # fix(soon): add warning if type is too long
         from main.messages.models import Message  # would like to do at top, but creates import loop in __init__
         from main.app import db  # would like to do at top, but creates import loop in __init__

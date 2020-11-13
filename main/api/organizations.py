@@ -34,7 +34,7 @@ class OrganizationList(ApiResource):
     def get(self):
         if current_user.role == current_user.SYSTEM_ADMIN:
             organizations = Resource.query.filter(Resource.type == Resource.ORGANIZATION_FOLDER)
-            return {org.id: org.as_dict(extended = True) for org in organizations}
+            return {org.id: org.as_dict(extended=True) for org in organizations}
         else:  # fix(soon): rework this
             org_users = OrganizationUser.query.filter(OrganizationUser.user_id == current_user.id)
             org_resources = [org_user.organization for org_user in org_users]

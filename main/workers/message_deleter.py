@@ -12,7 +12,7 @@ def message_deleter():
     while True:
         delete_count = 0
         start_time = time.time()
-        thresh = datetime.datetime.utcnow() - datetime.timedelta(hours = 1)
+        thresh = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         messages = Message.query.filter(Message.timestamp < thresh)
         delete_count = messages.count()
         messages.delete()

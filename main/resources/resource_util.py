@@ -218,7 +218,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
     # create a short lived update message for subscribers to the folder containing this sequence
     if emit_message:
         folder_path = resource_path.rsplit('/', 1)[0]
-        message_queue.add(folder_id = resource.parent_id, folder_path = folder_path, type = 'sequence_update', parameters = message_params, timestamp = timestamp)
+        message_queue.add(folder_id=resource.parent_id, folder_path=folder_path, type='sequence_update', parameters=message_params, timestamp=timestamp)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
@@ -243,7 +243,7 @@ def add_resource_revision(resource, timestamp, data):
 
 # reads the most recent revision/value of a resource;
 # if check_timing is True, will display some timing diagnostics
-def read_resource(resource, revision_id = None, check_timing = False):
+def read_resource(resource, revision_id=None, check_timing=False):
     data = None
     if not revision_id:
         revision_id = resource.last_revision_id  # if no last revision, this is a new resource with new data
@@ -267,7 +267,7 @@ def read_resource(resource, revision_id = None, check_timing = False):
 
 
 # create a new sequence resource; commits it to database and returns resource record
-def create_sequence(parent_resource, name, data_type, max_history = 10000, units = None):
+def create_sequence(parent_resource, name, data_type, max_history=10000, units=None):
     r = Resource()
     r.parent_id = parent_resource.id
     r.organization_id = parent_resource.organization_id
