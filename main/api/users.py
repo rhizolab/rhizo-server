@@ -15,28 +15,28 @@ from main.users.models import User
 class UserRecord(ApiResource):
 
     # get information about a user
-    def get(self, id):
+    def get(self, user_id):
 
         # a special case for checking whether an account exists
         # fix(soon): carefully throttle this endpoint
         if request.values.get('check_exists', False):
             try:
-                u = User.query.filter(User.email_address == id).one()
+                u = User.query.filter(User.email_address == user_id).one()
                 return {'exists': 1}
             except NoResultFound:
                 try:
-                    u = User.query.filter(User.user_name == id).one()
+                    u = User.query.filter(User.user_name == user_id).one()
                     return {'exists': 1}
                 except NoResultFound:
                     return {'exists': 0}
 
         # normal user lookup
         elif current_user.is_authenticated:
-            if current_user.id == id:
+            if current_user.id == user_id:
                 return current_user.as_dict()
             elif current_user.role == current_user.SYSTEM_ADMIN:
                 try:
-                    u = User.query.filter(User.id == id).one()
+                    u = User.query.filter(User.id == user_id).one()
                 except NoResultFound:
                     abort(404)
                 return u.as_dict()
@@ -44,11 +44,11 @@ class UserRecord(ApiResource):
                 abort(403)
 
     # delete a user
-    def delete(self, id):
+    def delete(self, user_id):
         pass  # requires admin
 
     # update a user
-    def put(self, id):
+    def put(self, user_id):
         pass  # requires admin
 
 

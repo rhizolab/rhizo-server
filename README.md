@@ -147,6 +147,7 @@ Coding style guidelines:
 
 *   Maximum line length is 150 characters.
 *   Python code should be PEP8 compliant.
+*   pylint should not produce any warnings or errors (when run with the included `.pylintrc`).
 *   Aim to use single quotes around strings.
 *   Template variables should have spaces just inside brackes: `{{ template_var }}`
 *   Use underscores for database fields, API parameters, message types, and message parameters.

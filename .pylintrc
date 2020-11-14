@@ -1,0 +1,16 @@
+[MESSAGES CONTROL]
+# Only show errors, and suppress E1101 (no-member) because it spews false positives
+# on Flask-SQLAlchemy code due to that library's use of dynamically-created classes.
+disable=C,
+        R,
+        no-member
+
+[MISCELLANEOUS]
+# List of note tags to take in consideration, separated by a comma.
+notes=FIXME,
+      XXX,
+      TODO,
+      fix(soon)
+
+# Regular expression of note tags to take in consideration.
+#notes-rgx=

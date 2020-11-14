@@ -83,7 +83,7 @@ def handle_send_text_message(controller_id, parameters):
 
 
 # check the rate limiting on an action such as sending an email or text
-def check_and_update_throttle(controller_id, type):
+def check_and_update_throttle(controller_id, action_type):
 
     # get timestamp
     dt = datetime.datetime.utcnow()
@@ -92,7 +92,7 @@ def check_and_update_throttle(controller_id, type):
 
     # if existing record, check recent usage
     try:
-        action_throttle = ActionThrottle.query.filter(ActionThrottle.controller_id == controller_id, ActionThrottle.type == type).one()
+        action_throttle = ActionThrottle.query.filter(ActionThrottle.controller_id == controller_id, ActionThrottle.type == action_type).one()
         recent_usage = [int(ts) for ts in action_throttle.recent_usage.split(',')]
         recent_usage = [ts for ts in recent_usage if ts > threshold]
         recent_usage.append(timestamp)
@@ -105,7 +105,7 @@ def check_and_update_throttle(controller_id, type):
     except NoResultFound:
         action_throttle = ActionThrottle()
         action_throttle.controller_id = controller_id
-        action_throttle.type = type
+        action_throttle.type = action_type
         action_throttle.recent_usage = str(timestamp)
         db.session.add(action_throttle)
         db.session.commit()

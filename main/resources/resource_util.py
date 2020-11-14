@@ -160,16 +160,16 @@ def split_camel_case(name):
 # determine (guess) the mimetype of a file based on its file name extension
 def mime_type_from_ext(file_name):
     file_ext = file_name.rsplit('.', 1)[-1]
-    type = ''
+    mime_type = ''
     if file_ext == 'jpg':
-        type = 'image/jpeg'
+        mime_type = 'image/jpeg'
     elif file_ext == 'png':
-        type = 'image/png'
+        mime_type = 'image/png'
     elif file_ext == 'txt':
-        type = 'text/plain'
+        mime_type = 'text/plain'
     elif file_ext == 'csv':
-        type = 'text/csv'
-    return type
+        mime_type = 'text/csv'
+    return mime_type
 
 
 # this is a high-level function for setting the value of a sequence;
@@ -207,7 +207,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
         if data_type == Resource.IMAGE_SEQUENCE:
             max_width = 240
             name = 'thumbnail-%d-x' % max_width
-            (thumbnail_contents, thumbnail_width, thumbnail_height) = compute_thumbnail(value, max_width)
+            thumbnail_contents = compute_thumbnail(value, max_width)[0]
             try:
                 thumbnail_resource = Resource.query.filter(Resource.parent_id == resource.id, Resource.name == name, not_(Resource.deleted)).one()
             except NoResultFound:
@@ -221,7 +221,7 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
     if emit_message:
         folder_path = resource_path.rsplit('/', 1)[0]
         message_queue.add(
-            folder_id=resource.parent_id, folder_path=folder_path, type='sequence_update', parameters=message_params, timestamp=timestamp)
+            folder_id=resource.parent_id, folder_path=folder_path, message_type='sequence_update', parameters=message_params, timestamp=timestamp)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);

@@ -22,6 +22,8 @@ from main.messages.web_socket_connection import WebSocketConnection
 from main.resources.models import Resource, ControllerStatus
 from main.resources.resource_util import find_resource, update_sequence_value
 
+VERBOSE = False
+
 
 # The MessageSubscription class represents a client subscription to messages associated with a set of folders.
 class MessageSubscription(object):
@@ -34,14 +36,14 @@ class MessageSubscription(object):
         if self.include_children:  # fix(later): limit this to a certain number and return warning if too many
             resource = Resource.query.filter(Resource.id == folder_id, not_(Resource.deleted)).one()
             self.folder_ids += resource.descendent_folder_ids()
-            if False:  # check verbosity level
+            if VERBOSE:  # check verbosity level
                 print('subscribe folder IDs: %s' % self.folder_ids)
 
     # returns true if a given message record matches this subscription
     def matches(self, message):
         folder_matches = message.folder_id in self.folder_ids
         type_matches = (self.message_type is None or self.message_type == message.type)
-        if False:  # check verbosity level
+        if VERBOSE:  # check verbosity level
             print('        folderMatches: %d, typeMatches: %d' % (folder_matches, type_matches))
         return folder_matches and type_matches
 
@@ -106,26 +108,26 @@ def manage_web_socket(ws):
 # handle a message received from a websocket
 # fix(later): add more comprehensive approach to authentication on websocket messages; currently just check for a couple types
 def process_web_socket_message(message_struct, ws_conn):
-    type = message_struct['type']
+    message_type = message_struct['type']
     message_debug = False
 
     # handle new connection; no longer used; websocket should be authenticated using HTTP basic auth
-    if type == 'connect':
+    if message_type == 'connect':
         pass
 
     # handle watchdog message (updates controller status record)
-    elif type == 'watchdog':
+    elif message_type == 'watchdog':
         if ws_conn.controller_id:
             controller_status = ControllerStatus.query.filter(ControllerStatus.id == ws_conn.controller_id).one()
             controller_status.last_watchdog_timestamp = datetime.datetime.utcnow()
             db.session.commit()
 
     # handle ping (does nothing; used to keep connection active)
-    elif type == 'ping':
+    elif message_type == 'ping':
         pass
 
     # handle subscription (used to subscribe to messages from one or more folders)
-    elif type == 'subscribe':
+    elif message_type == 'subscribe':
 
         # process the subscription
         parameters = message_struct['parameters']
@@ -156,10 +158,10 @@ def process_web_socket_message(message_struct, ws_conn):
                 ws_conn.subscriptions.append(MessageSubscription(folder_id, message_type, include_children=include_children))
 
     # fix(soon): remove this case after clients are updated
-    elif type == 'setNode' or type == 'updateSequence' or type == 'update_sequence':
+    elif message_type == 'setNode' or message_type == 'updateSequence' or message_type == 'update_sequence':
         if ws_conn.controller_id:
             parameters = message_struct['parameters']
-            if type == 'setNode':  # fix(soon): remove this case
+            if message_type == 'setNode':  # fix(soon): remove this case
                 seq_name = parameters['node']
             else:
                 seq_name = parameters['sequence']
@@ -188,7 +190,7 @@ def process_web_socket_message(message_struct, ws_conn):
             db.session.commit()
 
     # update a resource
-    elif type == 'write_resource':
+    elif message_type == 'write_resource':
         parameters = message_struct['parameters']
         if 'path' and 'data' in parameters:
             path = parameters['path']
@@ -209,17 +211,17 @@ def process_web_socket_message(message_struct, ws_conn):
             socket_sender.send_error(ws_conn, 'expected data and path parameters for write_resource message')
 
     # handle request for detailed message logging
-    elif type == 'debug_messaging':
+    elif message_type == 'debug_messaging':
         parameters = message_struct['parameters']
         enable = bool(parameters['enable'])
         socket_sender.debug_messaging(enable)
 
     # handle other action messages
-    elif type in ('sendEmail', 'sendTextMessage', 'send_email', 'send_text_message'):
+    elif message_type in ('sendEmail', 'sendTextMessage', 'send_email', 'send_text_message'):
         if ws_conn.controller_id:  # only support these messages from controllers, not browsers
-            if type == 'sendEmail' or type == 'send_email':
+            if message_type == 'sendEmail' or message_type == 'send_email':
                 handle_send_email(ws_conn.controller_id, message_struct['parameters'])
-            elif type == 'sendTextMessage' or type == 'send_text_message':
+            elif message_type == 'sendTextMessage' or message_type == 'send_text_message':
                 handle_send_text_message(ws_conn.controller_id, message_struct['parameters'])
 
     # for other types, assume that we want to create a message record
@@ -246,7 +248,7 @@ def process_web_socket_message(message_struct, ws_conn):
         elif ws_conn.controller_id:
             folder_id = ws_conn.controller_id
         else:
-            print('message (%s) without folder or controller; discarding' % type)
+            print('message (%s) without folder or controller; discarding' % message_type)
             return
 
         # if allowed, create a message for the folder
@@ -254,4 +256,5 @@ def process_web_socket_message(message_struct, ws_conn):
             parameters = message_struct['parameters']
             # fix(soon): can we move this spawn above access level check (might require request context)
             gevent.spawn(
-                message_queue.add, folder_id, None, type, parameters, sender_controller_id=ws_conn.controller_id, sender_user_id=ws_conn.user_id)
+                message_queue.add, folder_id, None, message_type, parameters, sender_controller_id=ws_conn.controller_id,
+                sender_user_id=ws_conn.user_id)

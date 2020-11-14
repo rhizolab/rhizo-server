@@ -39,6 +39,10 @@ jobs:
       run: |
         .venv/bin/flake8 --max-line-length=150 main tests
 
+    - name: Lint code
+      run: |
+        .venv/bin/pylint main tests
+
     - name: Prep config
       run: |
         .venv/bin/python prep_config.py
