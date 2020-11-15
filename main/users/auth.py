@@ -188,7 +188,7 @@ def message_auth_token(user_id):
 
     # find/create a key for this user
     if user_id:
-        keys = Key.query.filter(Key.access_as_user_id == user_id, Key.revocation_timestamp == None)
+        keys = Key.query.filter(Key.access_as_user_id == user_id, Key.revocation_timestamp.is_(None))
         if keys.count():
             key_hash = keys[0].key_hash
             print('using existing key: %s' % key_hash)
@@ -207,7 +207,7 @@ def message_auth_token(user_id):
         key_hash = ''
         key_id = 0
 
-    # generate the 
+    # generate the token
     nonce = generate_access_code(10)
     timestamp = int(time.time())
     hash_message = '%d,%d,%s,%s,%s' % (timestamp, key_id, nonce, salt, key_hash)
