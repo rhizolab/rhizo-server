@@ -11,8 +11,8 @@ from sqlalchemy.orm.exc import NoResultFound
 
 # internal imports
 from main.app import db
-from main.users.permissions import generate_access_code, access_level, ACCESS_LEVEL_WRITE
-from main.users.auth import create_key
+from main.users.permissions import access_level, ACCESS_LEVEL_WRITE
+from main.users.auth import create_key, generate_access_code
 from main.resources.models import Resource, Pin
 from main.resources.resource_util import find_resource
 

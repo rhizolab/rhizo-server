@@ -10,8 +10,7 @@ from flask_login import current_user
 
 # internal imports from outside API directory
 from main.app import app, api_
-from main.users.permissions import generate_access_code
-from main.users.auth import message_auth_token
+from main.users.auth import message_auth_token, generate_access_code
 from main.messages.socket_receiver import manage_web_socket
 
 

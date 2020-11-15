@@ -1,6 +1,7 @@
 # standard python imports
 import time  # fix(clean): remove
 import random
+import string
 import base64
 import hashlib
 import datetime
@@ -16,7 +17,7 @@ from sqlalchemy.orm.exc import NoResultFound
 # internal imports
 from main.app import db
 from main.app import login_manager
-from main.users.models import User, Key
+from main.users.models import User, Key, OrganizationUser
 from main.util import load_server_config  # fix(clean): remove?
 
 
@@ -107,7 +108,6 @@ def create_key(creation_user_id, organization_id, access_as_user_id, access_as_c
 
     # compute the key text
     if not key_text:
-        from main.users.permissions import generate_access_code  # import here to avoid import loop
         key_text = current_app.config['KEY_PREFIX'] + generate_access_code(50)
 
     # create a key record
@@ -159,6 +159,14 @@ def make_code(length):
     return ''.join(code)
 
 
+# generate a random alphanumeric code
+# fix(clean): merge with other similar functions
+def generate_access_code(length):
+    letter_choices = string.ascii_uppercase + string.digits
+    letters = [random.SystemRandom().choice(letter_choices) for x in range(length)]
+    return ''.join(letters)
+
+
 # temp function to migrate password hashing algorithms
 def migrate_passwords():
     users = User.query.order_by('id')
@@ -177,7 +185,31 @@ def message_auth_token(user_id):
     except RuntimeError:  # handle case that we're running outside app (e.g. in a worker process)
         config = load_server_config()
         salt = config['MESSAGE_TOKEN_SALT']
+
+    # find/create a key for this user
+    if user_id:
+        keys = Key.query.filter(Key.access_as_user_id == user_id, Key.revocation_timestamp == None)
+        if keys.count():
+            key_hash = keys[0].key_hash
+            print('using existing key: %s' % key_hash)
+            key_id = keys[0].id
+        else:
+            org_users = OrganizationUser.query.filter(OrganizationUser.user_id == user_id)
+            if org_users.count():
+                organization_id = org_users[0].organization_id  # for now we'll just create a key for one organization; revisit this
+                (key, _) = create_key(user_id, organization_id, user_id, 0)
+                key_hash = key.key_hash
+                key_id = key.id
+                print('creating new key: %s' % key_hash)
+            else:
+                return ''
+    else:  # this case is used for inter-server access; we could create special keys for inter-server access (access from another server, not a user)
+        key_hash = ''
+        key_id = 0
+
+    # generate the 
+    nonce = generate_access_code(10)
     timestamp = int(time.time())
-    hash_message = '%d;%d;%s' % (user_id, timestamp, salt)
+    hash_message = '%d,%d,%s,%s,%s' % (timestamp, key_id, nonce, salt, key_hash)
     b64hash = base64.standard_b64encode(hashlib.sha512(hash_message.encode()).digest()).decode()
-    return '1;%d;%d;%s' % (user_id, timestamp, b64hash)
+    return '0,%d,%d,%s,%s' % (timestamp, key_id, nonce, b64hash)

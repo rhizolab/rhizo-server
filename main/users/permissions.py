@@ -1,5 +1,3 @@
-import random
-import string
 from flask import request
 from flask_login import current_user
 from sqlalchemy import not_
@@ -93,11 +91,3 @@ def access_level(permissions, controller_id=None):
                 client_access_level = max(client_access_level, level)
 
     return client_access_level
-
-
-# generate a random alphanumeric code
-# fix(clean): merge with other similar functions
-def generate_access_code(length):
-    letter_choices = string.ascii_uppercase + string.digits
-    letters = [random.SystemRandom().choice(letter_choices) for x in range(length)]
-    return ''.join(letters)

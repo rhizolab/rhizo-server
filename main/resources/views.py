@@ -84,7 +84,7 @@ def view_item(item_path):
                 abort(404)
         else:
             try:
-                folder = Resource.query.filter(Resource.parent.is_(None), Resource.name == path_part, not_(Resource.deleted)).one()
+                folder = Resource.query.filter(Resource.parent_id.is_(None), Resource.name == path_part, not_(Resource.deleted)).one()
             except NoResultFound:
                 pass
 
