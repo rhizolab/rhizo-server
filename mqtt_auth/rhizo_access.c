@@ -6,6 +6,9 @@
 #include "rhizo_access.h"
 
 
+#define MAX_TOKEN_LEN 200
+
+
 // adapted from https://github.com/jpmens/mosquitto-auth-plug
 static char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 int base64_encode(const void *data, int size, char *output, int output_len) {
@@ -38,6 +41,14 @@ int base64_encode(const void *data, int size, char *output, int output_len) {
 }
 
 
+void checkQueryResult(PGresult *res) {
+	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresStatus(PQresultStatus(res)));
+		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresultErrorMessage(res));
+	}
+}
+
+
 // compute the inner hash of a password using system's salt
 void inner_password_hash(const char *password, const char *salt, char *hash, int hash_len) {
 
@@ -63,10 +74,7 @@ int root_resource_id(PGconn *db_conn, int resource_id) {
 
 	// run the query
 	PGresult *res = PQexec(db_conn, query_sql);
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresStatus(PQresultStatus(res)));
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresultErrorMessage(res));
-	}
+	checkQueryResult(res);
 
 	// check result records
 	int parent_id = -1;
@@ -112,10 +120,7 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 
 	// run the query
 	PGresult *res = PQexec(db_conn, query_sql);
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresStatus(PQresultStatus(res)));
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresultErrorMessage(res));
-	}
+	checkQueryResult(res);
 
 	// check result records
 	int found_controller_id = -1;
@@ -155,7 +160,10 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 // permissions string will be allocated and must be free'd outside (if not NULL)
 int organization_info(PGconn *db_conn, const char *path, char **permissions) {
 	*permissions = NULL;
-	path += 1;  // skip initial slash
+	if (path[0] == '/') {  // normal rhizo paths start with leading slash, but these are MQTT topic paths that don't
+		fprintf(stderr, "rhizo_access/organization_info: unexpected leading slash\n");
+		return -1;
+	}
 	char *slash = strchr(path, '/');
 	int len = slash - path;
 	if (len > 100) len = 100;  // reconsider this
@@ -174,10 +182,7 @@ int organization_info(PGconn *db_conn, const char *path, char **permissions) {
 
 	// run the query
 	PGresult *res = PQexec(db_conn, query_sql);
-	if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresStatus(PQresultStatus(res)));
-		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresultErrorMessage(res));
-	}
+	checkQueryResult(res);
 
 	// get organization info
 	int resource_id = -1;
@@ -192,8 +197,8 @@ int organization_info(PGconn *db_conn, const char *path, char **permissions) {
 }
 
 
-// determines a controller's access level for a given path
-int controller_access_level(PGconn *db_conn, const char *path, int controller_id, int controller_org_id) {
+// determines a controller's access level for a given path (without leading slash)
+int controller_access_level(PGconn *db_conn, const char *path, int controller_id, int controller_org_id, int verbose) {
 
 	// for now we just check that topic path organization matches controller organization
 	char *permissions = NULL;
@@ -205,7 +210,9 @@ int controller_access_level(PGconn *db_conn, const char *path, int controller_id
 		free(permissions);
 		return ACCESS_LEVEL_NONE;
 	}
-	fprintf(stderr, "rhizo_access: org id: %d, permissions: %s\n", org_id, permissions);
+	if (verbose) {
+		fprintf(stderr, "rhizo_access: org id: %d, permissions: %s\n", org_id, permissions);
+	}
 	free(permissions);
 	return ACCESS_LEVEL_WRITE;
 }
@@ -247,4 +254,108 @@ int check_token(const char *token, const char *msg_token_salt) {
 	} else {
 		return -1;
 	}
+}
+
+
+// returns the user ID if token is valid; otherwise returns -1
+// token format: token_version,unix_timestamp,key_id,nonce,base64(sha-512(unix_timestamp,key_id,nonce,msg_token_salt,key_hash))
+int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, int verbose) {
+
+	// handle old token format
+	if (token[0] == '1' && token[1] == ';') {
+		return check_token(token, msg_token_salt);
+	}
+
+	// check token length so we don't get buffer overflows in the following steps
+	if (strlen(token) > MAX_TOKEN_LEN) {
+		fprintf(stderr, "rhizo_access: token too long\n");
+		return -1;
+	}
+
+	// parse the token
+	int token_version = -1;
+	int unix_timestamp = -1;
+	int key_id = -1;
+	char nonce[MAX_TOKEN_LEN];
+	char given_body[MAX_TOKEN_LEN];
+	char token_copy[MAX_TOKEN_LEN];
+	strcpy(token_copy, token);
+	int len = strlen(token);
+	for (int i = len - 1; i > 0; i--) {
+		if (token[i] == ',') {  // find last comma; everything after that is given_body
+			strcpy(given_body, token + i + 1);
+			token_copy[i] = 0;  // will use sscanf to parse the text before the last comma
+			break;
+		}
+	}
+	sscanf(token_copy, "%d,%d,%d,%s", &token_version, &unix_timestamp, &key_id, nonce);
+
+	// check token format
+	if (token_version != 0 || key_id < 0 || unix_timestamp <= 0 || strlen(nonce) < 1 || strlen(given_body) < 1) {
+		fprintf(stderr, "rhizo_access: invalid token format\n");
+		return -1;
+	}
+
+	// get key from database
+	int user_id = -1;
+	char key_hash[200];
+	key_hash[0] = 0;  // handle the case that key_id == 0, indicating inter-server access (access from another server, not a user)
+	if (key_id) {
+		char query_sql[200];
+		snprintf(query_sql, 200, "SELECT access_as_user_id, key_hash FROM keys WHERE id=%d AND revocation_timestamp IS NULL;", user_id);
+		PGresult *res = PQexec(db_conn, query_sql);
+		checkQueryResult(res);
+		if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
+			user_id = atoi(PQgetvalue(res, 0, 0));
+			strncpy(key_hash, PQgetvalue(res, 0, 1), 200);
+		}
+	} else {
+		user_id = 0;
+	}
+
+	// compute token hash contents
+	char contents[1000];
+	snprintf(contents, 1000, "%d,%d,%s,%s,%s", unix_timestamp, key_id, nonce, msg_token_salt, key_hash);
+
+	// compute SHA-512 hash
+	unsigned char raw_hash[SHA512_DIGEST_LENGTH];
+	SHA512((unsigned char *) contents, strlen(contents), raw_hash);
+
+	// base64 encode the result
+	char computed_body[200];
+	base64_encode(raw_hash, SHA512_DIGEST_LENGTH, computed_body, 200);
+
+	// if computed body matches given body, token is valid and we can return the given user ID
+	if (strcmp(computed_body, given_body) == 0) {
+		return user_id;
+	} else {
+		return -1;
+	}
+}
+
+
+// determines a user's access level for a given path (without leading slash)
+int user_access_level(PGconn *db_conn, const char *path, int user_id, int verbose) {
+
+	// get organization corresponding to the topic path
+	char *permissions = NULL;
+	int org_id = organization_info(db_conn, path, &permissions);
+	if (org_id < 0) {
+		return ACCESS_LEVEL_NONE;
+	}
+
+	// for now we just check that user is member of organization
+	char query_sql[200];
+	snprintf(query_sql, 200, "SELECT id FROM organization_users WHERE user_id=%d AND organization_id=%d;", user_id, org_id);
+
+	// run the query
+	PGresult *res = PQexec(db_conn, query_sql);
+	checkQueryResult(res);
+
+	// if organization membership record was found, we'll allow user write access to the organization
+	int access_level = ACCESS_LEVEL_NONE;
+	if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
+		access_level = ACCESS_LEVEL_WRITE;
+	}
+	return access_level;
 }

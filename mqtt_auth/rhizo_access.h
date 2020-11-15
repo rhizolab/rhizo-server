@@ -15,12 +15,16 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 
 
 // determines a controller's access level for a given path
-int controller_access_level(PGconn *db_conn, const char *path, int controller_id, int controller_org_id);
+int controller_access_level(PGconn *db_conn, const char *path, int controller_id, int controller_org_id, int verbose);
 
 
-// checks that a message token is valid; if valid returns user_id; if not valid, returns -1
-// token format: token_version;user_id;unix_timestamp;base64(sha-512(user_id;unix_timestamp;msg_token_salt))
-int check_token(const char *token, const char *msg_token_salt);
+// returns the user ID if token is valid; otherwise returns -1
+// token format: token_version,unix_timestamp,key_id,nonce,base64(sha-512(unix_timestamp,key_id,nonce,msg_token_salt,key_hash))
+int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, int verbose);
+
+
+// determines a user's access level for a given path (without leading slash)
+int user_access_level(PGconn *db_conn, const char *path, int user_id, int verbose);
 
 
 #endif  // RHIZO_ACCESS_H

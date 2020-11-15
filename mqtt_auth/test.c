@@ -59,15 +59,35 @@ int main(int argc, char *argv[]) {
 	int controller_id = auth_controller(db, key, password_salt, &controller_org_id, 1);
 	printf("auth_controller result: %d; org: %d\n", controller_id, controller_org_id);
 
-	// check controller access
-	int level = controller_access_level(db, path, controller_id, controller_org_id);
+	// check controller access level
+	int level = controller_access_level(db, path + 1, controller_id, controller_org_id, 1);
 	printf("controller_access_level result: %d\n", level);
+	if (level != ACCESS_LEVEL_WRITE) {
+		printf("** errror **\n");
+		return -1;
+	}
 
 	// check user access token
-	int user_id = check_token("1;2;3;abc", msg_token_salt);
+	int user_id = auth_user(db, "1;2;3;abc", msg_token_salt, 1);
 	printf("dummy token check: %d\n", user_id);
-	user_id = check_token(token, msg_token_salt);
+	if (user_id != -1) {
+		printf("** errror **\n");
+		return -1;
+	}
+	user_id = auth_user(db, token, msg_token_salt, 1);
 	printf("loaded token check: %d\n", user_id);
+	if (user_id < 0) {
+		printf("** errror **\n");
+		return -1;
+	}
+
+	// check user access level
+	level = user_access_level(db, path + 1, user_id, 1);
+	printf("user_access_level result: %d\n", level);
+	if (level != ACCESS_LEVEL_WRITE) {
+		printf("** errror **\n");
+		return -1;
+	}
 
 	// clean up
 	PQfinish(db);

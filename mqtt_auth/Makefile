@@ -1,5 +1,6 @@
 BCRYPT    = /home/ubuntu/libbcrypt
-INC       = -I/usr/include/postgresql -I$(BCRYPT)
+MOSQ_SRC  = /home/ubuntu/mosquitto
+INC       = -I/usr/include/postgresql -I$(BCRYPT) -I$(MOSQ_SRC) -I$(MOSQ_SRC)/src -I$(MOSQ_SRC)/lib
 CFLAGS    = -Wall -Werror -fPIC
 LIBS      = -lpq -lcrypto
 

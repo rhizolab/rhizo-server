@@ -4,6 +4,8 @@
 #include <libpq-fe.h>
 #include <mosquitto.h>
 #include <mosquitto_plugin.h>
+#include <mosquitto_broker.h>  // for mosquitto_log_printf
+#include <mosquitto_internal.h>  // for struct mosquitto
 #include "rhizo_access.h"
 
 
@@ -92,6 +94,12 @@ int mosquitto_auth_plugin_version(void) {
 
 int mosquitto_auth_plugin_init(void **user_data, struct mosquitto_opt *opts, int opt_count) {
 	fprintf(stderr, "mqtt_auth_rhizo: plugin init\n");
+
+	// TODO: would be nice to use these instead of fprintf(stderr), but need to figure out settings to see them
+	mosquitto_log_printf(MOSQ_LOG_WARNING, "test log warning\n");
+	mosquitto_log_printf(MOSQ_LOG_NOTICE, "test log notice\n");
+	mosquitto_log_printf(MOSQ_LOG_INFO, "test log info\n");
+	mosquitto_log_printf(MOSQ_LOG_DEBUG, "test log debug\n");
 
 	// read options
 	const char *db_name = NULL;
@@ -183,11 +191,6 @@ int mosquitto_auth_security_cleanup(void *user_data, struct mosquitto_opt *opts,
 	return MOSQ_ERR_SUCCESS;
 }
 
-int mosquitto_auth_acl_check(void *user_data, int access, struct mosquitto *client, const struct mosquitto_acl_msg *msg) {
-	// use msg->topic and client->password
-	return MOSQ_ERR_SUCCESS;
-}
-
 int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const char *username, const char *password) {
 	AuthData *auth_data = (AuthData *) user_data;
 	if (username == NULL || password == NULL) {
@@ -202,11 +205,11 @@ int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const 
 		int controller_org_id = -1;
 		int controller_id = auth_controller(auth_data->db, password, auth_data->password_salt, &controller_org_id, auth_data->verbose);
 		if (controller_id < 0) {
-			fprintf(stderr, "mqtt_auth_rhizo: controller access denied\n");
+			fprintf(stderr, "mqtt_auth_rhizo: controller auth denied\n");
 			return MOSQ_ERR_AUTH;
 		} else {
 			if (auth_data->verbose) {
-				fprintf(stderr, "mqtt_auth_rhizo: controller %d access allowed\n", controller_id);
+				fprintf(stderr, "mqtt_auth_rhizo: controller %d auth allowed\n", controller_id);
 			}
 			//store_client_info(auth_data, password, controller_id, controller_org_id, 0);
 			return MOSQ_ERR_SUCCESS;
@@ -215,19 +218,63 @@ int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const 
 
 	// handle token-based authentication (for user's accessing via browser)
 	if (strcmp(username, "token") == 0) {
-		int user_id = check_token(password, auth_data->msg_token_salt);
+		int user_id = auth_user(auth_data->db, password, auth_data->msg_token_salt, auth_data->verbose);
 		if (user_id >= 0) {
 			if (auth_data->verbose) {
-				fprintf(stderr, "mqtt_auth_rhizo: user %d access allowed\n", user_id);
+				fprintf(stderr, "mqtt_auth_rhizo: user %d auth ok\n", user_id);
 			}
 			//store_client_info(auth_data, password, 0, 0, user_id);
 			return MOSQ_ERR_SUCCESS;
 		} else {
-			fprintf(stderr, "mqtt_auth_rhizo: token access denied\n");
+			fprintf(stderr, "mqtt_auth_rhizo: token auth denied\n");
 			return MOSQ_ERR_AUTH;
 		}
 	}
 
 	// deny access if didn't pass above checks
 	return MOSQ_ERR_AUTH;
+}
+
+int mosquitto_auth_acl_check(void *user_data, int access, struct mosquitto *client, const struct mosquitto_acl_msg *msg) {
+	AuthData *auth_data = (AuthData *) user_data;
+
+	// find client info
+	int h = hash((const unsigned char *) client->password);
+	ClientInfo *client_info = NULL;
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		ClientInfo *ci = &auth_data->clients[i];
+		if (ci->hash == h && strcmp(ci->password, client->password) == 0) {
+			client_info = ci;
+		}
+	}
+	if (client_info == NULL) {
+		//fprintf(stderr, "mqtt_auth_rhizo: client info not found\n");
+		//return MOSQ_ERR_ACL_DENIED;
+		return MOSQ_ERR_SUCCESS;  // temp for testing
+	}
+
+	// compute access level according to permissions in database
+	int access_level = ACCESS_LEVEL_NONE;
+	if (client_info->controller_id >= 0) {  // controller access
+		access_level = controller_access_level(auth_data->db, msg->topic, client_info->controller_id, client_info->controller_org_id, auth_data->verbose);
+	} else if (client_info->user_id == 0) {  // inter-server connection
+		access_level = ACCESS_LEVEL_WRITE;
+	} else {  // user access
+		access_level = user_access_level(auth_data->db, msg->topic, client_info->user_id, auth_data->verbose);
+	}
+	fprintf(stderr, "access path: %s, req level: %d, contr: %d, contr org: %d, user: %d, access: %d\n",
+		msg->topic, access, client_info->controller_id, client_info->controller_org_id, client_info->user_id, access_level);
+	return MOSQ_ERR_SUCCESS;  // temp for testing
+
+	// check access level vs requested access
+	if (access == MOSQ_ACL_READ) {  // requested read accesss
+		if (access_level >= ACCESS_LEVEL_READ) {
+			return MOSQ_ERR_SUCCESS;
+		}
+	} else {  // requested write access
+		if (access_level >= ACCESS_LEVEL_WRITE) {
+			return MOSQ_ERR_SUCCESS;
+		}
+	}
+	return MOSQ_ERR_ACL_DENIED;
 }
