@@ -17,7 +17,7 @@ app.config.update(config.defaults())
 app.config.from_pyfile(
     os.environ.get(
         'RHIZO_SERVER_SETTINGS',
-        str(pathlib.Path(__file__).parent.parent) + '/settings/config.py'),
+        str(pathlib.Path(__file__).parent.parent.resolve()) + '/settings/config.py'),
     silent=True)
 app.config.update(config.environment())
 
