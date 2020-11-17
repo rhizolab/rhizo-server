@@ -302,12 +302,16 @@ int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, in
 	key_hash[0] = 0;  // handle the case that key_id == 0, indicating inter-server access (access from another server, not a user)
 	if (key_id) {
 		char query_sql[200];
-		snprintf(query_sql, 200, "SELECT access_as_user_id, key_hash FROM keys WHERE id=%d AND revocation_timestamp IS NULL;", user_id);
+		snprintf(query_sql, 200, "SELECT access_as_user_id, key_hash FROM keys WHERE id=%d AND revocation_timestamp IS NULL;", key_id);
 		PGresult *res = PQexec(db_conn, query_sql);
 		checkQueryResult(res);
 		if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
 			user_id = atoi(PQgetvalue(res, 0, 0));
 			strncpy(key_hash, PQgetvalue(res, 0, 1), 200);
+		} else {
+			if (verbose) {
+				fprintf(stderr, "rhizo_access: key %d missing or revoked\n", key_id);
+			}
 		}
 	} else {
 		user_id = 0;

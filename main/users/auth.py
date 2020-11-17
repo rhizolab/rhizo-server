@@ -191,16 +191,14 @@ def message_auth_token(user_id):
         keys = Key.query.filter(Key.access_as_user_id == user_id, Key.revocation_timestamp.is_(None))
         if keys.count():
             key_hash = keys[0].key_hash
-            print('using existing key: %s' % key_hash)
             key_id = keys[0].id
         else:
             org_users = OrganizationUser.query.filter(OrganizationUser.user_id == user_id)
             if org_users.count():
                 organization_id = org_users[0].organization_id  # for now we'll just create a key for one organization; revisit this
-                (key, _) = create_key(user_id, organization_id, user_id, 0)
+                (key, _) = create_key(user_id, organization_id, user_id, None)
                 key_hash = key.key_hash
                 key_id = key.id
-                print('creating new key: %s' % key_hash)
             else:
                 return ''
     else:  # this case is used for inter-server access; we could create special keys for inter-server access (access from another server, not a user)
