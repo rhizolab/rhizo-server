@@ -4,41 +4,13 @@
 #include <openssl/sha.h>
 #include <bcrypt.h>
 #include "rhizo_access.h"
+#include "rhizo_access_util.h"
 
 
 #define MAX_TOKEN_LEN 200
 
 
-// adapted from https://github.com/jpmens/mosquitto-auth-plug
-static char base64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-int base64_encode(const void *data, int size, char *output, int output_len) {
-	char *p = output;
-	unsigned char *q = (unsigned char*)data;
-	if (output_len < size*4/3+4)
-		return -1;
-	for(int i = 0; i < size;){
-		int c=q[i++];
-		c*=256;
-		if(i < size)
-			c+=q[i];
-		i++;
-		c*=256;
-		if(i < size)
-			c+=q[i];
-		i++;
-		p[0]=base64[(c&0x00fc0000) >> 18];
-		p[1]=base64[(c&0x0003f000) >> 12];
-		p[2]=base64[(c&0x00000fc0) >> 6];
-		p[3]=base64[(c&0x0000003f) >> 0];
-		if(i > size)
-			p[3]='=';
-		if(i > size+1)
-			p[2]='=';
-		p+=4;
-	}
-	*p=0;
-	return 0;
-}
+// ======== misc helper functions ========
 
 
 void checkQueryResult(PGresult *res) {
@@ -46,25 +18,6 @@ void checkQueryResult(PGresult *res) {
 		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresStatus(PQresultStatus(res)));
 		fprintf(stderr, "rhizo_access: postgres error: %s\n", PQresultErrorMessage(res));
 	}
-}
-
-
-// compute the inner hash of a password using system's salt
-void inner_password_hash(const char *password, const char *salt, char *hash, int hash_len) {
-
-	// concatenate password and salt
-	int pw_len = strlen(password);
-	char *combined = (char *) malloc(pw_len + strlen(salt) + 1);
-	strcpy(combined, password);
-	strcpy(combined + pw_len, salt);
-
-	// compute SHA-512 hash
-	unsigned char raw_hash[SHA512_DIGEST_LENGTH];
-	SHA512((unsigned char *) combined, strlen(combined), raw_hash);
-
-	// base64 encode the result
-	base64_encode(raw_hash, SHA512_DIGEST_LENGTH, hash, hash_len);  // TODO: would be cleaner to encode directly into 'hash'
-	free(combined);
 }
 
 
@@ -93,6 +46,48 @@ int root_resource_id(PGconn *db_conn, int resource_id) {
 	}
 	return root_id;
 }
+
+
+// ======== caching ========
+
+
+// TODO: need to support arbitrary number of client; use LRU cache or hash table?
+void store_client_info(AuthData *auth_data, const char *password, int controller_id, int controller_org_id, int user_id) {
+	int h = hash((const unsigned char *) password);
+
+	// if existing entry, update it
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		ClientInfo *ci = &auth_data->clients[i];
+		if (ci->hash == h && strcmp(ci->password, password) == 0) {
+			ci->controller_id = controller_id;
+			ci->controller_org_id = controller_org_id;
+			ci->user_id = user_id;
+			if (auth_data->verbose) {
+				fprintf(stderr, "mqtt_auth_rhizo: updated client data in slot %d\n", i);
+			}
+			return;
+		}
+	}
+
+	// otherwise create a new one
+	if (auth_data->next_client_index < MAX_CLIENTS) {
+		ClientInfo *ci = &auth_data->clients[auth_data->next_client_index];
+		ci->hash = h;
+		ci->password = alloc_str_copy(password);
+		ci->controller_id = controller_id;
+		ci->controller_org_id = controller_org_id;
+		ci->user_id = user_id;
+		if (auth_data->verbose) {
+			fprintf(stderr, "mqtt_auth_rhizo: stored client data in slot %d\n", auth_data->next_client_index);
+		}
+		auth_data->next_client_index++;
+	} else {
+		fprintf(stderr, "mqtt_auth_rhizo: too many clients\n");
+	}
+}
+
+
+// ======== API ========
 
 
 int auth_controller(PGconn *db_conn, const char *secret_key, const char *password_salt, int *organization_id, int verbose) {

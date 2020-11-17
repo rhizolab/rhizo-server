@@ -6,10 +6,10 @@ LIBS      = -lpq -lcrypto
 
 all: mqtt_auth_rhizo.so test
 
-mqtt_auth_rhizo.so: mqtt_auth_rhizo.o rhizo_access.o $(BCRYPT)/bcrypt.o $(BCRYPT)/crypt_blowfish/*.o
+mqtt_auth_rhizo.so: mqtt_auth_rhizo.o rhizo_access.o rhizo_access_util.o $(BCRYPT)/bcrypt.o $(BCRYPT)/crypt_blowfish/*.o
 	$(CC) $(CFLAGS) $(INC) -shared $^ -o $@ $(LIBS)
 
-test: test.c rhizo_access.o
+test: test.c rhizo_access.o rhizo_access_util.o
 	$(CC) $(CFLAGS) $(INC) $^ -o test $(LIBS) $(BCRYPT)/bcrypt.o $(BCRYPT)/crypt_blowfish/*.o
 
 %.o: %.c

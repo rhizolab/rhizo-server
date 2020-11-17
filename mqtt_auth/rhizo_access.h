@@ -11,6 +11,28 @@
 #define ACCESS_LEVEL_WRITE 20
 
 
+#define MAX_CLIENTS 500
+
+
+typedef struct ClientInfo {
+	unsigned long hash;
+	char *password;
+	int controller_id;
+	int controller_org_id;
+	int user_id;
+} ClientInfo;
+
+
+typedef struct AuthData {
+	PGconn *db;
+	char *password_salt;
+	char *msg_token_salt;
+	int verbose;
+	ClientInfo *clients;
+	int next_client_index;
+} AuthData;
+
+
 int auth_controller(PGconn *db_conn, const char *secret_key, const char *password_salt, int *organization_id, int verbose);
 
 
