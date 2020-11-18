@@ -8,6 +8,7 @@
 
 
 #define MAX_TOKEN_LEN 200
+#define MAX_CLIENTS 500
 
 
 // ======== misc helper functions ========
@@ -48,6 +49,38 @@ int root_resource_id(PGconn *db_conn, int resource_id) {
 }
 
 
+// ======== a persistent data object ========
+
+
+AuthData *create_auth_data(PGconn *db, const char *password_salt, const char *msg_token_salt, int verbose) {
+	AuthData *auth_data = (AuthData *) malloc(sizeof(AuthData));
+	auth_data->db = db;
+	auth_data->password_salt = alloc_str_copy(password_salt);
+	auth_data->msg_token_salt = alloc_str_copy(msg_token_salt);
+	auth_data->verbose = verbose;
+	auth_data->clients = (ClientInfo *) malloc(MAX_CLIENTS * sizeof(ClientInfo));
+	auth_data->next_client_index = 0;
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		auth_data->clients[i].password = NULL;
+	}
+	return auth_data;
+}
+
+
+// does not close database
+void free_auth_data(AuthData *auth_data) {
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		if (auth_data->clients[i].password) {
+			free(auth_data->clients[i].password);
+		}
+	}
+	free(auth_data->clients);
+	free(auth_data->password_salt);
+	free(auth_data->msg_token_salt);
+	free(auth_data);
+}
+
+
 // ======== caching ========
 
 
@@ -56,14 +89,14 @@ void store_client_info(AuthData *auth_data, const char *password, int controller
 	int h = hash((const unsigned char *) password);
 
 	// if existing entry, update it
-	for (int i = 0; i < MAX_CLIENTS; i++) {
+	for (int i = 0; i < auth_data->next_client_index; i++) {
 		ClientInfo *ci = &auth_data->clients[i];
 		if (ci->hash == h && strcmp(ci->password, password) == 0) {
 			ci->controller_id = controller_id;
 			ci->controller_org_id = controller_org_id;
 			ci->user_id = user_id;
 			if (auth_data->verbose) {
-				fprintf(stderr, "mqtt_auth_rhizo: updated client data in slot %d\n", i);
+				fprintf(stderr, "rhizo_access: updated client data in slot %d\n", i);
 			}
 			return;
 		}
@@ -78,19 +111,32 @@ void store_client_info(AuthData *auth_data, const char *password, int controller
 		ci->controller_org_id = controller_org_id;
 		ci->user_id = user_id;
 		if (auth_data->verbose) {
-			fprintf(stderr, "mqtt_auth_rhizo: stored client data in slot %d\n", auth_data->next_client_index);
+			fprintf(stderr, "rhizo_access: stored client data in slot %d\n", auth_data->next_client_index);
 		}
 		auth_data->next_client_index++;
 	} else {
-		fprintf(stderr, "mqtt_auth_rhizo: too many clients\n");
+		fprintf(stderr, "rhizo_access: too many clients\n");
 	}
+}
+
+
+ClientInfo *find_client_info(AuthData *auth_data, const char *password) {
+	int h = hash((const unsigned char *) password);
+	ClientInfo *client_info = NULL;
+	for (int i = 0; i < MAX_CLIENTS; i++) {
+		ClientInfo *ci = &auth_data->clients[i];
+		if (ci->hash == h && strcmp(ci->password, password) == 0) {
+			client_info = ci;
+		}
+	}
+	return client_info;
 }
 
 
 // ======== API ========
 
 
-int auth_controller(PGconn *db_conn, const char *secret_key, const char *password_salt, int *organization_id, int verbose) {
+int auth_controller(AuthData *auth_data, const char *secret_key) {
 
 	// use beginning and end of key to look up candidate keys in the database
 	int key_len = strlen(secret_key);
@@ -100,12 +146,12 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 		key_part[i + 3] = secret_key[key_len - 3 + i];
 	}
 	key_part[6] = 0;
-	if (verbose) {
+	if (auth_data->verbose) {
 		fprintf(stderr, "rhizo_access: checking controller auth; key part: %s\n", key_part);
 	}
 
 	// prepare a query string
-	char *key_part_escaped = PQescapeLiteral(db_conn, key_part, strlen(key_part));  // try to avoid SQL injection attacks
+	char *key_part_escaped = PQescapeLiteral(auth_data->db, key_part, strlen(key_part));  // try to avoid SQL injection attacks
 	if (key_part_escaped == NULL) {
 		return -1;
 	}
@@ -114,20 +160,20 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 	PQfreemem(key_part_escaped);
 
 	// run the query
-	PGresult *res = PQexec(db_conn, query_sql);
+	PGresult *res = PQexec(auth_data->db, query_sql);
 	checkQueryResult(res);
 
 	// check result records
 	int found_controller_id = -1;
 	if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
 		int record_count = PQntuples(res);
-		if (verbose) {
+		if (auth_data->verbose) {
 			fprintf(stderr, "rhizo_access: found %d key record(s)\n", record_count);
 		}
 
 		// compute hash
 		char input_hash[200];
-		inner_password_hash(secret_key, password_salt, input_hash, 200);
+		inner_password_hash(secret_key, auth_data->password_salt, input_hash, 200);
 
 		// check hashes
 		for (int i = 0; i < record_count; i++) {
@@ -143,9 +189,10 @@ int auth_controller(PGconn *db_conn, const char *secret_key, const char *passwor
 	}
 	PQclear(res);
 
-	// determine which organization contains/owns the controller
+	// determine which organization contains/owns the controller; cache the data
 	if (found_controller_id >= 0) {
-		*organization_id = root_resource_id(db_conn, found_controller_id);
+		int organization_id = root_resource_id(auth_data->db, found_controller_id);
+		store_client_info(auth_data, secret_key, found_controller_id, organization_id, -1);
 	}
 	return found_controller_id;
 }
@@ -193,11 +240,11 @@ int organization_info(PGconn *db_conn, const char *path, char **permissions) {
 
 
 // determines a controller's access level for a given path (without leading slash)
-int controller_access_level(PGconn *db_conn, const char *path, int controller_id, int controller_org_id, int verbose) {
+int controller_access_level(AuthData *auth_data, const char *path, int controller_id, int controller_org_id) {
 
 	// for now we just check that topic path organization matches controller organization
 	char *permissions = NULL;
-	int org_id = organization_info(db_conn, path, &permissions);
+	int org_id = organization_info(auth_data->db, path, &permissions);
 	if (org_id < 0) {
 		return ACCESS_LEVEL_NONE;
 	}
@@ -205,7 +252,7 @@ int controller_access_level(PGconn *db_conn, const char *path, int controller_id
 		free(permissions);
 		return ACCESS_LEVEL_NONE;
 	}
-	if (verbose) {
+	if (auth_data->verbose) {
 		fprintf(stderr, "rhizo_access: org id: %d, permissions: %s\n", org_id, permissions);
 	}
 	free(permissions);
@@ -254,11 +301,11 @@ int check_token(const char *token, const char *msg_token_salt) {
 
 // returns the user ID if token is valid; otherwise returns -1
 // token format: token_version,unix_timestamp,key_id,nonce,base64(sha-512(unix_timestamp,key_id,nonce,msg_token_salt,key_hash))
-int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, int verbose) {
+int auth_user(AuthData *auth_data, const char *token) {
 
 	// handle old token format
 	if (token[0] == '1' && token[1] == ';') {
-		return check_token(token, msg_token_salt);
+		return check_token(token, auth_data->msg_token_salt);
 	}
 
 	// check token length so we don't get buffer overflows in the following steps
@@ -298,13 +345,13 @@ int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, in
 	if (key_id) {
 		char query_sql[200];
 		snprintf(query_sql, 200, "SELECT access_as_user_id, key_hash FROM keys WHERE id=%d AND revocation_timestamp IS NULL;", key_id);
-		PGresult *res = PQexec(db_conn, query_sql);
+		PGresult *res = PQexec(auth_data->db, query_sql);
 		checkQueryResult(res);
 		if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
 			user_id = atoi(PQgetvalue(res, 0, 0));
 			strncpy(key_hash, PQgetvalue(res, 0, 1), 200);
 		} else {
-			if (verbose) {
+			if (auth_data->verbose) {
 				fprintf(stderr, "rhizo_access: key %d missing or revoked\n", key_id);
 			}
 		}
@@ -314,7 +361,7 @@ int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, in
 
 	// compute token hash contents
 	char contents[1000];
-	snprintf(contents, 1000, "%d,%d,%s,%s,%s", unix_timestamp, key_id, nonce, msg_token_salt, key_hash);
+	snprintf(contents, 1000, "%d,%d,%s,%s,%s", unix_timestamp, key_id, nonce, auth_data->msg_token_salt, key_hash);
 
 	// compute SHA-512 hash
 	unsigned char raw_hash[SHA512_DIGEST_LENGTH];
@@ -326,6 +373,7 @@ int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, in
 
 	// if computed body matches given body, token is valid and we can return the given user ID
 	if (strcmp(computed_body, given_body) == 0) {
+		store_client_info(auth_data, token, -1, -1, user_id);
 		return user_id;
 	} else {
 		return -1;
@@ -334,11 +382,11 @@ int auth_user(PGconn *db_conn, const char *token, const char *msg_token_salt, in
 
 
 // determines a user's access level for a given path (without leading slash)
-int user_access_level(PGconn *db_conn, const char *path, int user_id, int verbose) {
+int user_access_level(AuthData *auth_data, const char *path, int user_id) {
 
 	// get organization corresponding to the topic path
 	char *permissions = NULL;
-	int org_id = organization_info(db_conn, path, &permissions);
+	int org_id = organization_info(auth_data->db, path, &permissions);
 	if (org_id < 0) {
 		return ACCESS_LEVEL_NONE;
 	}
@@ -348,13 +396,35 @@ int user_access_level(PGconn *db_conn, const char *path, int user_id, int verbos
 	snprintf(query_sql, 200, "SELECT id FROM organization_users WHERE user_id=%d AND organization_id=%d;", user_id, org_id);
 
 	// run the query
-	PGresult *res = PQexec(db_conn, query_sql);
+	PGresult *res = PQexec(auth_data->db, query_sql);
 	checkQueryResult(res);
 
 	// if organization membership record was found, we'll allow user write access to the organization
 	int access_level = ACCESS_LEVEL_NONE;
 	if (PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) >= 1) {
 		access_level = ACCESS_LEVEL_WRITE;
+	}
+	return access_level;
+}
+
+
+int access_level(AuthData *auth_data, const char *topic, const char *password) {
+	ClientInfo *client_info = find_client_info(auth_data, password);
+	if (client_info == NULL) {
+		if (auth_data->verbose) {
+			fprintf(stderr, "rhizo_access: client info not found\n");
+		}
+		return ACCESS_LEVEL_NONE;
+	}
+
+	// compute access level according to permissions in database
+	int access_level = ACCESS_LEVEL_NONE;
+	if (client_info->controller_id >= 0) {  // controller access
+		access_level = controller_access_level(auth_data, topic, client_info->controller_id, client_info->controller_org_id);
+	} else if (client_info->user_id == 0) {  // inter-server connection
+		access_level = ACCESS_LEVEL_WRITE;
+	} else {  // user access
+		access_level = user_access_level(auth_data, topic, client_info->user_id);
 	}
 	return access_level;
 }
