@@ -32,6 +32,10 @@ FROM python:3.8.5-buster
 
 WORKDIR /rhizo-server
 
+RUN apt-get update \
+    && apt-get install -y libpq5 \
+    && rm -rf /var/cache/apt/lists
+
 COPY --from=build /usr/local/lib/python3.8/site-packages /usr/local/lib/python3.8/site-packages
 
 # copy in the app source
