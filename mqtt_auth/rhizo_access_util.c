@@ -37,7 +37,8 @@ int base64_encode(const void *data, int size, char *output, int output_len) {
 
 
 // via http://www.cse.yorku.ca/~oz/hash.html
-unsigned long hash(const unsigned char *str) {
+unsigned long hash(const char *s) {
+	const unsigned char *str = (const unsigned char *) s;
 	unsigned long hash = 5381;
 	int c = 0;
 	while ((c = *str++)) {

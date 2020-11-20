@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libpq-fe.h>
+#define WITH_ADNS  // needed for getting mosquitto struct to match installed mosquitto
 #include <mosquitto.h>
 #include <mosquitto_plugin.h>
 #include <mosquitto_broker.h>  // for mosquitto_log_printf
@@ -110,7 +111,7 @@ int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const 
 		return MOSQ_ERR_AUTH;
 	}
 	if (auth_data->verbose) {
-		fprintf(stderr, "mqtt_auth_rhizo: username: %s, password: %c...\n", username, password[0]);
+		fprintf(stderr, "mqtt_auth_rhizo: username: %s, password: %c...\n", username, password[0] ? password[0] : '_');
 	}
 
 	// handle key-based authentication (currently only supporting controller keys, not user keys)
@@ -147,8 +148,9 @@ int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const 
 
 
 int mosquitto_auth_acl_check(void *user_data, int access, struct mosquitto *client, const struct mosquitto_acl_msg *msg) {
+	const char *password = client->username;  // TODO: fix compilation so that the struct we're using matches what we're receiving
 	AuthData *auth_data = (AuthData *) user_data;
-	int server_access_level = access_level(auth_data, msg->topic, client->password);
+	int server_access_level = access_level(auth_data, msg->topic, password);
 
 	// check server access level vs requested access
 	if (access == MOSQ_ACL_READ) {  // requested read accesss
@@ -159,6 +161,9 @@ int mosquitto_auth_acl_check(void *user_data, int access, struct mosquitto *clie
 		if (server_access_level >= ACCESS_LEVEL_WRITE) {
 			return MOSQ_ERR_SUCCESS;
 		}
+	}
+	if (auth_data->verbose) {
+		fprintf(stderr, "mqtt_auth_rhizo: access denied on topic: %s, pw: %c...\n", msg->topic, password[0] ? password[0] : '_');
 	}
 	return MOSQ_ERR_ACL_DENIED;
 }

@@ -9,6 +9,7 @@
 
 #define MAX_TOKEN_LEN 200
 #define MAX_CLIENTS 500
+#define MAX_ACCESS 500
 
 
 // ======== misc helper functions ========
@@ -60,21 +61,23 @@ AuthData *create_auth_data(PGconn *db, const char *password_salt, const char *ms
 	auth_data->verbose = verbose;
 	auth_data->clients = (ClientInfo *) malloc(MAX_CLIENTS * sizeof(ClientInfo));
 	auth_data->next_client_index = 0;
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		auth_data->clients[i].password = NULL;
-	}
+	auth_data->access = (AccessInfo *) malloc(MAX_ACCESS * sizeof(AccessInfo));
+	auth_data->next_access_index = 0;
 	return auth_data;
 }
 
 
 // does not close database
 void free_auth_data(AuthData *auth_data) {
-	for (int i = 0; i < MAX_CLIENTS; i++) {
-		if (auth_data->clients[i].password) {
-			free(auth_data->clients[i].password);
-		}
+	for (int i = 0; i < auth_data->next_client_index; i++) {
+		free(auth_data->clients[i].password);
+	}
+	for (int i = 0; i < auth_data->next_access_index; i++) {
+		free(auth_data->access[i].topic);
+		free(auth_data->access[i].password);
 	}
 	free(auth_data->clients);
+	free(auth_data->access);
 	free(auth_data->password_salt);
 	free(auth_data->msg_token_salt);
 	free(auth_data);
@@ -86,7 +89,7 @@ void free_auth_data(AuthData *auth_data) {
 
 // TODO: need to support arbitrary number of client; use LRU cache or hash table?
 void store_client_info(AuthData *auth_data, const char *password, int controller_id, int controller_org_id, int user_id) {
-	int h = hash((const unsigned char *) password);
+	unsigned long h = hash(password);
 
 	// if existing entry, update it
 	for (int i = 0; i < auth_data->next_client_index; i++) {
@@ -111,7 +114,7 @@ void store_client_info(AuthData *auth_data, const char *password, int controller
 		ci->controller_org_id = controller_org_id;
 		ci->user_id = user_id;
 		if (auth_data->verbose) {
-			fprintf(stderr, "rhizo_access: stored client data in slot %d\n", auth_data->next_client_index);
+			fprintf(stderr, "rhizo_access: stored client data (%ld, %d, %d, %d) in slot %d\n", h & 0xffff, controller_id, controller_org_id, user_id, auth_data->next_client_index);
 		}
 		auth_data->next_client_index++;
 	} else {
@@ -121,15 +124,51 @@ void store_client_info(AuthData *auth_data, const char *password, int controller
 
 
 ClientInfo *find_client_info(AuthData *auth_data, const char *password) {
-	int h = hash((const unsigned char *) password);
 	ClientInfo *client_info = NULL;
-	for (int i = 0; i < MAX_CLIENTS; i++) {
+	unsigned long h = hash(password);
+	for (int i = 0; i < auth_data->next_client_index; i++) {
 		ClientInfo *ci = &auth_data->clients[i];
 		if (ci->hash == h && strcmp(ci->password, password) == 0) {
 			client_info = ci;
+			break;
 		}
 	}
 	return client_info;
+}
+
+
+void store_access_info(AuthData *auth_data, const char *topic, const char *password, int access_level) {
+	if (auth_data->next_access_index < MAX_ACCESS) {
+		AccessInfo *ai = &auth_data->access[auth_data->next_access_index];
+		ai->topic_hash = hash(topic);
+		ai->topic = alloc_str_copy(topic);
+		ai->password_hash = hash(password);
+		ai->password = alloc_str_copy(password);
+		ai->access_level = access_level;
+		if (auth_data->verbose) {
+			fprintf(stderr, "rhizo_access: stored access (%s,%ld,%d) in slot %d\n", ai->topic, (ai->password_hash & 0xffff), access_level, auth_data->next_access_index);
+		}
+		auth_data->next_access_index++;
+	} else {
+		fprintf(stderr, "rhizo_access: too many access records\n");
+	}
+}
+
+
+// TODO: use a hash table; this is going to be slow
+AccessInfo *find_access_info(AuthData *auth_data, const char *topic, const char *password) {
+	AccessInfo *access_info = NULL;
+	unsigned long topic_hash = hash(topic);
+	unsigned long password_hash = hash(password);
+	for (int i = 0; i < auth_data->next_access_index; i++) {
+		AccessInfo *ai = &auth_data->access[i];
+		if (ai->topic_hash == topic_hash && ai->password_hash == password_hash
+				&& strcmp(ai->topic, topic) == 0 && strcmp(ai->password, password) == 0) {
+			access_info = ai;
+			break;
+		}
+	}
+	return access_info;
 }
 
 
@@ -240,16 +279,22 @@ int organization_info(PGconn *db_conn, const char *path, char **permissions) {
 
 
 // determines a controller's access level for a given path (without leading slash)
-int controller_access_level(AuthData *auth_data, const char *path, int controller_id, int controller_org_id) {
+int controller_access_level(AuthData *auth_data, const char *topic, int controller_id, int controller_org_id) {
 
 	// for now we just check that topic path organization matches controller organization
 	char *permissions = NULL;
-	int org_id = organization_info(auth_data->db, path, &permissions);
+	int org_id = organization_info(auth_data->db, topic, &permissions);
 	if (org_id < 0) {
+		if (auth_data->verbose) {
+			fprintf(stderr, "rhizo_access: org not found (%s)\n", topic);
+		}
 		return ACCESS_LEVEL_NONE;
 	}
 	if (org_id != controller_org_id) {
 		free(permissions);
+		if (auth_data->verbose) {
+			fprintf(stderr, "rhizo_access: topic org (%d) doesn't match controller org (%d)\n", org_id, controller_org_id);
+		}
 		return ACCESS_LEVEL_NONE;
 	}
 	if (auth_data->verbose) {
@@ -382,11 +427,11 @@ int auth_user(AuthData *auth_data, const char *token) {
 
 
 // determines a user's access level for a given path (without leading slash)
-int user_access_level(AuthData *auth_data, const char *path, int user_id) {
+int user_access_level(AuthData *auth_data, const char *topic, int user_id) {
 
 	// get organization corresponding to the topic path
 	char *permissions = NULL;
-	int org_id = organization_info(auth_data->db, path, &permissions);
+	int org_id = organization_info(auth_data->db, topic, &permissions);
 	if (org_id < 0) {
 		return ACCESS_LEVEL_NONE;
 	}
@@ -409,22 +454,31 @@ int user_access_level(AuthData *auth_data, const char *path, int user_id) {
 
 
 int access_level(AuthData *auth_data, const char *topic, const char *password) {
-	ClientInfo *client_info = find_client_info(auth_data, password);
-	if (client_info == NULL) {
-		if (auth_data->verbose) {
-			fprintf(stderr, "rhizo_access: client info not found\n");
-		}
-		return ACCESS_LEVEL_NONE;
-	}
-
-	// compute access level according to permissions in database
 	int access_level = ACCESS_LEVEL_NONE;
-	if (client_info->controller_id >= 0) {  // controller access
-		access_level = controller_access_level(auth_data, topic, client_info->controller_id, client_info->controller_org_id);
-	} else if (client_info->user_id == 0) {  // inter-server connection
-		access_level = ACCESS_LEVEL_WRITE;
-	} else {  // user access
-		access_level = user_access_level(auth_data, topic, client_info->user_id);
+	AccessInfo *access_info = find_access_info(auth_data, topic, password);
+	if (access_info) {
+		access_level = access_info->access_level;
+		if (auth_data->verbose) {
+			//fprintf(stderr, "rhizo_access: using stored access info\n");
+		}
+	} else {
+		ClientInfo *client_info = find_client_info(auth_data, password);
+		if (client_info) {
+			if (client_info->controller_id >= 0) {  // controller access
+				access_level = controller_access_level(auth_data, topic, client_info->controller_id, client_info->controller_org_id);
+				fprintf(stderr, "rhizo_access: controller access %d\n", access_level);
+			} else if (client_info->user_id == 0) {  // inter-server connection
+				access_level = ACCESS_LEVEL_WRITE;
+			} else {  // user access
+				access_level = user_access_level(auth_data, topic, client_info->user_id);
+			}
+			store_access_info(auth_data, topic, password, access_level);
+		} else {  // if no client info, don't store access level
+			if (auth_data->verbose) {
+				char p = password[0] ? password[0] : '_';
+				fprintf(stderr, "rhizo_access: client info not found, pw: %c... (%ld)\n", p, hash(password) & 0xffff);
+			}
+		}
 	}
 	return access_level;
 }

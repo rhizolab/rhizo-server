@@ -5,7 +5,7 @@
 int base64_encode(const void *data, int size, char *output, int output_len);
 
 
-unsigned long hash(const unsigned char *str);
+unsigned long hash(const char *s);
 
 
 char *alloc_str_copy(const char *s);

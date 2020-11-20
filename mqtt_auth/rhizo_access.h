@@ -20,6 +20,16 @@ typedef struct ClientInfo {
 } ClientInfo;
 
 
+typedef struct AccessInfo {
+	unsigned long password_hash;
+	char *password;
+	unsigned long topic_hash;
+	char *topic;
+	int access_level;
+	unsigned long long time;
+} AccessInfo;
+
+
 typedef struct AuthData {
 	PGconn *db;
 	char *password_salt;
@@ -27,6 +37,8 @@ typedef struct AuthData {
 	int verbose;
 	ClientInfo *clients;
 	int next_client_index;
+	AccessInfo *access;
+	int next_access_index;
 } AuthData;
 
 
