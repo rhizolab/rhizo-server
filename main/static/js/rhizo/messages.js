@@ -45,7 +45,7 @@ function subscribeToFolder(folderPath, includeSelf) {
 // when a message of this type is received the server, the function will be called;
 // the function will be passed three arguments: timestamp, message type, and message parameters (dictionary)
 function addMessageHandler(type, func) {
-	g_wsh.addHandler(type, func);
+	g_wsh.addOldHandler(type, func);
 }
 
 
@@ -65,7 +65,7 @@ function setTargetFolder(targetFolderPath) {
 }
 
 
-// ======== a class for managing a websocket connection with message handlers/subscriptions/etc. ========
+// ======== a class for managing a websocket connection with message l/subscriptions/etc. ========
 
 
 // create a websocket object with a few additional/custom methods
@@ -76,8 +76,10 @@ function createWebSocketHolder() {
 	wsh.webSocket = null;
 	wsh.connected = false;
 	wsh.connectStarted = false;
-	wsh.handlers = {};
-	wsh.genericHandlers = [];
+	wsh.handlers = [];
+	wsh.sequenceHandlers = [];
+	wsh.oldHandlers = {};  // old type-specific handlers
+	wsh.genericHandlers = [];  // old generic handlers
 	wsh.subscriptions = [];
 	wsh.errorModal = null;
 	wsh.pingStarted = false;
@@ -111,19 +113,15 @@ function createWebSocketHolder() {
 			this.webSocket.onmessage = function(evt) {
 				var message = JSON.parse(evt.data);
 				var type = message['type'];
-				if (type == 'error') {
-					if (message.parameters.message == 'invalid session') {
-						console.log('invalid session');
-						window.location.reload();
+				if (type) {
+					var func = wsh.oldHandlers[type];
+					if (func) {
+						func(moment(message['timestamp']), message['parameters']);
 					}
-				}
-				var func = wsh.handlers[type];
-				if (func) {
-					func(moment(message['timestamp']), message['parameters']);
-				}
-				for (var i = 0; i < wsh.genericHandlers.length; i++) {
-					var func = wsh.genericHandlers[i];
-					func(moment(message['timestamp']), type, message['parameters']);
+					for (var i = 0; i < wsh.genericHandlers.length; i++) {
+						var func = wsh.genericHandlers[i];
+						func(moment(message['timestamp']), type, message['parameters']);
+					}
 				}
 			};
 
@@ -212,22 +210,51 @@ function createWebSocketHolder() {
 
 		// called when an MQTT message arrives
 		function onMessageArrived(message) {
-			// console.log('message: ' + message.payloadString);
-			var messageStruct = JSON.parse(message.payloadString);
-			var type = messageStruct['type'];
-			if (type == 'error') {
-				if (messageStruct.parameters.message == 'invalid session') {
-					console.log('invalid session');
-					window.location.reload();
+			var payload = message.payloadString;
+			if (payload[0] == '{') {  // JSON message
+				var path = '/' + message.topic;  // paths in our system use leading slashs; MQTT topics do not
+				var messageStruct = JSON.parse(payload);
+				for (var type in messageStruct) {
+					if (messageStruct.hasOwnProperty(type)) {
+						var params = messageStruct[type];
+						for (var i = 0; i < wsh.handlers.length; i++) {
+							wsh.handlers[i](path, type, params);
+						}
+
+						// handle sequence updates
+						if (type == 'update') {
+							var timestamp = moment(params['$t']);
+							for (var name in params) {
+								if (params.hasOwnProperty(name)) {
+									var value = params[name];
+									var seq_path = path + '/' + name;
+									for (var i = 0; i < wsh.handlers.length; i++) {
+										wsh.sequenceHandlers[i](seq_path, timestamp, value);
+									}
+								}
+							}
+						}
+					}
 				}
-			}
-			var func = wsh.handlers[type];
-			if (func) {
-				func(moment(messageStruct['timestamp']), messageStruct['parameters']);
-			}
-			for (var i = 0; i < wsh.genericHandlers.length; i++) {
-				var func = wsh.genericHandlers[i];
-				func(moment(messageStruct['timestamp']), type, messageStruct['parameters']);
+			} else {  // simple message
+				var path = '/' + message.topic;  // paths in our system use leading slashs; MQTT topics do not
+				var commaPos = payload.indexOf(',');  // comma separates message type from parameters
+				var type = payload.slice(0, commaPos);
+				var params = payload.slice(commaPos + 1);
+				for (var i = 0; i < wsh.handlers.length; i++) {
+					wsh.handlers[i](path, type, params);  // params in this case is a string
+				}
+
+				// handle sequence updates
+				if (type == 's' || type == 'd') {
+					var params = params.split(',', 3);
+					var seq_path = path + '/' + params[0];
+					var timestamp = moment(params[1]);
+					var value = params[2];
+					for (var i = 0; i < wsh.sequenceHandlers.length; i++) {
+						wsh.sequenceHandlers[i](seq_path, timestamp, value);
+					}
+				}
 			}
 		}
 
@@ -275,11 +302,7 @@ function createWebSocketHolder() {
 
 		// send MQTT message
 		if (this.client && this.clientConnected) {
-			var message = {
-				'type': type,
-				'parameters': parameters,
-			};
-			var messageStr = JSON.stringify(message);
+			var messageStr = JSON.stringify({type: parameters});
 			var m = new Paho.Message(messageStr);
 			var topic = folderPath || this.targetFolderPath;
 			if (topic[0] === '/') {
@@ -293,13 +316,23 @@ function createWebSocketHolder() {
 	// add a handler for a particular type of message;
 	// when a message of this type is received the server, the function will be called;
 	// the function will be passed three arguments: timestamp, message type, and message parameters (dictionary)
-	wsh.addHandler = function(type, func) {
-		wsh.handlers[type] = func;
+	wsh.addOldHandler = function(type, func) {
+		wsh.oldHandlers[type] = func;
 	};
 
 	// fix(clean): remove this; instead append '*' handler (make handlers for each type be a list)
 	wsh.addGenericHandler = function(func) {
 		wsh.genericHandlers.push(func);
+	};
+
+	// add a handler for incoming MQTT messages; function will receive message path, type, params
+	wsh.addHandler = function(func) {
+		wsh.handlers.push(func);
+	};
+
+	// add a handler for incoming MQTT sequence update messages; function will receive seq_path, timestamp (moment.js object), value
+	wsh.addSequenceHandler = function(func) {
+		wsh.sequenceHandlers.push(func);
 	};
 
 	return wsh;

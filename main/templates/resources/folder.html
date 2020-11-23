@@ -238,6 +238,19 @@ $(function() {
 				}
 			}
 		});
+		g_wsh.addSequenceHandler(function(path, timestamp, value) {
+			var lastSlash = path.lastIndexOf('/');
+			var name = path.slice(lastSlash + 1);
+			if (name != 'log') {
+				for (var i = 0; i < g_resources.length; i++) {
+					var resource = g_resources[i];
+					if (resource.name === name) {
+						$('#seqVal_' + resource.id).html(value);
+						break;
+					}
+				}
+			}
+		});
 	}
 
 	updateView();
@@ -411,7 +424,7 @@ function viewSendMessages() {
 
 	// add handler for messages
 	if (g_liveViewHandlerAdded === false) {
-		g_wsh.addGenericHandler(function(timestamp, type, params) {
+		g_wsh.addHandler(function(path, type, params) {
 			var paramStr = '';
 			for (var name in params) {
 				if (params.hasOwnProperty(name)) {
@@ -420,6 +433,7 @@ function viewSendMessages() {
 					paramStr += name + ': ' + params[name];
 				}
 			}
+			var timestamp = moment();  // fix(soon): should we get timestamp from message if it has one?
 			createTimeValueItem(timestamp, type + ' ' + paramStr).prependTo(liveMessages);
 		});
 		g_liveViewHandlerAdded = true;

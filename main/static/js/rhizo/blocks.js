@@ -34,7 +34,7 @@ function readyBlocks() {
 // register sequence_update handler (if not already done)
 function addSequenceHandler() {
 	if (g_addedSeqHandler === false) {
-		g_wsh.addHandler('sequence_update', function(timestamp, params) {
+		g_wsh.addOldHandler('sequence_update', function(timestamp, params) {
 			//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
 			var sequencePath = params['name'];  // full/absolute path of sequence
 			$.each(g_liveBlocks, function(id, block) {
@@ -43,6 +43,17 @@ function addSequenceHandler() {
 					if (seqPaths[i] === sequencePath) {
 						// fix(soon): should use params['timestamp']? (not defined if from arduino)
 						block.onValue(sequencePath, timestamp, params['value']);
+					}
+				}
+			});
+		});
+		g_wsh.addSequenceHandler(function(path, timestamp, value) {
+			$.each(g_liveBlocks, function(id, block) {
+				var seqPaths = block.sequencePaths;
+				for (var i = 0; i < seqPaths.length; i++) {
+					if (seqPaths[i] === path) {
+						// fix(soon): should use params['timestamp']? (not defined if from arduino)
+						block.onValue(path, timestamp, value);
 					}
 				}
 			});

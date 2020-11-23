@@ -41,7 +41,7 @@ $(function() {
 	
 	connectWebSocket(afterOpen);
 	
-	g_wsh.addHandler('processStatus', function(timestamp, params) {
+	g_wsh.addOldHandler('processStatus', function(timestamp, params) {
 		var processInfo = params;
 		g_processes.push(processInfo);
 		var clients = processInfo.clients;

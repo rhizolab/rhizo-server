@@ -28,10 +28,6 @@ class MessageQueueBasic(MessageQueue):
         message_record.parameters = json.dumps(parameters) if parameters else '{}'
         db.session.add(message_record)
         db.session.commit()
-        if folder_path:
-            from main.app import message_sender
-            if message_sender:
-                message_sender.send_message(folder_path, message_type, parameters, timestamp)
 
     # returns a list of message objects once some are ready
     def receive(self):

@@ -1,4 +1,3 @@
-import json
 import paho.mqtt.client as mqtt
 
 
@@ -27,14 +26,8 @@ class MessageSender(object):
         self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
         self.mqtt_client.loop_start()
 
-    def send_message(self, path, message_type, parameters, timestamp=None):
+    def send_message(self, path, message_body):
         if not self.mqtt_client:
             self.connect()
-        message_struct = {
-            'type': message_type,
-            'parameters': parameters
-        }
-        if timestamp:
-            message_struct['timestamp'] = timestamp.isoformat() + 'Z'
-        path = path.lstrip('/')  # rhizo-server paths start with slash (to distinguish absolute vs relative paths) while MQTT topics don't
-        self.mqtt_client.publish(path, json.dumps(message_struct))
+        topic = path.lstrip('/')  # rhizo-server paths start with slash (to distinguish absolute vs relative paths) while MQTT topics don't
+        self.mqtt_client.publish(topic, message_body)

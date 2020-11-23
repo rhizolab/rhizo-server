@@ -1,6 +1,5 @@
 # standard library imports
 import json
-import base64
 import datetime
 
 
@@ -12,7 +11,7 @@ import paho.mqtt.client as mqtt
 # internal imports
 from main.app import db
 from main.workers.util import worker_log
-from main.util import load_server_config
+from main.util import load_server_config, parse_json_datetime
 from main.users.auth import message_auth_token
 from main.messages.outgoing_messages import handle_send_email, handle_send_text_message
 from main.resources.models import Resource, ControllerStatus
@@ -41,59 +40,66 @@ def message_monitor():
     # run this on message
     def on_message(client, userdata, msg):
         # pylint: disable=unused-argument
-        # print('MQTT: %s %s' % (msg.topic, msg.payload.decode()))
-        message_struct = json.loads(msg.payload.decode())
-        message_type = message_struct['type']
-        if message_type == 'update_sequence':
-            controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
-            if controller and controller.type == Resource.CONTROLLER_FOLDER:
-                parameters = message_struct['parameters']
-                seq_name = parameters['sequence']
-                if not seq_name.startswith('/'):  # handle relative sequence names
-                    resource = Resource.query.filter(Resource.id == controller.id).one()
-                    # this is ok for now since .. doesn't have special meaning in resource path (no way to escape controller folder)
-                    seq_name = resource.path() + '/' + seq_name
-                timestamp = parameters.get('timestamp', '')  # fix(soon): need to convert to datetime
-                if not timestamp:
-                    timestamp = datetime.datetime.utcnow()
-                value = parameters['value']
-                if 'encoded' in parameters:
-                    value = base64.b64decode(value)
+        payload = msg.payload.decode()
 
-                # remove this; require clients to use REST POST for images
-                resource = find_resource(seq_name)
-                if not resource:
-                    return
-                system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else None
-                if system_attributes and system_attributes['data_type'] == Resource.IMAGE_SEQUENCE:
-                    value = base64.b64decode(value)
-                else:
-                    value = str(value)
+        # handle full (JSON) messages
+        if payload.startswith('{'):
+            message_struct = json.loads(payload)
+            for message_type, parameters in message_struct.items():
 
-                # don't emit message since the message is already in the system
-                update_sequence_value(resource, seq_name, timestamp, value, emit_message=False)
-                db.session.commit()
+                # update sequence values; doesn't support image sequence; should use REST API for image sequences
+                if message_type == 'update':
+                    folder = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
+                    if folder and folder.type in (Resource.BASIC_FOLDER, Resource.ORGANIZATION_FOLDER, Resource.CONTROLLER_FOLDER):
+                        timestamp = parameters.get('$t', '')
+                        if timestamp:
+                            timestamp = parse_json_datetime(timestamp)  # fix(soon): handle conversion errors
+                        else:
+                            timestamp = datetime.datetime.utcnow()
+                        for name, value in parameters.items():
+                            if name != '$t':
+                                seq_name = '/' + msg.topic + '/' + name
+                                resource = find_resource(seq_name)
+                                if resource:
+                                    # don't emit new message since UI will receive this message
+                                    update_sequence_value(resource, seq_name, timestamp, value, emit_message=False)
+                                    db.session.commit()
 
-        # update controller watchdog status
-        elif message_type == 'watchdog':
-            controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
-            if controller and controller.type == Resource.CONTROLLER_FOLDER:
-                controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller.id).one()
-                controller_status.last_watchdog_timestamp = datetime.datetime.utcnow()
-                db.session.commit()
+                # update controller watchdog status
+                elif message_type == 'watchdog':
+                    controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
+                    if controller and controller.type == Resource.CONTROLLER_FOLDER:
+                        controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller.id).one()
+                        controller_status.last_watchdog_timestamp = datetime.datetime.utcnow()
+                        db.session.commit()
 
-        # send emails
-        elif message_type == 'send_email':
-            controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
-            if controller and controller.type == Resource.CONTROLLER_FOLDER:
-                print('sending email')
-                handle_send_email(controller.id, message_struct['parameters'])
+                # send emails
+                elif message_type == 'send_email':
+                    controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
+                    if controller and controller.type == Resource.CONTROLLER_FOLDER:
+                        print('sending email')
+                        handle_send_email(controller.id, parameters)
 
-        # send SMS messages
-        elif message_type == 'send_sms' or message_type == 'send_text_message':
-            controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
-            if controller and controller.type == Resource.CONTROLLER_FOLDER:
-                handle_send_text_message(controller.id, message_struct['parameters'])
+                # send SMS messages
+                elif message_type == 'send_sms' or message_type == 'send_text_message':
+                    controller = find_resource('/' + msg.topic)  # for now we assume these messages are published on controller channels
+                    if controller and controller.type == Resource.CONTROLLER_FOLDER:
+                        handle_send_text_message(controller.id, parameters)
+
+        # handle short (non-JSON) messages
+        else:
+            # print('MQTT: %s %s' % (msg.topic, payload))
+            if payload.startswith('s,'):  # type 's' is "store and display new sequence value"
+                parts = payload.split(',', 3)
+                if len(parts) == 4:
+                    seq_name = '/' + msg.topic + '/' + parts[1]
+                    timestamp = parse_json_datetime(parts[2])  # fix(soon): handle conversion errors
+                    value = parts[3]
+                    resource = find_resource(seq_name)
+                    if resource and resource.type == Resource.SEQUENCE:
+                        # don't emit new message since UI will receive this message
+                        update_sequence_value(resource, seq_name, timestamp, value, emit_message=False)
+                        db.session.commit()
 
     # connect and run
     mqtt_client = mqtt.Client(transport='websockets')

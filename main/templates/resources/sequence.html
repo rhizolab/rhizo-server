@@ -133,15 +133,15 @@ $(function() {
 	}
 	
 	// subscribe to updates
-	subscribeToFolder(g_resource.parent_id);
+	var lastSlashPos = g_resourcePath.lastIndexOf('/');
+	var folderName = g_resourcePath.slice(0, lastSlashPos);
+	subscribeToFolder(folderName);
 	connectWebSocket();
 
-	addMessageHandler('sequence_update', function(timestamp, params) {
-		//console.log('sequence: ' + params['name'] + ', value: ' + params['value']);
-		if (params['name'] == g_resourcePath) {
+	g_wsh.addSequenceHandler(function(path, timestamp, value) {
+		if (path == g_resourcePath) {
 			var unixTimestamp = timestamp.unix();
-			var value = params['value'];
-			
+
 			// update plot
 			if (g_resource.system_attributes.data_type == 1) {
 				g_xData.data.push(unixTimestamp);

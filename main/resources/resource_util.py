@@ -127,7 +127,7 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, file_dat
 # find a resource given it's full name with path
 def find_resource(file_name):
     if not file_name.startswith('/'):
-        logging.warning('find_resource should be called with a path starting with a slash')
+        logging.warning('find_resource called with %s; should be called with a path starting with a slash' % file_name)
         assert False
     file_name = file_name.strip('/')  # at some point can just strip off first character (since we'll assume there's exactly one leading slash)
     parts = file_name.split('/')
@@ -177,7 +177,11 @@ def mime_type_from_ext(file_name):
 # note that we don't commit resource here; outside code must commit
 # value should be a plain string (not unicode string), possibly containing binary data or encoded unicode data
 def update_sequence_value(resource, resource_path, timestamp, value, emit_message=True):
-    data_type = json.loads(resource.system_attributes)['data_type']
+    system_attr = json.loads(resource.system_attributes)
+    if 'data_type' not in system_attr:
+        logging.warning('attempt to update sequence (%s) without data_type' % resource_path)
+        return
+    data_type = system_attr['data_type']
 
     # determine min interval between updates
     system_attributes = json.loads(resource.system_attributes) if resource.system_attributes else {}
@@ -222,6 +226,10 @@ def update_sequence_value(resource, resource_path, timestamp, value, emit_messag
         folder_path = resource_path.rsplit('/', 1)[0]
         message_queue.add(
             folder_id=resource.parent_id, folder_path=folder_path, message_type='sequence_update', parameters=message_params, timestamp=timestamp)
+        from main.app import message_sender
+        if message_sender:
+            message = 'd,%s,%s Z,%s' % (resource.name, timestamp.isoformat(), value)  # emit a display message, not a store-and-display message
+            message_sender.send_message(folder_path, message)
 
 
 # creates a resource revision record; places the data in the record (if it is small) or bulk storage (if it is large);
