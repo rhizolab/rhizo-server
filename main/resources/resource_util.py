@@ -127,7 +127,7 @@ def _create_file(file_name, creation_timestamp, modification_timestamp, file_dat
 # find a resource given it's full name with path
 def find_resource(file_name):
     if not file_name.startswith('/'):
-        logging.warning('find_resource called with %s; should be called with a path starting with a slash' % file_name)
+        logging.warning('find_resource called with %s; should be called with a path starting with a slash', file_name)
         assert False
     file_name = file_name.strip('/')  # at some point can just strip off first character (since we'll assume there's exactly one leading slash)
     parts = file_name.split('/')
@@ -179,7 +179,7 @@ def mime_type_from_ext(file_name):
 def update_sequence_value(resource, resource_path, timestamp, value, emit_message=True):
     system_attr = json.loads(resource.system_attributes)
     if 'data_type' not in system_attr:
-        logging.warning('attempt to update sequence (%s) without data_type' % resource_path)
+        logging.warning('attempt to update sequence (%s) without data_type', resource_path)
         return
     data_type = system_attr['data_type']
 
