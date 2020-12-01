@@ -260,6 +260,7 @@ function createWebSocketHolder() {
 
 		if (g_mqttInfo && g_mqttInfo.host) {
 			console.log('opening MQTT connection');
+			var useSSL = g_mqttInfo.host == '127.0.0.1' || g_mqttInfo.host == 'localhost' ? false : true;
 			var clientId = g_mqttInfo.clientId;
 			var userName = 'token';
 			var password = g_mqttInfo.token;
@@ -270,7 +271,7 @@ function createWebSocketHolder() {
 			wsh.client.onMessageArrived = onMessageArrived;
 
 			// connect the client
-			wsh.client.connect({onSuccess:onConnect, onFailure:onConnectFailure, useSSL:true, userName:userName, password:password});
+			wsh.client.connect({onSuccess:onConnect, onFailure:onConnectFailure, useSSL:useSSL, userName:userName, password:password});
 
 		} else {
 			wsh.client = null;
@@ -302,7 +303,9 @@ function createWebSocketHolder() {
 
 		// send MQTT message
 		if (this.client && this.clientConnected) {
-			var messageStr = JSON.stringify({type: parameters});
+			var messageStruct = {};
+			messageStruct[type] = parameters;
+			var messageStr = JSON.stringify(messageStruct);
 			var m = new Paho.Message(messageStr);
 			var topic = folderPath || this.targetFolderPath;
 			if (topic[0] === '/') {
