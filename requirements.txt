@@ -4,6 +4,7 @@ Flask
 Flask-Login
 Flask-RESTful
 Flask-SQLAlchemy
+Flask-Sockets
 gevent
 gevent-websocket  # remove this after switch to MQTT
 greenlet

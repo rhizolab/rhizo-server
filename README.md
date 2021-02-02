@@ -206,7 +206,7 @@ You should see a message indicating that the plugin has connected to the databas
 
 Configure systemd services:
 
-    sudo cp /home/ubuntu/rhizo-zerver/sample_settings/*.service /etc/systemd/system
+    sudo cp /home/ubuntu/rhizo-server/sample_settings/*.service /etc/systemd/system
     sudo systemctl enable nginx
     sudo systemctl enable rs
     sudo systemctl enable rs-ws
