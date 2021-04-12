@@ -47,11 +47,3 @@ jobs:
       run: |
         .venv/bin/python prep_config.py
         echo "DISCLAIMER = 'This is pre-release code; the API and database structure will probably change.'" >> settings/config.py
-
-    - name: Test with pytest (PostgreSQL)
-      run: |
-        TEST_DATABASE=postgres .venv/bin/pytest
-
-    - name: Test with pytest (SQLite)
-      run: |
-        TEST_DATABASE=sqlite .venv/bin/pytest
