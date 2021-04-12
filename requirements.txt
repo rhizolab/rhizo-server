@@ -12,7 +12,7 @@ gunicorn  # make this optional
 Markdown
 paho-mqtt
 Pillow
-pyyaml==5.3.1
+pyyaml>=5.4
 SQLAlchemy
 twilio==6.46.0  # make this optional
 xlrd
