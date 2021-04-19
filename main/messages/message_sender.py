@@ -7,6 +7,7 @@ class MessageSender(object):
     def __init__(self, config):
         self.mqtt_host = config['MQTT_HOST']
         self.mqtt_port = config.get('MQTT_PORT', 443)
+        self.mqtt_tls = config.get('MQTT_TLS', True)
         self.mqtt_client = None
         print('starting message sender with host %s:%d' % (self.mqtt_host, self.mqtt_port))
 
@@ -22,7 +23,8 @@ class MessageSender(object):
         self.mqtt_client = mqtt.Client(transport='websockets')
         self.mqtt_client.on_connect = on_connect
         self.mqtt_client.username_pw_set('token', message_auth_token(0))  # user_id 0 indicates that this is an internal connection from the server
-        self.mqtt_client.tls_set()  # enable SSL
+        if self.mqtt_tls:
+            self.mqtt_client.tls_set()  # enable SSL
         self.mqtt_client.connect(self.mqtt_host, self.mqtt_port)
         self.mqtt_client.loop_start()
 

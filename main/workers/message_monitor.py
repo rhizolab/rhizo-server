@@ -27,6 +27,7 @@ def message_monitor():
     worker_log('message_monitor', 'starting')
     mqtt_host = server_config['MQTT_HOST']
     mqtt_port = server_config.get('MQTT_PORT', 443)
+    mqtt_tls = server_config.get('MQTT_TLS', True)
 
     # run this on connect/reconnect
     def on_connect(client, userdata, flags, rc):
@@ -106,7 +107,8 @@ def message_monitor():
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
     mqtt_client.username_pw_set('token', message_auth_token(0))  # user_id 0 indicates that this is an internal connection from the server
-    mqtt_client.tls_set()  # enable SSL
+    if mqtt_tls:
+        mqtt_client.tls_set()  # enable SSL
     mqtt_client.connect(mqtt_host, mqtt_port)
     mqtt_client.loop_start()
     while True:

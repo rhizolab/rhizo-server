@@ -16,12 +16,15 @@ rhizo-server
 
 For development purposes you can run the server with automatic code reloading: `python run.py`
 
-You can also run it with websocket support (but no auto-reloading): `python run.py -s`
+For local testing with MQTT message, install `mosquitto`:
 
-Note: this websocket server (`-s` option) don't seem to work with gevent 1.2 (at least on Windows);
-you may need to downgrade to gevent 1.1.2.
+    sudo apt install mosquitto
 
-Note: we are in the process of migrating from plain websockets to MQTT over websockets.
+Copy `sample_settings/mosquitto-rhizo.conf` to the `settings` directory and edit as needed.
+For local testing without the authentication plugin, comment out that part of the config file.
+You can run mosquitto as a service or from the command line using the following command (from the `terraserver` directory):
+
+    mosquitto -c settings/mosquitto-rhizo.conf -v
 
 ### Configuration
 
