@@ -23,7 +23,7 @@ jobs:
       uses: actions/cache@v2
       with:
         path: .venv
-        key: ${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
+        key: 1-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements*.txt') }}
 
     - name: Install dependencies into venv
       if: steps.cache-venv.outputs.cache-hit != 'true'
