@@ -1,6 +1,9 @@
+import logging
 import os  # fix(clean): remove?
 import datetime
 from functools import wraps
+from typing import Dict
+
 import flask  # fix(clean): remove?
 from flask import request, redirect, current_app
 
@@ -44,3 +47,36 @@ def load_server_config():
     else:
         server_config.from_object('settings.config')
     return server_config
+
+
+def prep_logging(app_config: Dict[str, str]):
+    """Initialize logging based on the application config.
+
+    The log level is set to DEBUG if the DEBUG_MESSAGING config option is truthy, else INFO.
+
+    If the MESSAGING_LOG_PATH config option is set, logs are written to a file in that
+    directory in addition to the console.
+    """
+    root = logging.getLogger()
+    if root.hasHandlers():
+        # Logging was already initialized.
+        return
+
+    formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
+
+    level = logging.DEBUG if app_config['DEBUG_MESSAGING'] else logging.INFO
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+
+    root.addHandler(console_handler)
+    root.setLevel(level)
+
+    log_path = app_config['MESSAGING_LOG_PATH']
+    if log_path:
+        time_str = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+        file_handler = logging.FileHandler('%s/%d-%s.txt' % (log_path, os.getpid(), time_str))
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)

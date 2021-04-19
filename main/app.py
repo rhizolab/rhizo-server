@@ -9,6 +9,7 @@ from . import config
 from .messages.socket_sender import SocketSender
 from .messages.message_queue_basic import MessageQueueBasic
 from .messages.message_sender import MessageSender
+from .util import prep_logging
 
 # Create and configure the application. Default config values may be overridden by a config file,
 # and then overridden by environment variables.
@@ -21,6 +22,7 @@ app.config.from_pyfile(
     silent=True)
 app.config.update(config.environment())
 
+prep_logging(app.config)
 
 # check disclaimer
 assert app.config['DISCLAIMER'] == 'This is pre-release code; the API and database structure will probably change.'

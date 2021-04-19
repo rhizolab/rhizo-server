@@ -5,50 +5,24 @@ import datetime
 import gevent
 from geventwebsocket.websocket import WebSocketError
 
-
-def prep_logging(log_path):
-    formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
-    console_handler.setFormatter(formatter)
-    time_str = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
-    file_handler = logging.FileHandler('%s/%d-%s.txt' % (log_path, os.getpid(), time_str))
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    root = logging.getLogger()
-    root.addHandler(console_handler)
-    root.addHandler(file_handler)
-    root.setLevel(logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 # The SocketSender runs a greenlet that sends messages (temporarily stored in DB) out to websockets.
 class SocketSender(object):
 
     def __init__(self):
-        logging.info('init socket sender')
+        logger.info('init socket sender')
         self.connections = []  # list of WebSocketConnection objects
-        from main.app import app
-        self.logging_prepped = False
-        self.debug_messaging(app.config['DEBUG_MESSAGING'])
-
-    def debug_messaging(self, enable):
-        from main.app import app
-        self._debug_messaging = enable
-        if enable and not self.logging_prepped:
-            prep_logging(app.config['MESSAGING_LOG_PATH'])
-            self.logging_prepped = True
-        if self.logging_prepped and not enable:
-            root = logging.getLogger()
-            root.setLevel(logging.INFO)
 
     # register a client (possible message recipient)
     def register(self, ws_conn):
-        logging.info('client registered (%s)', ws_conn)
+        logger.info('client registered (%s)', ws_conn)
         self.connections.append(ws_conn)
 
     # unregister a client (e.g. after it has been closed
     def unregister(self, ws_conn):
-        logging.info('client unregistered (%s)', ws_conn)
+        logger.info('client unregistered (%s)', ws_conn)
         self.connections.remove(ws_conn)
 
     # send a message to a specific client (using websocket connection specified in ws_conn)
@@ -80,11 +54,9 @@ class SocketSender(object):
 
             # get all messages since the last message we processed
             messages = message_queue.receive()
-            if self._debug_messaging:
-                logging.debug('received %d messages from message queue', messages.count())
+            logger.debug('received %d messages from message queue', messages.count())
             for message in messages:
-                if self._debug_messaging:
-                    logging.debug('message type: %s, folder: %s', message.type, message.folder_id)
+                logger.debug('message type: %s, folder: %s', message.type, message.folder_id)
 
                 # handle special messages aimed at this module
                 if message.type == 'requestProcessStatus':
@@ -100,11 +72,10 @@ class SocketSender(object):
                                 'parameters': json.loads(message.parameters)
                             }
                             gevent.spawn(self.send, ws_conn, json.dumps(message_struct))
-                            if self._debug_messaging:
-                                if ws_conn.controller_id:
-                                    logging.debug('sending message to controller; type: %s', message.type)
-                                else:
-                                    logging.debug('sending message to browser; type: %s', message.type)
+                            if ws_conn.controller_id:
+                                logger.debug('sending message to controller; type: %s', message.type)
+                            else:
+                                logger.debug('sending message to browser; type: %s', message.type)
 
     # spawn a greenlet that sends messages to clients
     def start(self):

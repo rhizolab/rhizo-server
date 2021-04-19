@@ -214,7 +214,8 @@ def process_web_socket_message(message_struct, ws_conn):
     elif message_type == 'debug_messaging':
         parameters = message_struct['parameters']
         enable = bool(parameters['enable'])
-        socket_sender.debug_messaging(enable)
+        level = logging.DEBUG if enable else logging.INFO
+        logging.getLogger().setLevel(level)
 
     # handle other action messages
     elif message_type in ('sendEmail', 'sendTextMessage', 'send_email', 'send_text_message'):
