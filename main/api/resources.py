@@ -150,8 +150,11 @@ class ResourceRecord(ApiResource):
                 else:
                     rev = request.values.get('rev')
                     if rev:
-                        rev = int(rev)  # fix(soon): save int conversion
-                    result = make_response(read_resource(r, revision_id=rev))
+                        rev = int(rev)  # fix(soon): safe int conversion
+                    value = read_resource(r, revision_id=rev)
+                    if value is None:
+                        value = ''  # if the sequence doesn't yet have any values, return an empty value (rather than a 400 or 404)
+                    result = make_response(value)
                     data_type = json.loads(r.system_attributes)['data_type']
                     if data_type == Resource.IMAGE_SEQUENCE:
                         result.headers['Content-Type'] = 'image/jpeg'
