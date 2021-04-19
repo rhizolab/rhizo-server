@@ -1,7 +1,9 @@
-*.pyc
-*~
-*.lock
-venv
+**/*.pyc
+**/*~
+**/*.lock
+**/*.swp
+**/venv
+**/.venv
 uwsgi.sock
 ws.sock
 settings
