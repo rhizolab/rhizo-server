@@ -227,9 +227,9 @@ function createWebSocketHolder() {
 							for (var name in params) {
 								if (params.hasOwnProperty(name)) {
 									var value = params[name];
-									var seq_path = path + '/' + name;
-									for (var i = 0; i < wsh.handlers.length; i++) {
-										wsh.sequenceHandlers[i](seq_path, timestamp, value);
+									var seqPath = path + '/' + name;
+									for (var i = 0; i < wsh.sequenceHandlers.length; i++) {
+										wsh.sequenceHandlers[i](seqPath, timestamp, value);
 									}
 								}
 							}
