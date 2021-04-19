@@ -7,9 +7,12 @@ from typing import Dict
 import flask  # fix(clean): remove?
 from flask import request, redirect, current_app
 
+from .config import init_flask_config
 
 # decorator require SSL for a view
 # from http://flask.pocoo.org/snippets/93/
+
+
 def ssl_required(fn):
     @wraps(fn)
     def decorated_view(*args, **kwargs):
@@ -42,10 +45,7 @@ def parse_json_datetime(json_timestamp):
 # fix(soon): try to remove this; can probably use current_app.config in most places
 def load_server_config():
     server_config = flask.Config('.')
-    if 'PROD' in os.environ:
-        server_config.from_object('prod_config')
-    else:
-        server_config.from_object('settings.config')
+    init_flask_config(server_config)
     return server_config
 
 

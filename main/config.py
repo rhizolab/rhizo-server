@@ -1,5 +1,7 @@
 import os
+import pathlib
 
+from flask import Config
 import yaml
 
 
@@ -74,3 +76,14 @@ def environment():
         settings['EXTENSIONS'] = [o for o in os.listdir('./extensions/') if os.path.isdir(os.path.join('./extensions', o))]
 
     return settings
+
+
+def init_flask_config(app_config: Config):
+    """Populate a Flask application configuration from the supported configuration sources."""
+    app_config.update(defaults())
+    app_config.from_pyfile(
+        os.environ.get(
+            'RHIZO_SERVER_SETTINGS',
+            str(pathlib.Path(__file__).parent.parent.resolve()) + '/settings/config.py'),
+        silent=True)
+    app_config.update(environment())

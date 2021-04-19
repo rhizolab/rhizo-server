@@ -1,11 +1,10 @@
 import os
-import pathlib
 import importlib
 from flask import Flask, render_template, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_restful import Api
-from . import config
+from .config import init_flask_config
 from .messages.socket_sender import SocketSender
 from .messages.message_queue_basic import MessageQueueBasic
 from .messages.message_sender import MessageSender
@@ -14,14 +13,7 @@ from .util import prep_logging
 # Create and configure the application. Default config values may be overridden by a config file,
 # and then overridden by environment variables.
 app = Flask(__name__)
-app.config.update(config.defaults())
-app.config.from_pyfile(
-    os.environ.get(
-        'RHIZO_SERVER_SETTINGS',
-        str(pathlib.Path(__file__).parent.parent.resolve()) + '/settings/config.py'),
-    silent=True)
-app.config.update(config.environment())
-
+init_flask_config(app.config)
 prep_logging(app.config)
 
 # check disclaimer
