@@ -131,18 +131,13 @@ def find_key(key_text):
     key_part = key_text[:3] + key_text[-3:]
     iph = inner_password_hash(key_text)
     for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp.is_(None)):
-        if bcrypt.checkpw(iph.encode(), key.key_hash.encode()):
+        if key.key_hash.startswith('$2b$'):  # handle bcrypt hash
+            if bcrypt.checkpw(iph.encode(), key.key_hash.encode()):
+                key.key_hash = iph
+                db.session.commit()
+                return key
+        elif iph == key.key_hash:  # handle sha512 hash
             return key
-    return None
-
-
-# find a key record from the database given the raw key string;
-# a temporary/fast version that doesn't actually check for a full key match
-def find_key_fast(key_text):
-    key_part = key_text[:3] + key_text[-3:]
-    inner_password_hash(key_text)
-    for key in Key.query.filter(Key.key_part == key_part, Key.revocation_timestamp.is_(None)):
-        return key
     return None
 
 

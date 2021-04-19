@@ -23,7 +23,7 @@ from main.resources.models import Resource, ResourceRevision, ResourceView, Cont
 from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, \
     resource_type_number, _create_folders, create_sequence
 from main.resources.file_conversion import convert_csv_to_xls, convert_xls_to_csv, convert_new_lines, compute_thumbnail
-from main.users.auth import find_key, find_key_fast  # fix(clean): remove?
+from main.users.auth import find_key  # fix(clean): remove?
 
 
 class ResourceRecord(ApiResource):
@@ -543,7 +543,7 @@ class ResourceList(ApiResource):
                 # get current controller correction
                 # fix(later): support user updates as well?
                 auth = request.authorization
-                key = find_key_fast(auth.password)  # key is provided as HTTP basic auth password
+                key = find_key(auth.password)  # key is provided as HTTP basic auth password
                 if key and key.access_as_controller_id:
                     controller_id = key.access_as_controller_id
                     controller_status = ControllerStatus.query.filter(ControllerStatus.id == controller_id).one()
