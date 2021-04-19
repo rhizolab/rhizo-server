@@ -6,8 +6,8 @@ class MessageSender(object):
 
     def __init__(self, config):
         self.mqtt_host = config['MQTT_HOST']
-        self.mqtt_port = config.get('MQTT_PORT', 443)
-        self.mqtt_tls = config.get('MQTT_TLS', True)
+        self.mqtt_port = config['MQTT_PORT']
+        self.mqtt_tls = config['MQTT_TLS']
         self.mqtt_client = None
         print('starting message sender with host %s:%d' % (self.mqtt_host, self.mqtt_port))
 

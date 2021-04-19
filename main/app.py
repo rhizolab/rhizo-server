@@ -57,7 +57,7 @@ static_manager = {}
 message_queue = MessageQueueBasic()
 
 # prepare MQTT message sender
-if 'MQTT_HOST' in app.config:
+if app.config['MQTT_HOST']:
     message_sender = MessageSender(app.config)
 else:
     message_sender = None

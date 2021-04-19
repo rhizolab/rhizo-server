@@ -260,7 +260,7 @@ function createWebSocketHolder() {
 
 		if (g_mqttInfo && g_mqttInfo.host) {
 			console.log('opening MQTT connection');
-			var useSSL = g_mqttInfo.host == '127.0.0.1' || g_mqttInfo.host == 'localhost' ? false : true;
+			var useSSL = g_mqttInfo.ssl;
 			var clientId = g_mqttInfo.clientId;
 			var userName = 'token';
 			var password = g_mqttInfo.token;

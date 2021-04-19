@@ -86,13 +86,14 @@ def generate_csrf_token():
 
 # provide MQTT host and authentication information
 def generate_mqtt_info():
-    if current_user.is_authenticated and 'MQTT_HOST' in app.config:
+    if current_user.is_authenticated and app.config['MQTT_HOST']:
         return {
             'host': app.config['MQTT_HOST'],
             'port': app.config.get('MQTT_PORT', 443),
             'token': message_auth_token(current_user.id),
             'clientId': '%d-%d' % (current_user.id, random.randint(0, 10000000)),  # fix: reconsider client IDs
             'enableOld': int(app.config.get('ENABLE_OLD_MESSAGING', False)),
+            'ssl': bool(app.config['MQTT_TLS']),
         }
     else:
         return {}

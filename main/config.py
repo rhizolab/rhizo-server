@@ -23,6 +23,8 @@ def defaults():
         'MESSAGE_TOKEN_SALT': '[Random String Here]',
         'MESSAGING_LOG_PATH': '',
         'MQTT_HOST': '',
+        'MQTT_PORT': 443,
+        'MQTT_TLS': True,
         'OUTGOING_EMAIL_ADDRESS': '',
         'OUTGOING_EMAIL_PASSWORD': '',
         'OUTGOING_EMAIL_PORT': 587,
