@@ -44,7 +44,7 @@ function save(afterSave) {
 		}
 	};
 	var params = {
-		'data': g_editor.value(),
+		'data': btoa(g_editor.value()),  // data should be base64 encoded
 		'csrf_token': g_csrfToken,
 	}
 	$.ajax({

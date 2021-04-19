@@ -309,13 +309,13 @@ class ResourceRecord(ApiResource):
             if 'contents' in args:
                 data = args['contents']
             else:
-                data = str(args['data'])  # convert unicode to regular string / fix(soon): revisit this
+                data = base64.b64decode(str(args['data']))  # convert unicode to regular string / fix(soon): revisit this
             timestamp = datetime.datetime.utcnow()
             if r.type == Resource.SEQUENCE:  # fix(later): collapse these two cases?
                 resource_path = r.path()  # fix(faster): don't need to use this if were given path as arg
-                update_sequence_value(r, resource_path, timestamp, data)
+                update_sequence_value(r, resource_path, timestamp, data.decode())  # update sequence value expects string
             else:
-                add_resource_revision(r, timestamp, data.encode())
+                add_resource_revision(r, timestamp, data)  # this can be binary
                 r.modification_timestamp = timestamp
         db.session.commit()
         return {'status': 'ok', 'id': r.id}
