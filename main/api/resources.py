@@ -444,11 +444,19 @@ class ResourceList(ApiResource):
         elif resource_type == Resource.SEQUENCE:
             data_type = int(args['data_type'])  # fix(soon): safe convert to int
             system_attributes = {
-                'max_history': 10000,
                 'data_type': data_type,
             }
             if args.get('decimal_places', '') != '':
                 system_attributes['decimal_places'] = int(args['decimal_places'])  # fix(soon): safe convert to int
+            if args.get('units'):
+                system_attributes['units'] = args['units']
+            if args.get('max_history', '') != '':
+                max_history = int(args['max_history'])  # fix(soon): safe convert to int
+            else:
+                if data_type == Resource.TEXT_SEQUENCE:
+                    max_history = 10000
+                else:
+                    max_history = 100000  # store more numeric history
             if args.get('min_storage_interval', '') != '':
                 min_storage_interval = int(args['min_storage_interval'])  # fix(soon): safe convert to int
             else:
@@ -456,8 +464,7 @@ class ResourceList(ApiResource):
                     min_storage_interval = 0  # default to 0 seconds for text sequences (want to record all log entries)
                 else:
                     min_storage_interval = 50  # default to 50 seconds for numeric and image sequences
-            if args.get('units'):
-                system_attributes['units'] = args['units']
+            system_attributes['max_history'] = max_history
             system_attributes['min_storage_interval'] = min_storage_interval
             r.system_attributes = json.dumps(system_attributes)
         elif resource_type == Resource.REMOTE_FOLDER:
