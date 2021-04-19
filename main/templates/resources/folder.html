@@ -1054,7 +1054,7 @@ function newController() {
 
 // display a newly generated secret key for a controller
 function displaySecretKey(secretKey, nextFunc) {
-	var message = "The new controllers's secret key is: <b>" + secretKey + "</b><br>Please put this in the controllers's local.hjson; you will not be able retrieve it later.";
+	var message = "The new controllers's secret key is: <b>" + secretKey + "</b><br>Please put this in the controllers's local.yaml; you will not be able retrieve it later.";
 	modalAlert({title: 'New Controller Secret Key', message: message, nextFunc: function() {
 		if (nextFunc) {
 			nextFunc();
