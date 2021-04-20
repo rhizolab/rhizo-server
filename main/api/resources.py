@@ -271,19 +271,21 @@ class ResourceRecord(ApiResource):
         # update other resource metadata
         if 'user_attributes' in args:
             r.user_attributes = args['user_attributes']
-        if r.type == Resource.SEQUENCE:  # fix(soon): should use args['system_attributes'] instead of just args
-            if 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args or 'units' in args:
+        if r.type == Resource.SEQUENCE:
+            if 'system_attributes' in args or 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args or 'units' in args:
+                new_system_attributes = json.loads(args['system_attributes'])
+                new_system_attributes.update(args)
                 system_attributes = json.loads(r.system_attributes)
-                if 'data_type' in args:
-                    system_attributes['data_type'] = args['data_type']
-                if args.get('decimal_places', '') != '':
-                    system_attributes['decimal_places'] = int(args['decimal_places'])  # fix(later): safe convert
-                if args.get('max_history', '') != '':
-                    system_attributes['max_history'] = int(args['max_history'])  # fix(later): safe convert
-                if args.get('units', '') != '':
-                    system_attributes['units'] = args['units']
-                if args.get('min_storage_interval', '') != '':
-                    system_attributes['min_storage_interval'] = int(args['min_storage_interval'])  # fix(later): safe convert
+                if 'data_type' in new_system_attributes:
+                    system_attributes['data_type'] = new_system_attributes['data_type']
+                if new_system_attributes.get('decimal_places', '') != '':
+                    system_attributes['decimal_places'] = int(new_system_attributes['decimal_places'])  # fix(later): safe convert
+                if new_system_attributes.get('max_history', '') != '':
+                    system_attributes['max_history'] = int(new_system_attributes['max_history'])  # fix(later): safe convert
+                if new_system_attributes.get('units', '') != '':
+                    system_attributes['units'] = new_system_attributes['units']
+                if new_system_attributes.get('min_storage_interval', '') != '':
+                    system_attributes['min_storage_interval'] = int(new_system_attributes['min_storage_interval'])  # fix(later): safe convert
                 r.system_attributes = json.dumps(system_attributes)
         elif r.type == Resource.REMOTE_FOLDER:
             # fix(soon): should use args['system_attributes'] instead of just args
@@ -445,23 +447,25 @@ class ResourceList(ApiResource):
             }
             r.system_attributes = json.dumps(system_attributes)
         elif resource_type == Resource.SEQUENCE:
-            data_type = int(args['data_type'])  # fix(soon): safe convert to int
+            new_system_attributes = json.loads(args['system_attributes'])
+            new_system_attributes.update(args)
+            data_type = int(new_system_attributes['data_type'])  # fix(soon): safe convert to int
             system_attributes = {
                 'data_type': data_type,
             }
-            if args.get('decimal_places', '') != '':
-                system_attributes['decimal_places'] = int(args['decimal_places'])  # fix(soon): safe convert to int
-            if args.get('units'):
-                system_attributes['units'] = args['units']
-            if args.get('max_history', '') != '':
-                max_history = int(args['max_history'])  # fix(soon): safe convert to int
+            if new_system_attributes.get('decimal_places', '') != '':
+                system_attributes['decimal_places'] = int(new_system_attributes['decimal_places'])  # fix(soon): safe convert to int
+            if new_system_attributes.get('units'):
+                system_attributes['units'] = new_system_attributes['units']
+            if new_system_attributes.get('max_history', '') != '':
+                max_history = int(new_system_attributes['max_history'])  # fix(soon): safe convert to int
             else:
                 if data_type == Resource.TEXT_SEQUENCE:
                     max_history = 10000
                 else:
                     max_history = 100000  # store more numeric history
-            if args.get('min_storage_interval', '') != '':
-                min_storage_interval = int(args['min_storage_interval'])  # fix(soon): safe convert to int
+            if new_system_attributes.get('min_storage_interval', '') != '':
+                min_storage_interval = int(new_system_attributes['min_storage_interval'])  # fix(soon): safe convert to int
             else:
                 if data_type == Resource.TEXT_SEQUENCE:
                     min_storage_interval = 0  # default to 0 seconds for text sequences (want to record all log entries)
