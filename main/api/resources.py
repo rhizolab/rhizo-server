@@ -272,7 +272,8 @@ class ResourceRecord(ApiResource):
         if 'user_attributes' in args:
             r.user_attributes = args['user_attributes']
         if r.type == Resource.SEQUENCE:
-            if 'system_attributes' in args or 'data_type' in args or 'decimal_places' in args or 'max_history' in args or 'min_storage_interval' in args or 'units' in args:
+            if ('system_attributes' in args or 'data_type' in args or 'decimal_places' in args or 'max_history' in args
+                    or 'min_storage_interval' in args or 'units' in args):
                 new_system_attributes = json.loads(args['system_attributes'])
                 new_system_attributes.update(args)
                 system_attributes = json.loads(r.system_attributes)
