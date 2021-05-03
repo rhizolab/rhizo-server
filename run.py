@@ -6,7 +6,7 @@ from geventwebsocket.handler import WebSocketHandler
 from main.app import app, db
 from main.users.auth import create_user
 from main.users.models import User, OrganizationUser
-from main.resources.resource_util import create_system_resources, find_resource
+from main.resources.resource_util import create_system_resources, find_resource, remove_duplicate_resources
 
 # import all views
 from main.users import views
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         db.session.commit()
         print('created system admin: %s' % email_address)
     elif options.migrate_db:
-        pass
+        remove_duplicate_resources()
 
     # start the debug server
     else:

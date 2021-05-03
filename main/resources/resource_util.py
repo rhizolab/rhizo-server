@@ -14,7 +14,7 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 # internal imports
 from main.app import db, message_queue, storage_manager
-from main.resources.models import Resource, ResourceRevision, Thumbnail
+from main.resources.models import Resource, ResourceRevision, Thumbnail, ControllerStatus, ResourceView
 from main.resources.file_conversion import compute_thumbnail
 from main.users.permissions import ACCESS_LEVEL_WRITE, ACCESS_TYPE_ORG_USERS, ACCESS_TYPE_ORG_CONTROLLERS
 
@@ -367,3 +367,62 @@ If you are logged in as a system admin, you can [edit this page](/system/home.md
                 db.session.commit()
                 app_create_count += 1
     print('created %d apps' % app_create_count)
+
+
+# deletes the given resource and all of its children;
+# this actually deletes the records, rather than just marking them as deleted;
+# also deletes all revisions and thumbnails for this resource
+def delete_resource(resource, verbose=False):
+    if verbose:
+        print('deleting %s' % resource.name)
+    children = Resource.query.filter(Resource.parent_id == resource.id)
+    if verbose:
+        child_count = children.count()
+        if child_count:
+            print('deleting %d children' % child_count)
+    for r in children:
+        delete_resource(r, verbose)
+    ResourceRevision.query.filter(ResourceRevision.resource_id == resource.id).delete()
+    Thumbnail.query.filter(Thumbnail.resource_id == resource.id).delete()
+    ResourceView.query.filter(ResourceView.resource_id == resource.id).delete()
+    ControllerStatus.query.filter(ControllerStatus.id == resource.id).delete()
+    db.session.delete(resource)
+    db.session.commit()
+
+
+def remove_duplicate_resources(parent=None, delete=False):
+
+    # find duplicate resources
+    if parent:
+        resources = Resource.query.filter(Resource.parent_id == parent.id)
+    else:
+        resources = Resource.query.filter(Resource.parent_id.is_(None))
+    resources_by_name = {}
+    for r in resources:
+        if r.name in resources_by_name:
+            resources_by_name[r.name].append(r)
+        else:
+            resources_by_name[r.name] = [r]
+
+    # handle duplicate resources
+    for name, rlist in resources_by_name.items():
+        if len(rlist) > 1:
+            rlist.sort(key=lambda r: r.id)  # seems to be much faster to sort here rather than in query above
+            print('    duplicates of %s/%s' % (parent.path(), name))
+            for r in rlist:
+                print('        id: %d, del: %d' % (r.id, r.deleted))
+            for r in rlist[:-1]:
+                if delete:  # permanently delete the resource and all its children
+                    delete_resource(r)
+                    print('        id %d deleted' % r.id)
+                else:  # just rename it so it's no longer a duplicate
+                    r.name = '%s~%d' % (r.name, r.id)
+                    db.session.commit()
+                    print('        id %d renamed' % r.id)
+
+    # recurse
+    for r in resources:
+        if not parent:
+            print('checking %s...' % r.name)
+        if r.name != 'notable':
+            remove_duplicate_resources(r)
