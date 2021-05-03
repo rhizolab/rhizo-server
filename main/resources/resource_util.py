@@ -424,5 +424,4 @@ def remove_duplicate_resources(parent=None, delete=False):
     for r in resources:
         if not parent:
             print('checking %s...' % r.name)
-        if r.name != 'notable':
-            remove_duplicate_resources(r)
+        remove_duplicate_resources(r)
