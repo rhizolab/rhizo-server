@@ -4,6 +4,7 @@ from flask import Flask, render_template, redirect, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_restful import Api
+from flask_migrate import Migrate
 from .config import init_flask_config
 from .messages.socket_sender import SocketSender
 from .messages.message_queue_basic import MessageQueueBasic
@@ -21,6 +22,7 @@ assert app.config['DISCLAIMER'] == 'This is pre-release code; the API and databa
 
 # create database wrapper
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 # create REST API object
 api_ = Api(app)

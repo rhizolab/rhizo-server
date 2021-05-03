@@ -2,6 +2,7 @@ bcrypt
 boto3==1.16.11
 Flask
 Flask-Login
+Flask-Migrate
 Flask-RESTful
 Flask-SQLAlchemy
 Flask-Sockets
