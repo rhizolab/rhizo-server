@@ -216,7 +216,7 @@ def organization_settings(org_folder_name):
 
     # get organization record
     try:
-        resource = Resource.query.filter(Resource.name == org_folder_name).one()
+        resource = Resource.query.filter(Resource.name == org_folder_name, Resource.parent_id.is_(None)).one()
     except NoResultFound:
         abort(404)
 
