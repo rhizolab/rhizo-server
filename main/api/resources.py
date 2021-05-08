@@ -21,7 +21,7 @@ from main.users.permissions import access_level, ACCESS_LEVEL_READ, ACCESS_LEVEL
 from main.util import parse_json_datetime
 from main.resources.models import Resource, ResourceRevision, ResourceView, ControllerStatus, Thumbnail
 from main.resources.resource_util import find_resource, read_resource, add_resource_revision, _create_file, update_sequence_value, \
-    resource_type_number, _create_folders, create_sequence
+    resource_type_number, _create_folders, create_sequence, delete_resource
 from main.resources.file_conversion import convert_csv_to_xls, convert_xls_to_csv, convert_new_lines, compute_thumbnail
 from main.users.auth import find_key  # fix(clean): remove?
 
@@ -399,10 +399,17 @@ class ResourceList(ApiResource):
         else:
             modification_timestamp = creation_timestamp
 
-        # check for existing resource
+        # check for existing non-deleted resource; if found, return error
         try:
             Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, not_(Resource.deleted)).one()
             return {'message': 'Resource already exists.', 'status': 'error'}  # fix(soon): return 400 status code
+        except NoResultFound:
+            pass
+
+        # check for existing deleted resource; if found, permanently delete it
+        try:
+            r = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, Resource.deleted == True).one()
+            delete_resource(r)
         except NoResultFound:
             pass
 
