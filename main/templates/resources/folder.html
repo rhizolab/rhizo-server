@@ -820,7 +820,7 @@ function editControllerSettings(resource) {
 			var formData = createFormData();
 			formData.add({label: 'name', id: 'ctrlEdit_name', value: resource.name});
 			formData.add({label: 'watchdog recipients', id: 'ctrlEdit_watchdogRecipients', value: resourceInfo.system_attributes.watchdog_recipients});
-			formData.add({label: 'watchdog minutess', id: 'ctrlEdit_watchdogMinutes', value: resourceInfo.system_attributes.watchdog_minutes});
+			formData.add({label: 'watchdog minutes', id: 'ctrlEdit_watchdogMinutes', value: resourceInfo.system_attributes.watchdog_minutes});
 			createForm({data: formData}).appendTo(modalBody);
 			
 			// show list of keys
