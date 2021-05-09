@@ -107,7 +107,7 @@ int mosquitto_auth_security_cleanup(void *user_data, struct mosquitto_opt *opts,
 
 int mosquitto_auth_unpwd_check(void *user_data, struct mosquitto *client, const char *username, const char *password) {
 	AuthData *auth_data = (AuthData *) user_data;
-	if (username == NULL || password == NULL) {
+	if (username == NULL || password == NULL || username[0] == 0 || password[0] == 0) {  // we require a username and password
 		return MOSQ_ERR_AUTH;
 	}
 	if (auth_data->verbose) {

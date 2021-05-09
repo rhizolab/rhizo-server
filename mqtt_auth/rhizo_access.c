@@ -176,9 +176,13 @@ AccessInfo *find_access_info(AuthData *auth_data, const char *topic, const char 
 
 
 int auth_controller(AuthData *auth_data, const char *secret_key) {
+	int key_len = strlen(secret_key);
+	if (key_len < 6) {
+		fprintf(stderr, "rhizo_access: key is missing or too short\n");
+		return -1;
+	}
 
 	// use beginning and end of key to look up candidate keys in the database
-	int key_len = strlen(secret_key);
 	char key_part[7];
 	for (int i = 0; i < 3; i++) {
 		key_part[i] = secret_key[i];
@@ -347,6 +351,10 @@ int check_token(const char *token, const char *msg_token_salt) {
 // returns the user ID if token is valid; otherwise returns -1
 // token format: token_version,unix_timestamp,key_id,nonce,base64(sha-512(unix_timestamp,key_id,nonce,msg_token_salt,key_hash))
 int auth_user(AuthData *auth_data, const char *token) {
+	if (token == NULL || token[0] == 0) {
+		fprintf(stderr, "rhizo_access: token is missing\n");
+		return -1;
+	}
 
 	// handle old token format
 	if (token[0] == '1' && token[1] == ';') {
