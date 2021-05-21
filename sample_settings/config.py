@@ -25,7 +25,7 @@
 # Address of MQTT server to connect to.
 # MQTT_HOST = ''
 
-# format for postgres: 'postgres://[username]:[password]@[hostname]/[db]'
+# format for postgres: 'postgresql://[username]:[password]@[hostname]/[db]'
 # SQLALCHEMY_DATABASE_URI = 'sqlite:///rhizo.db'
 
 # SQLALCHEMY_TRACK_MODIFICATIONS = False
