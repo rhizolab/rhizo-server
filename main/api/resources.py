@@ -408,7 +408,7 @@ class ResourceList(ApiResource):
 
         # check for existing deleted resource; if found, permanently delete it
         try:
-            r = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, Resource.deleted == True).one()
+            r = Resource.query.filter(Resource.parent_id == parent_resource.id, Resource.name == name, Resource.deleted.is_(True)).one()
             delete_resource(r)
         except NoResultFound:
             pass
