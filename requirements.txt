@@ -1,6 +1,6 @@
 bcrypt
 boto3==1.16.11
-Flask
+Flask==1.1.4  # pin to this version until migrate to flask 2.0
 Flask-Login
 Flask-Migrate
 Flask-RESTful
